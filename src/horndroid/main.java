@@ -1,17 +1,43 @@
+/*
+ * [The "BSD licence"]
+ * Copyright (c) 2015 Ilya Grishchenko
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. The name of the author may not be used to endorse or promote products
+ *    derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 package horndroid;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.cli.PosixParser;
 import org.apache.commons.io.FilenameUtils;
 import org.jf.dexlib2.DexFileFactory;
-import org.jf.dexlib2.dexbacked.DexBackedClassDef;
 import org.jf.dexlib2.dexbacked.DexBackedDexFile;
 import org.jf.dexlib2.iface.ClassDef;
-import org.jf.dexlib2.iface.Method;
 import org.jf.util.ConsoleUtil;
 import org.jf.util.SmaliHelpFormatter;
 import org.xml.sax.SAXException;
@@ -50,12 +76,13 @@ public class main {
         options = new Options();
         options.addOption("q", false, "precise query results");
         options.addOption("w", false, "sensitive array indexes");
+        options.addOption("s", false, "one query per file, run Z3 in parallel saving results to the /out folder");
     }
     
     public static void main(String[] args) throws IOException, SAXException, ParserConfigurationException {
     	System.out.println("Starting Horndroid...");
         ExecutorService executorService = Executors.newCachedThreadPool();
-        CommandLineParser parser = new DefaultParser();
+        CommandLineParser parser = new PosixParser();
         CommandLine commandLine;
         try {
             commandLine = parser.parse(options, args);
@@ -78,6 +105,9 @@ public class main {
                     break;
                 case 'q':
                 	options.verboseResults = true;
+                    break;
+                case 's':
+                	options.oneQuery = true;
                     break;
             }
         }
@@ -177,7 +207,7 @@ public class main {
 	         endTime = System.nanoTime();
 	         System.out.println("done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
 
-       
+	         if (!options.oneQuery){
 	         gen.writeOne();
         
 	         String smtFile = options.outputDirectory + '/' + "clauses.smt2";
@@ -188,41 +218,29 @@ public class main {
 	        	 e.printStackTrace();
 	         }
 	         System.out.println("----------------------------------------------------------------------------");
-        
+	         }
+	         else{
 	         
-	    //generation of a multiple files with Horn clauses instead of one, can be an options     
-        /*gen.write();
+	        	 gen.write();
        
-        final String outputDirectory = options.outputDirectory;
+	        	 final String outputDirectory = options.outputDirectory;
+	        	 final String z3f = z3Folder;
         
-        for (int i = 0; i < gen.numberOfQueries(); i++){
-        	final int count = i;
-        executorService.submit(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Process process = new ProcessBuilder("/bin/sh", "-c", runZ3(outputDirectory, z3Folder, shortFilename, fullPath, count)).start();
-                } catch (IOException e) {
-                    e.printStackTrace();  
-                }
+	        	 for (int i = 0; i < gen.numberOfQueries(); i++){
+	        		 final int count = i;
+	        		 executorService.submit(new Runnable() {
+	        			 @Override
+	        			 public void run() {
+	        				 try {
+	        					 Process process = new ProcessBuilder("/bin/sh", "-c", runZ3(outputDirectory, z3f, shortFilename, fullPath, count)).start();
+	        				 } catch (IOException e) {
+	        					 e.printStackTrace();  
+	        				 }
 
-            }
-        });
-        }*/
-        
-        /*executorService.submit(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Process process = new ProcessBuilder("/bin/sh", "-c", runZ3One(outputDirectory, z3Folder, shortFilename, fullPath)).start();
-                } catch (IOException e) {
-                    e.printStackTrace();  
-                }
-
-            }
-        });*/
-        
-        //if (executorService.isTerminated()) executorService.shutdown();
+	        			 }
+	        		 });
+	        	 }
+	         }
         }
     }
     
@@ -300,108 +318,26 @@ public class main {
         System.out.println("Analysis...done in " + Long.toString((System.nanoTime() - startTime) / 1000000) + " milliseconds");
 }
     
-    private static String runZ3One(String directory, String z3Folder, String filename, String fullpath) throws IOException{
+    /*private static String runZ3One(String directory, String z3Folder, String filename, String fullpath) throws IOException{
     	String smtFile = directory + '/' + "clauses.smt2";
     	//Runtime runtime = Runtime.getRuntime();
     	return "cd " + z3Folder + ';' + " ./z3 " + smtFile + " > " + fullpath + "out/" + filename +".txt";
     	//Process proc = runtime.exec(new String[]{"/bin/sh", "-c",
 		//	"cd " + z3Folder + ';' + " ./z3 " + smtFile + " > " + directory + '/' + "output.txt"});	
-    }
+    }*/
     
     private static String runZ3(String directory, String z3Folder, String filename, String fullpath, int numberOfQuery) throws IOException{
     	String smtFile = directory + '/' + "clauses" + Integer.toString(numberOfQuery) + ".smt2";
-    	//Runtime runtime = Runtime.getRuntime();
+    	File output = new File(fullpath + "out/");
+    	if (output.exists()){}
+    	else
+    		output.mkdirs();
     	return "cd " + z3Folder + ';' + " ./z3 " + smtFile + " > " + fullpath + "out/" + filename + Integer.toString(numberOfQuery) +".txt";
-    	//Process proc = runtime.exec(new String[]{"/bin/sh", "-c",
-		//	"cd " + z3Folder + ';' + " ./z3 " + smtFile + " > " + directory + '/' + "output.txt"});	
     }
     
     
     
-    private static Method findCallbackDirect(List<? extends ClassDef> classDefs, String methodName){
-    	for (final ClassDef classDef: classDefs) {
-    		//look in direct methods
-      		Iterable<? extends Method> directMethods;
-            if (classDef instanceof DexBackedClassDef) {
-                directMethods = ((DexBackedClassDef)classDef).getDirectMethods(false);
-            } else {
-                directMethods = classDef.getDirectMethods();
-            }
-            for (Method method: directMethods) {
-            	if (methodName.equals(method.getName()))
-            		return method;
-            }
-    	}
-		return null;
-    }
     
-    private static Method findCallbackVirtual(List<? extends ClassDef> classDefs, String methodName){
-    	for (final ClassDef classDef: classDefs) {
-    		Iterable<? extends Method> virtualMethods;
-        	if (classDef instanceof DexBackedClassDef) {
-        		virtualMethods = ((DexBackedClassDef)classDef).getVirtualMethods(false);
-        		} else {
-        		virtualMethods = classDef.getVirtualMethods();
-        		}
-
-        	for (Method method: virtualMethods) {
-        		if (methodName.equals(method.getName()))  
-        			    				return method;	
-        	}
-    	}
-        return null;
-    }
-    
-    private static void cleanR() throws IOException{
-        Runtime runtime = Runtime.getRuntime();
-		Process proc = runtime.exec(new String[]{"/bin/sh", "-c",
-    			"rm -r " + "sootOutput; rm dummy.txt"});
-		BufferedReader stdInput = new BufferedReader(new 
-	             InputStreamReader(proc.getInputStream()));
-
-	        BufferedReader stdError = new BufferedReader(new 
-	             InputStreamReader(proc.getErrorStream()));
-
-	        // read the output from the command
-	        String s = null;
-	        while ((s = stdInput.readLine()) != null) {
-	            System.out.println(s);
-	        }
-
-	        // read any errors from the attempted command
-	        if (stdError.readLine() != null)
-	        	System.out.println("Here is the standard error of the command (if any):\n");
-	        while ((s = stdError.readLine()) != null) {
-	            System.out.println(s);
-	        }
-		proc.destroy();
-	}
-    
-    private static void clean(String outputFolder) throws IOException{
-        Runtime runtime = Runtime.getRuntime();
-		Process proc = runtime.exec(new String[]{"/bin/sh", "-c",
-    			"cd " + outputFolder + ';' + " rm -r " + "android" +"; rm dummyMainClass.txt"});
-		BufferedReader stdInput = new BufferedReader(new 
-	             InputStreamReader(proc.getInputStream()));
-
-	        BufferedReader stdError = new BufferedReader(new 
-	             InputStreamReader(proc.getErrorStream()));
-
-	        // read the output from the command
-	        String s = null;
-	        while ((s = stdInput.readLine()) != null) {
-	            System.out.println(s);
-	        }
-
-	        // read any errors from the attempted command
-	        if (stdError.readLine() != null)
-	        	System.out.println("Here is the standard error of the command (if any):\n");
-	        while ((s = stdError.readLine()) != null) {
-	            System.out.println(s);
-	        }
-		proc.destroy();
-	}
-   
     private static void getApkFilesInDir(File dir, Set<File> apkFiles) {
         File[] files = dir.listFiles();
         if (files != null) {
@@ -428,5 +364,6 @@ public class main {
          System.out.println("options:");
          System.out.println("-q precise query results");
          System.out.println("-w sensitive array indexes");
+         System.out.println("-s one query per file, run Z3 in parallel saving results to the /out folder");
     }
 }
