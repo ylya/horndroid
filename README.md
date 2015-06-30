@@ -13,6 +13,7 @@ java -jar horndroid.jar [options] %Z3Home%/bin <apk-file>
 options:
 
 -q precise query results
+
 -w sensitive array indexes
 
 You can specify a path to an *.apk file or a folder (all apps in sub-folders will be also analysed).
