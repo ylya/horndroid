@@ -1366,13 +1366,14 @@ private static void addFactsFound(String className, String methodName, IndStr in
     	return ret + v + ' ' + l + ' ' + b + ')';
     }
     
-    public String rInvokePred(final String c, final String m, final int pc, final Map<Integer, String> rUp, final Map<Integer, String> rUpL, final Map<Integer, String> rUpB, final int numArg, final int numReg, final Gen gen){
+    public String rInvokePred(final String c, final String m, final int pc, final Map<Integer, String> rUp, final Map<Integer, String> rUpL, final Map<Integer, String> rUpB, final int numArg, final int numReg, final Gen gen,
+    		final int size){
     	rPredDef(c, m , pc, numArg + numReg, gen);
     	String ret = "(R" + '_' + c + '_' + m + '_' + Integer.toString(pc) + ' ';
     	String v = "", l = "", b = "", var;
     	for (int i = 0; i <= (numArg + numReg); i++){
     		var = rUp.get(i);
-			if (var == null) var = "(_ bv0 64)";	
+			if (var == null) var = "(_ bv0 "+ Integer.toString(size) + ")";	
 			if (!v.isEmpty()) v = v + ' ' + var;
 			else v = var;
 			//addVar(var, gen);

@@ -181,7 +181,7 @@ public class InstructionDataCollector<T extends Instruction> {
              		&& referenceIntIndex == indStr.get("<init>()V", 'm')){
              	refClassElement.putInstance(c, m, codeAddress, indStr.get("Landroid/content/Intent;", 'c'), true);
              }
-             
+             try{
              if (returnType.length() > 0){
              	if (returnType.contains("[")){
                  	refClassElement.putInstance(c, m, codeAddress, indStr.get(returnType, 'c'), false);
@@ -191,6 +191,10 @@ public class InstructionDataCollector<T extends Instruction> {
              		refClassElement.putInstance(c, m, codeAddress, indStr.get(returnType, 'c'), true);
              		break;
              	}
+             }
+             }
+             catch (NullPointerException e){
+            	 System.err.println("While parsing instruction: " + instruction.toString());
              }
              break;
 		 case Format3rc:
@@ -228,7 +232,7 @@ public class InstructionDataCollector<T extends Instruction> {
 		}
 	}
 	public void process(final IndStr indStr, final RefClassElement refClassElement, final ImmutableList<Instruction> instructions,
-			final List<? extends ClassDef> classDefs, final Method method, final NumLoc numLoc, final Gen gen, final options options, final ClassDef classDef, final Set<Integer> activities){
+			final List<? extends ClassDef> classDefs, final Method method, final NumLoc numLoc, final Gen gen, final options options, final ClassDef classDef, final Set<Integer> activities, final int size){
 
 	  	int jump = 0;
     	int referenceReg;
@@ -395,7 +399,7 @@ public class InstructionDataCollector<T extends Instruction> {
         	case CONST_WIDE://((short)0x18, "const-wide", ReferenceType.NONE, Format.Format51l, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
         	case CONST_WIDE_HIGH16:
         		cl.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral()));
+        		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size));
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "false");
         		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), "false");
         		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
@@ -405,7 +409,7 @@ public class InstructionDataCollector<T extends Instruction> {
         	case CONST_STRING_JUMBO:
         	case CONST_CLASS://break;//((short)0x1c, "const-class", ReferenceType.TYPE, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         		cl.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), Utils.hexDec64(referenceIntIndex));
+        		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), Utils.hexDec64(referenceIntIndex, size));
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "false");
         		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), "false");
         		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
@@ -413,13 +417,13 @@ public class InstructionDataCollector<T extends Instruction> {
         		break;//((short)0x1b, "const-string/jumbo", ReferenceType.STRING, Format.Format31c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),	
         	case CHECK_CAST:
         		cl.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen) + 
-        				" (= b" + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + " true) " + "(bvugt v" + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + " (_ bv0 64)))");
+        				" (= b" + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + " true) " + "(bvugt v" + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + " " + Utils.hexDec64(0, size) + "))");
         		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		gen.addClause(cl);
         		break;//((short)0x1f, "check-cast", ReferenceType.TYPE, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case INSTANCE_OF:
         		cl.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), "(_ bv0 64)");
+        		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), Utils.hexDec64(0, size));
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "false");
         		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), "false");
         		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
@@ -428,7 +432,7 @@ public class InstructionDataCollector<T extends Instruction> {
         		regUpdateL.clear();
         		regUpdateB.clear();
         		cl3.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), "(_ bv1 64)");
+        		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), Utils.hexDec64(1, size));
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "false");
         		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), "false");
         		cl3.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
@@ -453,7 +457,7 @@ public class InstructionDataCollector<T extends Instruction> {
         		}
         		instanceNum = refClassElement.getInstNum(ci, mi, codeAddress);
         		cl.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), Utils.hexDec64(instanceNum));
+        		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), Utils.hexDec64(instanceNum, size));
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "false");
         		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), "true");
         		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
@@ -467,13 +471,13 @@ public class InstructionDataCollector<T extends Instruction> {
         			Clause cl12 = new Clause();
         			cl12.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         			cl12.appendBody(refClassElement.hPred(
-        					Utils.hexDec64(referenceIntIndex), Utils.hexDec64(instanceNum), Utils.hexDec64(fieldN.getKey()), "(_ bv0 64)", "false", Boolean.toString(fieldN.getValue())));
+        					Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size), Utils.hexDec64(fieldN.getKey(), size), Utils.hexDec64(0, size), "false", Boolean.toString(fieldN.getValue())));
         			gen.addClause(cl12);
         		}
 				else{
 					Clause cl12 = new Clause();
         			cl12.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        			cl12.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex), Utils.hexDec64(instanceNum), "f", "(_ bv0 64)", "false", "bf"));
+        			cl12.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size), "f", Utils.hexDec64(0, size), "false", "bf"));
         			gen.addClause(cl12);
 				}
         		
@@ -491,7 +495,7 @@ public class InstructionDataCollector<T extends Instruction> {
         	case NEW_ARRAY:
         		instanceNum = refClassElement.getInstNum(ci, mi, codeAddress);
         		cl.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), Utils.hexDec64(instanceNum));
+        		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), Utils.hexDec64(instanceNum, size));
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "false");
         		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), "true");
         		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
@@ -499,13 +503,13 @@ public class InstructionDataCollector<T extends Instruction> {
         		regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
         		if (options.arrays){
         		cl2.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
-        				+ " (bvuge (_ bv0 64) f) " + "(bvult f " + 'v' + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) +"))");
-        		cl2.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex), Utils.hexDec64(instanceNum), "f", "(_ bv0 64)", "false", "false"));
+        				+ " (bvuge " + Utils.hexDec64(0, size) + " f) " + "(bvult f " + 'v' + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) +"))");
+        		cl2.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size), "f", Utils.hexDec64(0, size), "false", "false"));
         		gen.addClause(cl2);
         		}
         		else{
         		cl2.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		cl2.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex), Utils.hexDec64(instanceNum), "(_ bv0 64)", "(_ bv0 64)", "false", "false"));
+        		cl2.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size), Utils.hexDec64(0, size), Utils.hexDec64(0, size), "false", "false"));
         		gen.addClause(cl2);
         		}
         		break;//((short)0x23, "new-array", ReferenceType.TYPE, Format.Format22c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
@@ -549,9 +553,10 @@ public class InstructionDataCollector<T extends Instruction> {
         		cl.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), 
         				"(ite (= v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + 
-                		" v" + Integer.toString(((ThreeRegisterInstruction) instruction).getRegisterC()) + ") (_ bv0 64) (ite (bvugt v" +
+                		" v" + Integer.toString(((ThreeRegisterInstruction) instruction).getRegisterC()) + ") "+ Utils.hexDec64(0, size) + " (ite (bvugt v" +
                 		Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + 
-                		" v" + Integer.toString(((ThreeRegisterInstruction) instruction).getRegisterC()) + ") (_ bv1 64) (bvneg (_ bv1 64))))");
+                		" v" + Integer.toString(((ThreeRegisterInstruction) instruction).getRegisterC()) + ") " + Utils.hexDec64(1, size) +
+                		' ' + Utils.hexDec64(-1, size) +"))");
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), 
         				"(or l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + 
         				" l" + Integer.toString(((ThreeRegisterInstruction) instruction).getRegisterC()) + ')');
@@ -665,14 +670,14 @@ public class InstructionDataCollector<T extends Instruction> {
         		jump = codeAddress + ((OffsetInstruction)instruction).getCodeOffset();
         		cl.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ " (not (= " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
-        				           "(_ bv0 64)" + "))"
+        				           Utils.hexDec64(0, size) + "))"
         				+ ')');
         		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		gen.addClause(cl);
         		
         		cl3.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ " (= " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
-        				           "(_ bv0 64)" + ")"
+        				          Utils.hexDec64(0, size) + ")"
         				+ ")");
         		cl3.appendBody(refClassElement.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		gen.addClause(cl3);
@@ -682,14 +687,14 @@ public class InstructionDataCollector<T extends Instruction> {
         		jump = codeAddress + ((OffsetInstruction)instruction).getCodeOffset();
         		cl.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ " (= " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
-        				           "(_ bv0 64)" + ')'
+        				          Utils.hexDec64(0, size) + ')'
         				+ ')');
         		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		gen.addClause(cl);
         		
         		cl3.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ " (not (= " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
-        				           "(_ bv0 64)" + "))"
+        				           Utils.hexDec64(0, size) + "))"
         				+ ")");
         		cl3.appendBody(refClassElement.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		gen.addClause(cl3);
@@ -699,14 +704,14 @@ public class InstructionDataCollector<T extends Instruction> {
         		jump = codeAddress + ((OffsetInstruction)instruction).getCodeOffset();
         		cl.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ " (not (bvult " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
-        				           "(_ bv0 64)" + "))"
+        				           Utils.hexDec64(0, size) + "))"
         				+ ')');
         		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		gen.addClause(cl);
         		
         		cl3.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ " (bvult " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
-        				           "(_ bv0 64)" + ")"
+        				           Utils.hexDec64(0, size) + ")"
         				+ ")");
         		cl3.appendBody(refClassElement.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		gen.addClause(cl3);
@@ -716,14 +721,14 @@ public class InstructionDataCollector<T extends Instruction> {
         		jump = codeAddress + ((OffsetInstruction)instruction).getCodeOffset();
         		cl.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ " (not (bvuge " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
-        				           "(_ bv0 64)" + "))"
+        				          Utils.hexDec64(0, size) + "))"
         				+ ')');
         		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		gen.addClause(cl);
         		
         		cl3.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ " (bvuge " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
-        				           "(_ bv0 64)" + ")"
+        				          Utils.hexDec64(0, size) + ")"
         				+ ")");
         		cl3.appendBody(refClassElement.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		gen.addClause(cl3);
@@ -733,14 +738,14 @@ public class InstructionDataCollector<T extends Instruction> {
         		jump = codeAddress + ((OffsetInstruction)instruction).getCodeOffset();
         		cl.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ " (not (bvugt " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
-        				           "(_ bv0 64)" + "))"
+        				           Utils.hexDec64(0, size) + "))"
         				+ ')');
         		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		gen.addClause(cl);
         		
         		cl3.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ " (bvugt " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
-        				           "(_ bv0 64)" + ")"
+        				           Utils.hexDec64(0, size) + ")"
         				+ ")");
         		cl3.appendBody(refClassElement.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		gen.addClause(cl3);
@@ -750,14 +755,14 @@ public class InstructionDataCollector<T extends Instruction> {
         		jump = codeAddress + ((OffsetInstruction)instruction).getCodeOffset();
         		cl.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ " (not (bvule " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
-        				           "(_ bv0 64)" + "))"
+        				           Utils.hexDec64(0, size) + "))"
         				+ ')');
         		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		gen.addClause(cl);
         		
         		cl3.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ " (bvule " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
-        				           "(_ bv0 64)" + ")"
+        				          Utils.hexDec64(0, size) + ")"
         				+ ")");
         		cl3.appendBody(refClassElement.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		gen.addClause(cl3);
@@ -787,7 +792,7 @@ public class InstructionDataCollector<T extends Instruction> {
         		Clause cl6 = new Clause();
 				cl6.appendHead("(and " + 
     			refClassElement.hPred("cn", "v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()), 
-    					"(_ bv0 64)", "val", "lval", "bval") +
+    					Utils.hexDec64(0, size), "val", "lval", "bval") +
 						' ' + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen) +
 						")");
 				regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), "val");
@@ -812,7 +817,7 @@ public class InstructionDataCollector<T extends Instruction> {
         		gen.addClause(cl);
         		regUpdateL.clear();
         		cl2.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
-        				+ ' ' + refClassElement.hPred("cn", "v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()), "(_ bv0 64)", "(_ bv0 64)", "lf", "bf") +')');
+        				+ ' ' + refClassElement.hPred("cn", "v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()), Utils.hexDec64(0, size), Utils.hexDec64(0, size), "lf", "bf") +')');
         		cl2.appendBody(refClassElement.hPred("cn", "v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()), 
         				"v" + Integer.toString(((ThreeRegisterInstruction) instruction).getRegisterC()), 
         				'v'+ Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()), 'l'+Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()),
@@ -827,9 +832,9 @@ public class InstructionDataCollector<T extends Instruction> {
         		gen.addClause(cl);
         		regUpdateL.clear();
         		cl2.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
-        				+ ' ' + refClassElement.hPred("cn", "v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()), "(_ bv0 64)", "(_ bv0 64)", "lf", "bf") +')');
+        				+ ' ' + refClassElement.hPred("cn", "v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()), Utils.hexDec64(0, size), Utils.hexDec64(0, size), "lf", "bf") +')');
         		cl2.appendBody(refClassElement.hPred("cn", "v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()), 
-        				"(_ bv0 64)", 
+        				Utils.hexDec64(0, size), 
         				'v'+ Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()), 'l'+Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()),
         				'b'+Integer.toString(((OneRegisterInstruction)instruction).getRegisterA())));
         		gen.addClause(cl2);
@@ -846,7 +851,7 @@ public class InstructionDataCollector<T extends Instruction> {
         		Clause cl7 = new Clause();
 				cl7.appendHead("(and " + 
     			refClassElement.hPred("cn", "v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()), 
-    					Utils.hexDec64(referenceIntIndex), "val", "lval", "bval") +
+    					Utils.hexDec64(referenceIntIndex, size), "val", "lval", "bval") +
 						' ' + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen) +
 						")");
 				regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), "val");
@@ -870,9 +875,9 @@ public class InstructionDataCollector<T extends Instruction> {
         		gen.addClause(cl);
         		regUpdateL.clear();
         		cl2.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
-        				+ ' ' + refClassElement.hPred("cn", "v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()), "f", "(_ bv0 64)", "lf", "bf") +')');
+        				+ ' ' + refClassElement.hPred("cn", "v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()), "f", Utils.hexDec64(0, size), "lf", "bf") +')');
         		cl2.appendBody(refClassElement.hPred("cn", "v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()), 
-        				Utils.hexDec64(referenceIntIndex), 
+        				Utils.hexDec64(referenceIntIndex, size), 
         				'v'+ Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()), 'l'+Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()),
         				'b'+Integer.toString(((OneRegisterInstruction)instruction).getRegisterA())));
         		gen.addClause(cl2);
@@ -895,7 +900,7 @@ public class InstructionDataCollector<T extends Instruction> {
         		
         		cl2.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen) 
         				);
-        		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), "(_ bv0 64)");
+        		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), Utils.hexDec64(0, size));
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "false");
         		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), "bf");
         		cl2.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
@@ -944,14 +949,14 @@ public class InstructionDataCollector<T extends Instruction> {
                 		regUpdateB.clear();
             			cl10.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen) + 
             					" (= v" + Integer.toString(referenceReg) + ' ' + 
-            					Utils.hexDec64(entry.getKey()) + "))");  
+            					Utils.hexDec64(entry.getKey(), size) + "))");  
         				numArgCall = numLoc.getp(entry.getValue(), referenceIntIndex);
 
             			regUpdate = updateReg(numRegCall, numArgCall, 'v', false);
             			regUpdateL = updateReg(numRegCall, numArgCall, 'l', false);
             			regUpdateB = updateReg(numRegCall, numArgCall, 'b', false);
                 		cl10.appendBody(refClassElement.rInvokePred(Integer.toString(entry.getValue()), Integer.toString(referenceIntIndex), 0,  
-                				regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, gen));
+                				regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, gen, size));
                 		regUpdate.clear();
                 		regUpdateL.clear();
                 		regUpdateB.clear();
@@ -968,7 +973,7 @@ public class InstructionDataCollector<T extends Instruction> {
                 			regUpdateB.put(numArgCall, "brez");
                 			head = head + ' ' + refClassElement.resPred(Integer.toString(entry.getValue()), referenceIndex, regUpdate, regUpdateL, regUpdateB, numArgCall, gen) +
                 					" (= v" + Integer.toString(referenceReg) + ' ' + 
-                					Utils.hexDec64(entry.getKey()) + "))";
+                					Utils.hexDec64(entry.getKey(), size) + "))";
                 		}
                 		else{
                 			head = refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen);
@@ -990,7 +995,7 @@ public class InstructionDataCollector<T extends Instruction> {
             		}
         		}
         		else{
-        			if (processIntent(ci, mi, numParLoc, numRegLoc, nextCode, referenceClassIndex, referenceIntIndex, gen, referenceString, classDefs, indStr, refClassElement))
+        			if (processIntent(ci, mi, numParLoc, numRegLoc, nextCode, referenceClassIndex, referenceIntIndex, gen, referenceString, classDefs, indStr, refClassElement, size))
         				break;
         			numRegCall = numLoc.get(referenceClassIndex, referenceIntIndex);
     				if (numRegCall == 0)
@@ -1020,14 +1025,14 @@ public class InstructionDataCollector<T extends Instruction> {
                 		for (Map.Entry<Integer, Boolean> fieldN : fields.entrySet()){
                 			Clause cl12 = new Clause();
                 			cl12.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-                			cl12.appendBody(refClassElement.hPred(Utils.hexDec64(returnTypeInt), "fpp", Utils.hexDec64(fieldN.getKey()), "vfp", returnLabel, 
+                			cl12.appendBody(refClassElement.hPred(Utils.hexDec64(returnTypeInt, size), "fpp", Utils.hexDec64(fieldN.getKey(), size), "vfp", returnLabel, 
                 					Boolean.toString(fieldN.getValue())));
                 			gen.addClause(cl12);
                 		}
 					    else{
 					    	Clause cl12 = new Clause();
                 			cl12.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-                			cl12.appendBody(refClassElement.hPred(Utils.hexDec64(returnTypeInt), "fpp", "f", "vfp", returnLabel, 
+                			cl12.appendBody(refClassElement.hPred(Utils.hexDec64(returnTypeInt, size), "fpp", "f", "vfp", returnLabel, 
                 					"bf"));
                 			gen.addClause(cl12);
 					    }
@@ -1047,9 +1052,9 @@ public class InstructionDataCollector<T extends Instruction> {
         						instanceNum = refClassElement.getInstNum(ci, mi, codeAddress);
         						Clause cl12 = new Clause();
                     			cl12.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-                    			cl12.appendBody(refClassElement.hPred(Utils.hexDec64(returnTypeInt), Utils.hexDec64(instanceNum), "f", "buf", returnLabel, "bf"));
+                    			cl12.appendBody(refClassElement.hPred(Utils.hexDec64(returnTypeInt, size), Utils.hexDec64(instanceNum, size), "f", "buf", returnLabel, "bf"));
                     			gen.addClause(cl12);
-                        		regUpdate.put(numRegLoc, Utils.hexDec64(instanceNum));
+                        		regUpdate.put(numRegLoc, Utils.hexDec64(instanceNum, size));
                     			regUpdateL.put(numRegLoc, returnLabel);
                     			regUpdateB.put(numRegLoc, "true");
 
@@ -1094,7 +1099,7 @@ public class InstructionDataCollector<T extends Instruction> {
         		regUpdate = updateReg(numRegCall, numArgCall, 'v', false);
     			regUpdateL = updateReg(numRegCall, numArgCall, 'l', false);
     			regUpdateB = updateReg(numRegCall, numArgCall, 'b', false);
-        		cl2.appendBody(refClassElement.rInvokePred(referenceStringClassIndex, referenceIndex, 0, regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, gen));
+        		cl2.appendBody(refClassElement.rInvokePred(referenceStringClassIndex, referenceIndex, 0, regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, gen, size));
         		regUpdate.clear();
         		regUpdateL.clear();
         		regUpdateB.clear();
@@ -1128,7 +1133,7 @@ public class InstructionDataCollector<T extends Instruction> {
         		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		}
         		else{  
-        			if (processIntent(ci, mi, numParLoc, numRegLoc, nextCode, referenceClassIndex, referenceIntIndex, gen, referenceString, classDefs, indStr, refClassElement))
+        			if (processIntent(ci, mi, numParLoc, numRegLoc, nextCode, referenceClassIndex, referenceIntIndex, gen, referenceString, classDefs, indStr, refClassElement, size))
         				break;
         			head = refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen);
         			cl.appendHead(head);
@@ -1147,14 +1152,14 @@ public class InstructionDataCollector<T extends Instruction> {
                 		for (Map.Entry<Integer, Boolean> fieldN : fields.entrySet()){
                 			Clause cl12 = new Clause();
                 			cl12.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-                			cl12.appendBody(refClassElement.hPred(Utils.hexDec64(returnTypeInt), "fpp", Utils.hexDec64(fieldN.getKey()), "vfp", returnLabel, Boolean.toString(fieldN.getValue())));
+                			cl12.appendBody(refClassElement.hPred(Utils.hexDec64(returnTypeInt, size), "fpp", Utils.hexDec64(fieldN.getKey(), size), "vfp", returnLabel, Boolean.toString(fieldN.getValue())));
                 			gen.addClause(cl12);
                 			
                 		}
 						else{
 							Clause cl12 = new Clause();
                 			cl12.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-                			cl12.appendBody(refClassElement.hPred(Utils.hexDec64(returnTypeInt), "fpp", "f", "vfp", returnLabel, "bf"));
+                			cl12.appendBody(refClassElement.hPred(Utils.hexDec64(returnTypeInt, size), "fpp", "f", "vfp", returnLabel, "bf"));
                 			gen.addClause(cl12);
 						}
                 		regUpdate.put(numRegLoc, "fpp");
@@ -1174,9 +1179,9 @@ public class InstructionDataCollector<T extends Instruction> {
                         		
                     			Clause cl12 = new Clause();
                     			cl12.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-                    			cl12.appendBody(refClassElement.hPred(Utils.hexDec64(returnTypeInt), Utils.hexDec64(instanceNum), "f", "buf", returnLabel, "bf"));
+                    			cl12.appendBody(refClassElement.hPred(Utils.hexDec64(returnTypeInt, size), Utils.hexDec64(instanceNum, size), "f", "buf", returnLabel, "bf"));
                     			gen.addClause(cl12);
-                    			regUpdate.put(numRegLoc, Utils.hexDec64(instanceNum));
+                    			regUpdate.put(numRegLoc, Utils.hexDec64(instanceNum, size));
                     			regUpdateL.put(numRegLoc, returnLabel);
                     			regUpdateB.put(numRegLoc, "true");
 
@@ -1213,14 +1218,14 @@ public class InstructionDataCollector<T extends Instruction> {
                 		regUpdateB.clear();
             			cl10.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen) + 
             					" (= v" + Integer.toString(referenceReg) + ' ' + 
-            					Utils.hexDec64(entry.getKey()) + "))");  
+            					Utils.hexDec64(entry.getKey(), size) + "))");  
         				numArgCall = numLoc.getp(entry.getValue(), referenceIntIndex);
 
             			regUpdate = updateReg(numRegCall, numArgCall, 'v', true);
             			regUpdateL = updateReg(numRegCall, numArgCall, 'l', true);
             			regUpdateB = updateReg(numRegCall, numArgCall, 'b', true);
                 		cl10.appendBody(refClassElement.rInvokePred(Integer.toString(entry.getValue()), Integer.toString(referenceIntIndex), 0,  
-                				regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, gen));
+                				regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, gen, size));
                 		regUpdate.clear();
                 		regUpdateL.clear();
                 		regUpdateB.clear();
@@ -1237,7 +1242,7 @@ public class InstructionDataCollector<T extends Instruction> {
                 			regUpdateB.put(numArgCall, "brez");
                 			head = head + ' ' + refClassElement.resPred(Integer.toString(entry.getValue()), referenceIndex, regUpdate, regUpdateL, regUpdateB, numArgCall, gen) +
                 					" (= v" + Integer.toString(referenceReg) + ' ' + 
-                					Utils.hexDec64(entry.getKey()) + "))";
+                					Utils.hexDec64(entry.getKey(), size) + "))";
                 		}
                 		else{
                 			head = refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen);
@@ -1284,14 +1289,14 @@ public class InstructionDataCollector<T extends Instruction> {
                 		for (Map.Entry<Integer, Boolean> fieldN : fields.entrySet()){
                 			Clause cl12 = new Clause();
                 			cl12.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-                			cl12.appendBody(refClassElement.hPred(Utils.hexDec64(returnTypeInt), "fpp", Utils.hexDec64(fieldN.getKey()), "vfp", returnLabel, 
+                			cl12.appendBody(refClassElement.hPred(Utils.hexDec64(returnTypeInt, size), "fpp", Utils.hexDec64(fieldN.getKey(), size), "vfp", returnLabel, 
                 					Boolean.toString(fieldN.getValue())));
                 			gen.addClause(cl12);
                 		}
 					    else{
 					    	Clause cl12 = new Clause();
                 			cl12.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-                			cl12.appendBody(refClassElement.hPred(Utils.hexDec64(returnTypeInt), "fpp", "f", "vfp", returnLabel, 
+                			cl12.appendBody(refClassElement.hPred(Utils.hexDec64(returnTypeInt, size), "fpp", "f", "vfp", returnLabel, 
                 					"bf"));
                 			gen.addClause(cl12);
 					    }
@@ -1311,9 +1316,9 @@ public class InstructionDataCollector<T extends Instruction> {
         						instanceNum = refClassElement.getInstNum(ci, mi, codeAddress);
         						Clause cl12 = new Clause();
                     			cl12.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-                    			cl12.appendBody(refClassElement.hPred(Utils.hexDec64(returnTypeInt), Utils.hexDec64(instanceNum), "f", "buf", returnLabel, "bf"));
+                    			cl12.appendBody(refClassElement.hPred(Utils.hexDec64(returnTypeInt, size), Utils.hexDec64(instanceNum, size), "f", "buf", returnLabel, "bf"));
                     			gen.addClause(cl12);
-                        		regUpdate.put(numRegLoc, Utils.hexDec64(instanceNum));
+                        		regUpdate.put(numRegLoc, Utils.hexDec64(instanceNum, size));
                     			regUpdateL.put(numRegLoc, returnLabel);
                     			regUpdateB.put(numRegLoc, "true");
 
@@ -1352,7 +1357,7 @@ public class InstructionDataCollector<T extends Instruction> {
         		regUpdate = updateReg(numRegCall, numArgCall, 'v', true);
     			regUpdateL = updateReg(numRegCall, numArgCall, 'l', true);
     			regUpdateB = updateReg(numRegCall, numArgCall, 'b', true);
-        		cl2.appendBody(refClassElement.rInvokePred(referenceStringClassIndex, referenceIndex, 0, regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, gen));
+        		cl2.appendBody(refClassElement.rInvokePred(referenceStringClassIndex, referenceIndex, 0, regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, gen, size));
         		regUpdate.clear();
         		regUpdateL.clear();
         		regUpdateB.clear();
@@ -1403,14 +1408,14 @@ public class InstructionDataCollector<T extends Instruction> {
 							for (Map.Entry<Integer, Boolean> fieldN : fields.entrySet()){
                 			Clause cl12 = new Clause();
                 			cl12.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-                			cl12.appendBody(refClassElement.hPred(Utils.hexDec64(returnTypeInt), "fpp", Utils.hexDec64(fieldN.getKey()), "vfp", returnLabel, Boolean.toString(fieldN.getValue())));
+                			cl12.appendBody(refClassElement.hPred(Utils.hexDec64(returnTypeInt, size), "fpp", Utils.hexDec64(fieldN.getKey(), size), "vfp", returnLabel, Boolean.toString(fieldN.getValue())));
                 			gen.addClause(cl12);
                 			
                 		}
                 		else{
                 			Clause cl12 = new Clause();
                 			cl12.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-                			cl12.appendBody(refClassElement.hPred(Utils.hexDec64(returnTypeInt), "fpp", "f", "vfp", returnLabel, "bf"));
+                			cl12.appendBody(refClassElement.hPred(Utils.hexDec64(returnTypeInt, size), "fpp", "f", "vfp", returnLabel, "bf"));
                 			gen.addClause(cl12);
                 		}
                 		regUpdate.put(numRegLoc, "fpp");
@@ -1430,9 +1435,9 @@ public class InstructionDataCollector<T extends Instruction> {
                         		
                     			Clause cl12 = new Clause();
                     			cl12.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-                    			cl12.appendBody(refClassElement.hPred(Utils.hexDec64(returnTypeInt), Utils.hexDec64(instanceNum), "f", "buf", returnLabel, "bf"));
+                    			cl12.appendBody(refClassElement.hPred(Utils.hexDec64(returnTypeInt, size), Utils.hexDec64(instanceNum, size), "f", "buf", returnLabel, "bf"));
                     			gen.addClause(cl12);
-                    			regUpdate.put(numRegLoc, Utils.hexDec64(instanceNum));
+                    			regUpdate.put(numRegLoc, Utils.hexDec64(instanceNum, size));
                     			regUpdateL.put(numRegLoc, returnLabel);
                     			regUpdateB.put(numRegLoc, "true");
 
@@ -1792,7 +1797,7 @@ public class InstructionDataCollector<T extends Instruction> {
         	case ADD_INT_LIT8:
         		cl.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), "(bvadd v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ' ' 
-        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral()) + ')');
+        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()));
         		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		gen.addClause(cl);
@@ -1806,7 +1811,7 @@ public class InstructionDataCollector<T extends Instruction> {
         	case MUL_INT_LIT8:
         		cl.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), "(bvmul v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ' ' 
-        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral()) + ')');
+        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()));
         		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		gen.addClause(cl);
@@ -1816,7 +1821,7 @@ public class InstructionDataCollector<T extends Instruction> {
         	case DIV_INT_LIT8:
         		cl.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), "(bvudiv v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ' ' 
-        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral()) + ')');
+        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()));
         		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		gen.addClause(cl);
@@ -1827,7 +1832,7 @@ public class InstructionDataCollector<T extends Instruction> {
         	case REM_INT_LIT8:
         		cl.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), "(bvurem v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ' ' 
-        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral()) + ')');
+        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()));
         		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		gen.addClause(cl);
@@ -1838,7 +1843,7 @@ public class InstructionDataCollector<T extends Instruction> {
         	case AND_INT_LIT8:
         		cl.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), "(bvand v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ' ' 
-        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral()) + ')');
+        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()));
         		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		gen.addClause(cl);
@@ -1849,7 +1854,7 @@ public class InstructionDataCollector<T extends Instruction> {
         	case OR_INT_LIT8:
         		cl.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), "(bvor v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ' ' 
-        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral()) + ')');
+        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()));
         		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		gen.addClause(cl);
@@ -1860,7 +1865,7 @@ public class InstructionDataCollector<T extends Instruction> {
         	case XOR_INT_LIT8:
         		cl.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), "(bvxor v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ' ' 
-        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral()) + ')');
+        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()));
         		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		gen.addClause(cl);
@@ -1870,7 +1875,7 @@ public class InstructionDataCollector<T extends Instruction> {
         	case RSUB_INT_LIT8:
         		cl.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), "(bvsub " + 
-        				Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral()) + " v" +
+        				Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + " v" +
         				Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) 
         				 + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()));
@@ -1881,7 +1886,7 @@ public class InstructionDataCollector<T extends Instruction> {
         	case SHL_INT_LIT8:
         		cl.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), "(bvshl v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ' ' 
-        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral()) + ')');
+        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()));
         		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		gen.addClause(cl);
@@ -1890,7 +1895,7 @@ public class InstructionDataCollector<T extends Instruction> {
         	case SHR_INT_LIT8:
         		cl.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), "(bvashr v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ' ' 
-        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral()) + ')');
+        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()));
         		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		gen.addClause(cl);
@@ -1899,7 +1904,7 @@ public class InstructionDataCollector<T extends Instruction> {
         	case USHR_INT_LIT8:
         		cl.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), "(bvlshr v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ' ' 
-        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral()) + ')');
+        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()));
         		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		gen.addClause(cl);
@@ -2267,7 +2272,7 @@ public class InstructionDataCollector<T extends Instruction> {
     }
     
     private boolean processIntent(final int ci, final int mi, final int numParLoc, final int numRegLoc, final int nextCode, final int c, final int m, final Gen gen, final String shortMethodName, final List<? extends ClassDef> classDefs,
-    		final IndStr indStr, final RefClassElement refClassElement){
+    		final IndStr indStr, final RefClassElement refClassElement, final int size){
 		Clause cl = new Clause();
 		Clause cl2 = new Clause();
 		Clause cl6 = new Clause();
@@ -2281,11 +2286,11 @@ public class InstructionDataCollector<T extends Instruction> {
     			(indStr.get("getDefault()Landroid/telephony/SmsManager;", 'm') == m)){
 			final int instanceNum = refClassElement.getInstNum(ci, mi, codeAddress);
     		cl2.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-    		cl2.appendBody(refClassElement.hPred(Utils.hexDec64(indStr.get("Landroid/telephony/SmsManager;", 'c')), 
-    				Utils.hexDec64(instanceNum), "f", "vfp", "false", "bf"));
+    		cl2.appendBody(refClassElement.hPred(Utils.hexDec64(indStr.get("Landroid/telephony/SmsManager;", 'c'), size), 
+    				Utils.hexDec64(instanceNum, size), "f", "vfp", "false", "bf"));
     		gen.addClause(cl2);
 			cl.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-    		regUpdate.put(numRegLoc, Utils.hexDec64(instanceNum));
+    		regUpdate.put(numRegLoc, Utils.hexDec64(instanceNum, size));
 			regUpdateL.put(numRegLoc, "false");
 			regUpdateB.put(numRegLoc, "true");
 			cl.appendBody(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
@@ -2296,13 +2301,13 @@ public class InstructionDataCollector<T extends Instruction> {
     			(indStr.get("<init>(FF)V", 'm') == m)){
 			FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
     		cl2.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-    		cl2.appendBody(refClassElement.hPred(Utils.hexDec64(indStr.get("Landroid/graphics/PointF;", 'c')), 
-    				'v' + Integer.toString(instruction.getRegisterC()), Utils.hexDec64(indStr.get("x:F", 'f')), 
+    		cl2.appendBody(refClassElement.hPred(Utils.hexDec64(indStr.get("Landroid/graphics/PointF;", 'c'), size), 
+    				'v' + Integer.toString(instruction.getRegisterC()), Utils.hexDec64(indStr.get("x:F", 'f'), size), 
     				'v' + Integer.toString(instruction.getRegisterD()), 'l' + Integer.toString(instruction.getRegisterD()), 'b' + Integer.toString(instruction.getRegisterD())));
     		gen.addClause(cl2);
     		cl6.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-    		cl6.appendBody(refClassElement.hPred(Utils.hexDec64(indStr.get("Landroid/graphics/PointF;", 'c')), 
-    				'v' + Integer.toString(instruction.getRegisterC()), Utils.hexDec64(indStr.get("y:F", 'f')), 
+    		cl6.appendBody(refClassElement.hPred(Utils.hexDec64(indStr.get("Landroid/graphics/PointF;", 'c'), size), 
+    				'v' + Integer.toString(instruction.getRegisterC()), Utils.hexDec64(indStr.get("y:F", 'f'), size), 
     				'v' + Integer.toString(instruction.getRegisterE()), 'l' + Integer.toString(instruction.getRegisterE()), 'b' + Integer.toString(instruction.getRegisterE())));
     		gen.addClause(cl6);
 			cl.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
@@ -2314,7 +2319,7 @@ public class InstructionDataCollector<T extends Instruction> {
     			(indStr.get("put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", 'm') == m)){
 			FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
     		cl2.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-    		cl2.appendBody(refClassElement.hPred(Utils.hexDec64(indStr.get("Ljava/util/Map;", 'c')), 
+    		cl2.appendBody(refClassElement.hPred(Utils.hexDec64(indStr.get("Ljava/util/Map;", 'c'), size), 
     				'v' + Integer.toString(instruction.getRegisterC()), 'v' + Integer.toString(instruction.getRegisterD()), 
     				'v' + Integer.toString(instruction.getRegisterE()), 'l' + Integer.toString(instruction.getRegisterE()), 'b' + Integer.toString(instruction.getRegisterE())));
     		gen.addClause(cl2);
@@ -2328,7 +2333,7 @@ public class InstructionDataCollector<T extends Instruction> {
 			FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
     		cl.appendHead("(and " + refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
     				+ ' ' +
-    		refClassElement.hPred(Utils.hexDec64(indStr.get("Ljava/util/Map;", 'c')), 
+    		refClassElement.hPred(Utils.hexDec64(indStr.get("Ljava/util/Map;", 'c'), size), 
     				'v' + Integer.toString(instruction.getRegisterC()), 'v' + Integer.toString(instruction.getRegisterD()), 
     				"f", "lf", "bf") + ')');
     		regUpdate.put(numRegLoc, "f");
@@ -2343,11 +2348,11 @@ public class InstructionDataCollector<T extends Instruction> {
 			FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
 			cl.appendHead("(and " + refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, 
 					regUpdateL, regUpdateB, numParLoc, numRegLoc, gen) + ' ' + refClassElement.hPred(
-							Utils.hexDec64(indStr.get("[C", 'c')), 'v' + Integer.toString(instruction.getRegisterF()),
-							"(_ bv0 64)", "f", "lf", "bf") + ')');
+							Utils.hexDec64(indStr.get("[C", 'c'), size), 'v' + Integer.toString(instruction.getRegisterF()),
+							Utils.hexDec64(0, size), "f", "lf", "bf") + ')');
 			cl.appendBody(refClassElement.hPred(
-					Utils.hexDec64(indStr.get("[C", 'c')), 'v' + Integer.toString(instruction.getRegisterF()),
-					"(_ bv0 64)", "fpp", 'l' + Integer.toString(instruction.getRegisterC()), 'b' + Integer.toString(instruction.getRegisterC())));
+					Utils.hexDec64(indStr.get("[C", 'c'), size), 'v' + Integer.toString(instruction.getRegisterF()),
+					Utils.hexDec64(0, size), "fpp", 'l' + Integer.toString(instruction.getRegisterC()), 'b' + Integer.toString(instruction.getRegisterC())));
 			gen.addClause(cl);
 			cl2.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			cl2.appendBody(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
@@ -2359,8 +2364,8 @@ public class InstructionDataCollector<T extends Instruction> {
 			FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
 			cl.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			cl.appendBody(refClassElement.hPred(
-					Utils.hexDec64(indStr.get("Ljava/lang/StringBuffer;", 'c')), 'v' + Utils.Dec(instruction.getRegisterD()),
-					"(_ bv0 64)", 'v' + Utils.Dec(instruction.getRegisterC()), "false", "true"));
+					Utils.hexDec64(indStr.get("Ljava/lang/StringBuffer;", 'c'), size), 'v' + Utils.Dec(instruction.getRegisterD()),
+					Utils.hexDec64(0, size), 'v' + Utils.Dec(instruction.getRegisterC()), "false", "true"));
 			gen.addClause(cl);
 			cl2.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			cl2.appendBody(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
@@ -2372,11 +2377,11 @@ public class InstructionDataCollector<T extends Instruction> {
 			FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
 			cl.appendHead("(and " + refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, 
 					regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen) + refClassElement.hPred(
-							Utils.hexDec64(indStr.get("Ljava/lang/StringBuffer;", 'c')), "f",
-							"(_ bv0 64)", 'v' + Utils.Dec(instruction.getRegisterC()), "false", "true") + ')');
+							Utils.hexDec64(indStr.get("Ljava/lang/StringBuffer;", 'c'), size), "f",
+							Utils.hexDec64(0, size), 'v' + Utils.Dec(instruction.getRegisterC()), "false", "true") + ')');
 			cl.appendBody(refClassElement.hPred(
-					Utils.hexDec64(indStr.get("Ljava/lang/StringBuffer;", 'c')), "f",
-					"(_ bv0 64)", 'v' + Utils.Dec(instruction.getRegisterC()), "(or l" + Utils.Dec(instruction.getRegisterD()) + " l" + Utils.Dec(instruction.getRegisterE()) + ')', "true"));
+					Utils.hexDec64(indStr.get("Ljava/lang/StringBuffer;", 'c'), size), "f",
+					Utils.hexDec64(0, size), 'v' + Utils.Dec(instruction.getRegisterC()), "(or l" + Utils.Dec(instruction.getRegisterD()) + " l" + Utils.Dec(instruction.getRegisterE()) + ')', "true"));
 			gen.addClause(cl);
 			cl2.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			cl2.appendBody(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
@@ -2388,8 +2393,8 @@ public class InstructionDataCollector<T extends Instruction> {
 			FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
 			cl.appendHead("(and " + refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, 
 					regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen) + refClassElement.hPred(
-							Utils.hexDec64(indStr.get("Ljava/lang/StringBuffer;", 'c')), 'v' + Utils.Dec(instruction.getRegisterC()),
-							"(_ bv0 64)", "f", "lf", "bf") + ')');
+							Utils.hexDec64(indStr.get("Ljava/lang/StringBuffer;", 'c'), size), 'v' + Utils.Dec(instruction.getRegisterC()),
+							Utils.hexDec64(0, size), "f", "lf", "bf") + ')');
 			regUpdate.put(numRegLoc, "fpp");
 			regUpdateL.put(numRegLoc, "lf");
 			regUpdateB.put(numRegLoc, "bf");
@@ -2403,10 +2408,10 @@ public class InstructionDataCollector<T extends Instruction> {
 			cl.appendHead("(and " + refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
 					+ ' ' + refClassElement.hPred(
 							"cn", 'v' + Utils.Dec(instruction.getRegisterC()),
-							"(_ bv0 64)", "val", "lf", "bf") + ')');
+							Utils.hexDec64(0, size), "val", "lf", "bf") + ')');
 			cl.appendBody(refClassElement.hPred(
 					"cn", 'v' + Utils.Dec(instruction.getRegisterE()),
-					"(_ bv0 64)", "val", "lf", "bf"));
+					Utils.hexDec64(0, size), "val", "lf", "bf"));
 			gen.addClause(cl);
 			cl2.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			cl2.appendBody(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
@@ -2418,8 +2423,8 @@ public class InstructionDataCollector<T extends Instruction> {
 			FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
 			cl.appendHead("(and " + refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
 					+ ' ' + refClassElement.hPred(
-							Utils.hexDec64(indStr.get("Landroid/widget/Button;", 'c')), 'v' + Utils.Dec(instruction.getRegisterC()),
-							Utils.hexDec64(indStr.get("hint", 'f')), "val", "lf", "bf") + ')');
+							Utils.hexDec64(indStr.get("Landroid/widget/Button;", 'c'), size), 'v' + Utils.Dec(instruction.getRegisterC()),
+							Utils.hexDec64(indStr.get("hint", 'f'), size), "val", "lf", "bf") + ')');
 			regUpdate.put(numRegLoc, "val");
 			regUpdateL.put(numRegLoc, "lf");
 			regUpdateB.put(numRegLoc, "bf");
@@ -2429,7 +2434,7 @@ public class InstructionDataCollector<T extends Instruction> {
 			regUpdateL.clear();
 			regUpdateB.clear();
 			cl2.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			regUpdate.put(numRegLoc, "(_ bv0 64)");
+			regUpdate.put(numRegLoc, Utils.hexDec64(0, size));
 			regUpdateL.put(numRegLoc, "false");
 			regUpdateB.put(numRegLoc, "true");
 			cl2.appendBody(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
@@ -2442,8 +2447,8 @@ public class InstructionDataCollector<T extends Instruction> {
 			cl.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
 					);
 			cl.appendBody(refClassElement.hPred(
-					Utils.hexDec64(indStr.get("Landroid/widget/Button;", 'c')), 'v' + Utils.Dec(instruction.getRegisterC()),
-					Utils.hexDec64(indStr.get("hint", 'f')), 'v' + Integer.toString(instruction.getRegisterD()), 'l' + Integer.toString(instruction.getRegisterD())
+					Utils.hexDec64(indStr.get("Landroid/widget/Button;", 'c'), size), 'v' + Utils.Dec(instruction.getRegisterC()),
+					Utils.hexDec64(indStr.get("hint", 'f'), size), 'v' + Integer.toString(instruction.getRegisterD()), 'l' + Integer.toString(instruction.getRegisterD())
 					, 'b' + Integer.toString(instruction.getRegisterD())));
 			gen.addClause(cl);
 			cl2.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
@@ -2454,11 +2459,11 @@ public class InstructionDataCollector<T extends Instruction> {
         if  (indStr.get("getSystemService(Ljava/lang/String;)Ljava/lang/Object;", 'm') == m){
 			final int instanceNum = refClassElement.getInstNum(ci, mi, codeAddress);
     		cl2.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-    		cl2.appendBody(refClassElement.hPred(Utils.hexDec64(indStr.get("Ljava/lang/Object;", 'c')), 
-    				Utils.hexDec64(instanceNum), "f", "vfp", "false", "bf"));
+    		cl2.appendBody(refClassElement.hPred(Utils.hexDec64(indStr.get("Ljava/lang/Object;", 'c'), size), 
+    				Utils.hexDec64(instanceNum, size), "f", "vfp", "false", "bf"));
     		gen.addClause(cl2);
 			cl.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-    		regUpdate.put(numRegLoc, Utils.hexDec64(instanceNum));
+    		regUpdate.put(numRegLoc, Utils.hexDec64(instanceNum, size));
 			regUpdateL.put(numRegLoc, "false");
 			regUpdateB.put(numRegLoc, "true");
 			cl.appendBody(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
@@ -2493,10 +2498,10 @@ public class InstructionDataCollector<T extends Instruction> {
 			
 			cl2.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			cl2.appendBody(refClassElement.hiPred(
-					'v' + Integer.toString(instruction.getRegisterE()), Utils.hexDec64(instanceNum), "(_ bv0 64)", "false", "false"));
+					'v' + Integer.toString(instruction.getRegisterE()), Utils.hexDec64(instanceNum, size), Utils.hexDec64(0, size), "false", "false"));
 			gen.addClause(cl2);
 			cl.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			regUpdate.put(instruction.getRegisterC(), Utils.hexDec64(instanceNum));
+			regUpdate.put(instruction.getRegisterC(), Utils.hexDec64(instanceNum, size));
 			regUpdateL.put(instruction.getRegisterC(), "false");
 			regUpdateB.put(instruction.getRegisterC(), "true");
 			cl.appendBody(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
@@ -2511,7 +2516,7 @@ public class InstructionDataCollector<T extends Instruction> {
     			Clause cl12 = new Clause();
     			cl12.appendHead(refClassElement.rPred(Utils.Dec(ci), Utils.Dec(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
     			cl12.appendBody(refClassElement.hPred(
-    					Utils.hexDec64(indStr.get("Landroid/content/Intent;", 'c')), Utils.hexDec64(instanceNum), Utils.hexDec64(fieldN.getKey()), "(_ bv0 64)", "false", Boolean.toString(fieldN.getValue())));
+    					Utils.hexDec64(indStr.get("Landroid/content/Intent;", 'c'), size), Utils.hexDec64(instanceNum, size), Utils.hexDec64(fieldN.getKey(), size), Utils.hexDec64(0, size), "false", Boolean.toString(fieldN.getValue())));
     			gen.addClause(cl12);
     		}
 			
@@ -2524,10 +2529,10 @@ public class InstructionDataCollector<T extends Instruction> {
 				
 				cl2.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 				cl2.appendBody(refClassElement.hiPred(
-						'v' + Integer.toString(instruction.getRegisterE()), Utils.hexDec64(instanceNum), "(_ bv0 64)", "false", "false"));
+						'v' + Integer.toString(instruction.getRegisterE()), Utils.hexDec64(instanceNum, size), Utils.hexDec64(0, size), "false", "false"));
 				gen.addClause(cl2);
 				cl.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-				regUpdate.put(instruction.getRegisterC(), Utils.hexDec64(instanceNum));
+				regUpdate.put(instruction.getRegisterC(), Utils.hexDec64(instanceNum, size));
 				regUpdateL.put(instruction.getRegisterC(), "false");
 				regUpdateB.put(instruction.getRegisterC(), "true");
 				cl.appendBody(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
@@ -2542,7 +2547,7 @@ public class InstructionDataCollector<T extends Instruction> {
 	    			Clause cl12 = new Clause();
 	    			cl12.appendHead(refClassElement.rPred(Utils.Dec(ci), Utils.Dec(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 	    			cl12.appendBody(refClassElement.hPred(
-	    					Utils.hexDec64(indStr.get("Landroid/content/Intent;", 'c')), Utils.hexDec64(instanceNum), Utils.hexDec64(fieldN.getKey()), "(_ bv0 64)", "false", Boolean.toString(fieldN.getValue())));
+	    					Utils.hexDec64(indStr.get("Landroid/content/Intent;", 'c'), size), Utils.hexDec64(instanceNum, size), Utils.hexDec64(fieldN.getKey(), size), Utils.hexDec64(0, size), "false", Boolean.toString(fieldN.getValue())));
 	    			gen.addClause(cl12);
 	    		}
 				
@@ -2555,10 +2560,10 @@ public class InstructionDataCollector<T extends Instruction> {
 				
 				cl2.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 				cl2.appendBody(refClassElement.hiPred(
-						"f", Utils.hexDec64(instanceNum), "(_ bv0 64)", "false", "false"));
+						"f", Utils.hexDec64(instanceNum, size), Utils.hexDec64(0, size), "false", "false"));
 				gen.addClause(cl2);
 				cl.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-				regUpdate.put(instruction.getRegisterC(), Utils.hexDec64(instanceNum));
+				regUpdate.put(instruction.getRegisterC(), Utils.hexDec64(instanceNum, size));
 				regUpdateL.put(instruction.getRegisterC(), "false");
 				regUpdateB.put(instruction.getRegisterC(), "true");
 				cl.appendBody(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
@@ -2573,7 +2578,7 @@ public class InstructionDataCollector<T extends Instruction> {
 	    			Clause cl12 = new Clause();
 	    			cl12.appendHead(refClassElement.rPred(Utils.Dec(ci), Utils.Dec(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 	    			cl12.appendBody(refClassElement.hPred(
-	    					Utils.hexDec64(indStr.get("Landroid/content/Intent;", 'c')), Utils.hexDec64(instanceNum), Utils.hexDec64(fieldN.getKey()), "(_ bv0 64)", "false", Boolean.toString(fieldN.getValue())));
+	    					Utils.hexDec64(indStr.get("Landroid/content/Intent;", 'c'), size), Utils.hexDec64(instanceNum, size), Utils.hexDec64(fieldN.getKey(), size), Utils.hexDec64(0, size), "false", Boolean.toString(fieldN.getValue())));
 	    			gen.addClause(cl12);
 	    		}
 				return true;
@@ -2584,7 +2589,7 @@ public class InstructionDataCollector<T extends Instruction> {
 					+ ' ' + refClassElement.hiPred(
 							"cn", 'v' + Utils.Dec(instruction.getRegisterD()), "val", "lf", "bf") + ')');
 			cl.appendBody(refClassElement.iPred(
-							"cn", Utils.hexDec64(c), "val", "lf", "bf"));
+							"cn", Utils.hexDec64(c, size), "val", "lf", "bf"));
 			gen.addClause(cl);
 			cl2.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			cl2.appendBody(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
@@ -2594,7 +2599,7 @@ public class InstructionDataCollector<T extends Instruction> {
 			cl3.appendHead("(and " + refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
 					+ ' ' + refClassElement.hiPred(
 							"cn", 'v' + Utils.Dec(instruction.getRegisterD()), "val", "lf", "bf") + ')');
-			final String inC = Utils.hexDec64(indStr.get(Utils.Dec(instruction.getRegisterD()) + Utils.Dec(c), 'c')); // in(c) = _ + _)
+			final String inC = Utils.hexDec64(indStr.get(Utils.Dec(instruction.getRegisterD()) + Utils.Dec(c), 'c'), size); // in(c) = _ + _)
 			cl3.appendBody(refClassElement.hiPred(
 					"cn", inC , "val", "lf", "bf")); 
 			gen.addClause(cl3);
@@ -2604,7 +2609,7 @@ public class InstructionDataCollector<T extends Instruction> {
 					+ ' ' + refClassElement.hiPred(
 							"cn", 'v' + Utils.Dec(instruction.getRegisterD()), "val", "lf", "bf") + ')');
 			cl4.appendBody(refClassElement.hPred(
-					"cn", "cn" , Utils.hexDec64(indStr.get("parent", 'f')), Utils.hexDec64(c), "false", "true")); 
+					"cn", "cn" , Utils.hexDec64(indStr.get("parent", 'f'), size), Utils.hexDec64(c, size), "false", "true")); 
 			gen.addClause(cl4);
 			
 			Clause cl5 = new Clause();
@@ -2612,7 +2617,7 @@ public class InstructionDataCollector<T extends Instruction> {
 					+ ' ' + refClassElement.hiPred(
 							"cn", 'v' + Utils.Dec(instruction.getRegisterD()), "val", "lf", "bf") + ')');
 			cl5.appendBody(refClassElement.hPred(
-					"cn", "cn" , Utils.hexDec64(indStr.get("intent", 'f')), inC, "false", "true")); 
+					"cn", "cn" , Utils.hexDec64(indStr.get("intent", 'f'), size), inC, "false", "true")); 
 			gen.addClause(cl5);
 			
 			return true;
@@ -2650,7 +2655,7 @@ public class InstructionDataCollector<T extends Instruction> {
 					+ ' ' + refClassElement.hiPred(
 							"cn", 'v' + Utils.Dec(instruction.getRegisterE()), "val", "lf", "bf") + ')');
 			cl.appendBody(refClassElement.hPred(
-							Utils.hexDec64(c), Utils.hexDec64(c), Utils.hexDec64(indStr.get("result", 'f')), 
+							Utils.hexDec64(c, size), Utils.hexDec64(c, size), Utils.hexDec64(indStr.get("result", 'f'), size), 
 							'v' + Utils.Dec(instruction.getRegisterE()), 'l' + Utils.Dec(instruction.getRegisterE()), 'b' + Utils.Dec(instruction.getRegisterE())));
 			gen.addClause(cl);
 			cl2.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
@@ -2662,7 +2667,7 @@ public class InstructionDataCollector<T extends Instruction> {
 			FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
 			cl.appendHead("(and " + refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
 					+ ' ' + refClassElement.hPred(
-							Utils.hexDec64(c), Utils.hexDec64(c), Utils.hexDec64(indStr.get("intent", 'f')), "val", "lf", "bf") + ')');
+							Utils.hexDec64(c, size), Utils.hexDec64(c, size), Utils.hexDec64(indStr.get("intent", 'f'), size), "val", "lf", "bf") + ')');
 			regUpdate.put(numRegLoc, "val");
 			regUpdateL.put(numRegLoc, "lf");
 			regUpdateB.put(numRegLoc, "bf");

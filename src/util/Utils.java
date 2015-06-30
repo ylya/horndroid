@@ -48,23 +48,23 @@ public class Utils {
     	return ";(rule (" + it + "))";
     }
     
-    public static String hexDec64It(String it)
+    public static String hexDec64It(String it, int size)
     {
-    	return "(_ bv" + it + " 64)";
+    	return "(_ bv" + it + " " + Integer.toString(size) + ')';
     }
     
-    public static String hexDec64NegIt(String it)
+    public static String hexDec64NegIt(String it, int size)
     {
-    	return "(bvneg (_ bv" + it + " 64))";
+    	return "(bvneg (_ bv" + it + " " + Integer.toString(size) + "))";
     }
     
-    public static String hexDec64(long i)
+    public static String hexDec64(long i, int size)
     {
     	if (Long.toString(i).charAt(0) == '-')
-    		return hexDec64NegIt(Long.toString(i).replace("-", ""));
+    		return hexDec64NegIt(Long.toString(i).replace("-", ""), size);
 
     	else
-    		return hexDec64It(Long.toString(i));
+    		return hexDec64It(Long.toString(i), size);
     }
     
     public static String Dec(int i)

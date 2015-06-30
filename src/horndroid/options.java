@@ -34,4 +34,5 @@ public class options {
     public boolean oneQuery = false;
     public String outputDirectory = "";
     public int apiLevel = 15;
+    public int bitvectorSize = 64;
 }

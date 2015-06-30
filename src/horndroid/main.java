@@ -25,7 +25,6 @@
  * INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package horndroid;
 
 import org.apache.commons.cli.CommandLine;
@@ -77,6 +76,7 @@ public class main {
         options.addOption("q", false, "precise query results");
         options.addOption("w", false, "sensitive array indexes");
         options.addOption("s", false, "one query per file, run Z3 in parallel saving results to the /out folder");
+        options.addOption("n", true, "bitvector size (default 64)");
     }
     
     public static void main(String[] args) throws IOException, SAXException, ParserConfigurationException {
@@ -109,6 +109,9 @@ public class main {
                 case 's':
                 	options.oneQuery = true;
                     break;
+                case 'n':
+                	options.bitvectorSize = Integer.parseInt(commandLine.getOptionValue("n"));
+                	break;
             }
         }
         
@@ -173,7 +176,7 @@ public class main {
 
              
              final Gen gen = new Gen(6, options.outputDirectory);
-             initGen(gen, refClassElement, indStr);
+             initGen(gen, refClassElement, indStr, options);
              
              System.out.print("Collecting data for Horn Clause generation...");
              horndroid.collectDataFromApk(numLoc, refClassElement, indStr, dexFile, options, gen, activities,  constStrings, launcherActivities);
@@ -200,7 +203,7 @@ public class main {
  
              System.out.print("Generating Horn Clauses...");
         
-             horndroid.smtApkFile(numLoc, refClassElement, indStr, dexFile, options, gen, callbacks, disabledActivities, activities, launcherActivities, callbackImplementations, applications);
+             horndroid.smtApkFile(numLoc, refClassElement, indStr, dexFile, options, gen, callbacks, disabledActivities, activities, launcherActivities, callbackImplementations, applications, options.bitvectorSize);
         
              refClassElement.putConcurSynRange(refClassElement.getSynRange() + 1);
        
@@ -208,7 +211,7 @@ public class main {
 	         System.out.println("done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
 
 	         if (!options.oneQuery){
-	         gen.writeOne();
+	         gen.writeOne(options);
         
 	         String smtFile = options.outputDirectory + '/' + "clauses.smt2";
 	         try {
@@ -221,7 +224,7 @@ public class main {
 	         }
 	         else{
 	         
-	        	 gen.write();
+	        	 gen.write(options);
        
 	        	 final String outputDirectory = options.outputDirectory;
 	        	 final String z3f = z3Folder;
@@ -244,7 +247,7 @@ public class main {
         }
     }
     
-    private static void initGen(final Gen gen, final RefClassElement refClassElement, final IndStr indStr){
+    private static void initGen(final Gen gen, final RefClassElement refClassElement, final IndStr indStr, final options options){
     	 gen.addVar("(declare-var rez bv64)");
          gen.addVar("(declare-var rezp bv64)");
          gen.addVar("(declare-var buf bv64)");
@@ -271,10 +274,10 @@ public class main {
          gen.addDef("(declare-rel HI (bv64 bv64 bv64 Bool Bool) interval_relation bound_relation)");
          gen.addDef("(declare-rel I (bv64 bv64 bv64 Bool Bool) interval_relation bound_relation)");
          gen.addDef("(declare-rel S (Int Int bv64 Bool Bool) interval_relation bound_relation)");         
-         gen.addMain("(rule (=> (and " + refClassElement.hPred("cn", "cn", Utils.hexDec64(indStr.get("parent", 'f')), "f", "lf", "bf") + ' ' +
-         		refClassElement.hPred("cn", "cn", Utils.hexDec64(indStr.get("result", 'f')), "val", "lval", "bval") + ' ' +
+         gen.addMain("(rule (=> (and " + refClassElement.hPred("cn", "cn", Utils.hexDec64(indStr.get("parent", 'f'), options.bitvectorSize), "f", "lf", "bf") + ' ' +
+         		refClassElement.hPred("cn", "cn", Utils.hexDec64(indStr.get("result", 'f'), options.bitvectorSize), "val", "lval", "bval") + ' ' +
          		refClassElement.hPred("f", "f", "fpp", "vfp", "lfp", "bfp") + ')' + ' ' +
-         		refClassElement.hPred("f", "f", Utils.hexDec64(indStr.get("result", 'f')), "val", "lval", "bval")
+         		refClassElement.hPred("f", "f", Utils.hexDec64(indStr.get("result", 'f'), options.bitvectorSize), "val", "lval", "bval")
          		+ "))");
     }
     
@@ -365,5 +368,6 @@ public class main {
          System.out.println("-q precise query results");
          System.out.println("-w sensitive array indexes");
          System.out.println("-s one query per file, run Z3 in parallel saving results to the /out folder");
+         System.out.println("-n bitvector size (default 64)");
     }
 }

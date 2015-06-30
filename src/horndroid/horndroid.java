@@ -200,7 +200,7 @@ public class horndroid {
 	
 	public static void smtApkFile(final NumLoc numLoc, final RefClassElement refClassElement, final IndStr indStr, 
     		DexFile dexFile, final options options, final Gen gen,  final Set<String> callbacks,  final Set<Integer> disabledActivities, final Set<Integer> activities,  
-    		final Set<Integer> launcherActivities, final Set<Integer> callbackImplementations, final Set<Integer> applications) throws IOException {
+    		final Set<Integer> launcherActivities, final Set<Integer> callbackImplementations, final Set<Integer> applications, final int size) throws IOException {
         List<? extends ClassDef> classDefs = Ordering.natural().sortedCopy(dexFile.getClasses());
         for (final ClassDef classDef: classDefs) {
         	if (isActivity(classDefs, classDef, indStr)){
@@ -210,13 +210,13 @@ public class horndroid {
         		if (activities.contains(indStr.get(formatClassName, 'c'))){
         			 if (!classDef.getType().contains("Landroid"))
         				 smtClass(numLoc, refClassElement, classDef, indStr, options, gen, classDefs, callbacks, disabledActivities, activities, launcherActivities, callbackImplementations,
-        						 applications);
+        						 applications, size);
         		}
         		else{
         			if (parentActivity(classDefs,  activities, indStr.get(classDef.getType(), 'c'),  indStr)){
         				if (!classDef.getType().contains("Landroid"))
         					smtClass(numLoc, refClassElement, classDef, indStr, options, gen, classDefs, callbacks, disabledActivities, activities, launcherActivities, callbackImplementations,
-        							applications);
+        							applications, size);
         			}
         			else{
         				if (!classDef.getType().contains("Landroid"))
@@ -228,7 +228,7 @@ public class horndroid {
         		if (!isActivity(classDefs, classDef, indStr)){
         			if (!classDef.getType().contains("Landroid")){
                    	 smtClass(numLoc, refClassElement, classDef, indStr, options, gen, classDefs, callbacks, disabledActivities, activities, launcherActivities, callbackImplementations,
-                   			 applications);
+                   			 applications, size);
         			}
         		}
         		
@@ -239,17 +239,17 @@ public class horndroid {
     private static void smtClass(final NumLoc numLoc, RefClassElement refClassElement, ClassDef classDef, IndStr indStr,
                                             options options, final Gen gen, final List<? extends ClassDef> classDefs,  final Set<String> callbacks,  final Set<Integer> disabledActivities,
                                             final Set<Integer> activities, final Set<Integer> launcherActivities, final Set<Integer> callbackImplementations,
-                                            final Set<Integer> applications) throws IOException {
-    	smtFields(classDef, gen, false, indStr, refClassElement, numLoc); //static
-    	smtFields(classDef, gen, true, indStr, refClassElement, numLoc); //dynamic
+                                            final Set<Integer> applications, final int size) throws IOException {
+    	smtFields(classDef, gen, false, indStr, refClassElement, numLoc, size); //static
+    	smtFields(classDef, gen, true, indStr, refClassElement, numLoc, size); //dynamic
     	smtMethods(classDef, gen, false, indStr, refClassElement, numLoc, classDefs, options, callbacks, disabledActivities, activities, launcherActivities, callbackImplementations,
-    			applications); //direct
+    			applications, size); //direct
         smtMethods(classDef, gen, true, indStr, refClassElement, numLoc, classDefs, options, callbacks, disabledActivities, activities, launcherActivities, callbackImplementations,
-        		applications); //virtual
+        		applications, size); //virtual
     }
     
     private static void smtFields(final ClassDef classDef, final Gen gen, final boolean dynamic, 
-    		final IndStr indStr, final RefClassElement refClassElement, final NumLoc numLoc) throws IOException {
+    		final IndStr indStr, final RefClassElement refClassElement, final NumLoc numLoc, final int size) throws IOException {
 		Iterable<? extends Field> fields;
     	if (!dynamic){
     		if (classDef instanceof DexBackedClassDef) {
@@ -273,7 +273,7 @@ public class horndroid {
             String classIndex = Utils.Dec(indStr.get(classDef.getType(), 'c'));
             
             	if (initialValue != null) {
-            		gen.addMain("(rule (S " + classIndex + ' ' + fieldIndex + " " + FormatEncodedValue.toString(initialValue, indStr) + " false bf))"); 
+            		gen.addMain("(rule (S " + classIndex + ' ' + fieldIndex + " " + FormatEncodedValue.toString(initialValue, indStr, size) + " false bf))"); 
             	}
         }
     }
@@ -281,7 +281,7 @@ public class horndroid {
     private static void smtMethods(final ClassDef classDef, final Gen gen, final boolean virtual, 
     		final IndStr indStr, final RefClassElement refClassElement, final NumLoc numLoc,
     		final List<? extends ClassDef> classDefs, final options options,  final Set<String> callbacks,  final Set<Integer> disabledActivities, final Set<Integer> activities,
-    		final Set<Integer> launcherActivities, final Set<Integer> callbackImplementations, final Set<Integer> applications) {
+    		final Set<Integer> launcherActivities, final Set<Integer> callbackImplementations, final Set<Integer> applications, final int size) {
         Iterable<? extends Method> methods;
     	if (!virtual){
             if (classDef instanceof DexBackedClassDef) {
@@ -305,7 +305,7 @@ public class horndroid {
                 if (methodImpl == null) {
                 } else {
                 	 smtMethod(method, methodImpl, methodString, classIndex, methodIndex, refClassElement, indStr, gen, numLoc,
-                			 classDefs, options, classDef, callbacks, disabledActivities, activities, launcherActivities, callbackImplementations, applications);
+                			 classDefs, options, classDef, callbacks, disabledActivities, activities, launcherActivities, callbackImplementations, applications, size);
                 }
         }
     }
@@ -332,7 +332,8 @@ public class horndroid {
     		final String methodIndex,
     		final RefClassElement refClassElement, final IndStr indStr, final Gen gen, final NumLoc numLoc,
     		final List<? extends ClassDef> classDefs, final options options, final ClassDef classDef,  final Set<String> callbacks,  final Set<Integer> disabledActivities,
-    		final Set<Integer> activities, final Set<Integer> launcherActivities, final Set<Integer> callbackImplementations, final Set<Integer> applications){
+    		final Set<Integer> activities, final Set<Integer> launcherActivities, final Set<Integer> callbackImplementations, final Set<Integer> applications,
+    		final int size){
     	List<String> interfaces = Lists.newArrayList(classDef.getInterfaces());
         Collections.sort(interfaces);
         if (interfaces.size() != 0) {
@@ -367,7 +368,7 @@ public class horndroid {
 				regUpdateL.put(i, "false");
 			}		
     		gen.addMain("(rule (=> " + refClassElement.iPred(
-				"cn", Utils.hexDec64(Integer.parseInt(classIndex)), "val", "lf", "bf") + ' ' +
+				"cn", Utils.hexDec64(Integer.parseInt(classIndex), size), "val", "lf", "bf") + ' ' +
 		         		refClassElement.rPred(classIndex, methodIndex, 
 					0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall, gen)
 		         		+ "))");		
@@ -387,7 +388,7 @@ public class horndroid {
     		gen.addMain("(rule " + refClassElement.rPred(classIndex, methodIndex, 
 					0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall, gen) + ")");
     		
-    		gen.addMain("(rule " + refClassElement.hPred(Utils.hexDec64(indStr.get(classDef.getType(), 'c')), "fpp", "f", "val", "false", "true") + ")");
+    		gen.addMain("(rule " + refClassElement.hPred(Utils.hexDec64(indStr.get(classDef.getType(), 'c'), size), "fpp", "f", "val", "false", "true") + ")");
     	}
     	if (parentActivity(classDefs,  activities, indStr.get(classDef.getType(), 'c'),  indStr)){
     		Map<Integer, String> regUpdate = new HashMap<Integer, String>();
@@ -403,7 +404,7 @@ public class horndroid {
     		gen.addMain("(rule " + refClassElement.rPred(classIndex, methodIndex, 
 					0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall, gen) + ")");
     		
-    		gen.addMain("(rule " + refClassElement.hPred(Utils.hexDec64(indStr.get(classDef.getType(), 'c')), "fpp", "f", "val", "false", "true") + ")");
+    		gen.addMain("(rule " + refClassElement.hPred(Utils.hexDec64(indStr.get(classDef.getType(), 'c'), size), "fpp", "f", "val", "false", "true") + ")");
     	}
     	
     	if ((testEntryPoint(classDefs, classDef, Integer.parseInt(methodIndex), gen, indStr))
@@ -421,7 +422,7 @@ public class horndroid {
     		gen.addMain("(rule " + refClassElement.rPred(classIndex, methodIndex, 
 					0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall, gen) + ")");
     		
-    		gen.addMain("(rule " + refClassElement.hPred(Utils.hexDec64(indStr.get(classDef.getType(), 'c')), "fpp", "f", "val", "false", "true") + ")");
+    		gen.addMain("(rule " + refClassElement.hPred(Utils.hexDec64(indStr.get(classDef.getType(), 'c'), size), "fpp", "f", "val", "false", "true") + ")");
     	}
     	for (final String callback: callbacks){
     		if (methodString.contains(callback)){
@@ -445,7 +446,7 @@ public class horndroid {
         for (Instruction instruction: instructions){
         	InstructionDataCollector idc = new InstructionDataCollector(codeAddress, Integer.parseInt(classIndex), 
         			Integer.parseInt(methodIndex), instruction);
-        	idc.process(indStr, refClassElement, instructionsIL, classDefs, method, numLoc, gen, options, classDef, activities);
+        	idc.process(indStr, refClassElement, instructionsIL, classDefs, method, numLoc, gen, options, classDef, activities, size);
             codeAddress += instruction.getCodeUnits();
         }    
     } 

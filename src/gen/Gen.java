@@ -30,6 +30,8 @@ package gen;
 
 
 
+import horndroid.options;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -41,7 +43,6 @@ import java.util.Iterator;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
-
 
 import util.CMPair;
 
@@ -168,15 +169,16 @@ public class Gen {
 				processMethod(classDefs, indStr, method, c);
 		}
 	}*/
-	public void write(){
+	public void write(options options){
 		Iterator<String> itq = this.queries.iterator();
+		System.out.println("Number of queries to solve: " + queries.size());
 		int count = 0;
 		while (itq.hasNext()){
 			File clausesFile = new File (outputDirectory + "/clauses" + Integer.toString(count) + ".smt2");
 			if (clausesFile.exists()) clausesFile.delete();
 			try
 			(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(clausesFile, true)))) {
-				out.println(" (set-option :pp.bv-literals false) \n (set-option :fixedpoint.engine pdr) \n (define-sort bv64 () (_ BitVec 64)) \n");
+				out.println(" (set-option :pp.bv-literals false) \n (set-option :fixedpoint.engine pdr) \n (define-sort bv64 () (_ BitVec " + Integer.toString(options.bitvectorSize) + "))\n");
 			}catch (IOException e) {
 			}
 			Iterator<String> it = this.vars.iterator();
@@ -225,12 +227,13 @@ public class Gen {
 		}
 	}
 	
-	public void writeOne(){
+	public void writeOne(options options){
+		System.out.println("Number of queries to solve: " + queries.size());
 		File clausesFile = new File (outputDirectory + "/clauses.smt2");
 		if (clausesFile.exists()) clausesFile.delete();
 		try
 		(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(clausesFile, true)))) {
-			out.println(" (set-option :pp.bv-literals false) \n (set-option :fixedpoint.engine pdr) \n (define-sort bv64 () (_ BitVec 64)) \n");
+			out.println(" (set-option :pp.bv-literals false) \n (set-option :fixedpoint.engine pdr) \n (define-sort bv64 () (_ BitVec " + Integer.toString(options.bitvectorSize) + "))\n");
 		}catch (IOException e) {
 		}
 		Iterator<String> it = this.vars.iterator();
