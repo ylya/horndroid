@@ -16,6 +16,8 @@ options:
 
 -w sensitive array indexes
 
+-s one query per file, run Z3 in parallel saving results to the /out folder
+
 You can specify a path to an *.apk file or a folder (all apps in sub-folders will be also analysed).
 Resulting Horn Clauses are in *.smt2 file in the %appname% folder.
 
