@@ -3,7 +3,7 @@
 
 Build
 
-Projects horndroid depends on:
+horndroid depends on:
 https://github.com/JesusFreke/smali.git
 
 Run
