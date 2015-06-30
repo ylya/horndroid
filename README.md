@@ -11,6 +11,7 @@ Run
 
 java -jar horndroid.jar [options] %Z3Home%/bin <apk-file>
 options:
+
 -q precise query results
 -w sensitive array indexes
 
