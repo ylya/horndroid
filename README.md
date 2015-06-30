@@ -14,9 +14,13 @@ Run
 
 java -jar horndroid.jar [options] %Z3Home%/bin %apktool%/ <apk-file>
 options:
+
 -q precise query results;
+
 -w sensitive array indexes;
+
 -s one query per file, run Z3 in parallel saving results to the /out folder;
+
 -n bitvector size (default 64).
 
 Note: files Callbacks.txt, EntryPoints.txt and SourcesAndSinks.txt should be in the same folder.
