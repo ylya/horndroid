@@ -1,9 +1,7 @@
 # horndroid
 ![logo](/logo.png?raw=true "")
 
-Build horndroid
-
-horndroid depends on:
+Build horndroid, depends on:
 https://github.com/JesusFreke/smali.git
 
 Build Z3 to %Z3Home%:
