@@ -30,6 +30,7 @@ Resulting Horn Clauses are in *.smt2 file in the %appname% folder.
 
 Example execution:
 java -jar horndroid.jar %home%/z3/bin %apktool%/ %home%/apksToTest
+
 For all *.apk files in the folder HornDroid will report:
 - Horn clauses generation time;
 - Analysis time;
