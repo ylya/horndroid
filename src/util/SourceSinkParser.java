@@ -87,10 +87,10 @@ public class SourceSinkParser {
 	
 	public static void parseCallbacksFromXml(final Set<String> callbacks, final String outputDirectory, final String apkFileName, final Set<Integer> disabledActivities,
 			final Set<Integer> activities, final Set<Integer> launcherActivities, final IndStr indStr, final Set<Integer> callbackImplementations,
-			final Set<Integer> applications) throws IOException, SAXException, ParserConfigurationException{
+			final Set<Integer> applications, final String apktoolFolder) throws IOException, SAXException, ParserConfigurationException{
 		 System.out.println("Running apktool to obtain manifest xml and layout files");
 	     Runtime runtime = Runtime.getRuntime();
-		 Process proc = runtime.exec(new String[]{"/bin/sh", "-c", "java -jar lib/apktool.jar d " + apkFileName + " -s -f -o " + outputDirectory + "/apktool"});
+		 Process proc = runtime.exec(new String[]{"/bin/sh", "-c", "java -jar " + apktoolFolder + "apktool.jar d " + apkFileName + " -s -f -o " + outputDirectory + "/apktool"});
 	     BufferedReader stdInput = new BufferedReader(new 
 	     InputStreamReader(proc.getInputStream()));
 

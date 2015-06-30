@@ -115,13 +115,14 @@ public class main {
             }
         }
         
-        if (otherArgs.length != 2) {
+        if (otherArgs.length != 3) {
             usage();
             return;
         }
         
         String z3Folder = otherArgs[0];
-        String inputApk = otherArgs[1];
+        String apktoolFolder = otherArgs[1];
+        String inputApk = otherArgs[2];
    
         final String sourcesSinksF = "SourcesAndSinks.txt";        
         File sourceSinkFile = new File(sourcesSinksF);
@@ -193,7 +194,7 @@ public class main {
              startTime = System.nanoTime();
              System.out.print("Parsing callbacks and disabled activities...");
              SourceSinkParser.parseCallbacksFromXml(callbacks, options.outputDirectory, file.getAbsolutePath(), disabledActivities, activities, launcherActivities, indStr, callbackImplementations,
-            		 applications);
+            		 applications, apktoolFolder);
              endTime = System.nanoTime();
              System.out.println("...done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
              
@@ -363,7 +364,7 @@ public class main {
              consoleWidth = 100;
          }
          formatter.setWidth(consoleWidth);
-         System.out.println("java -jar HornDroid.jar [options] %Z3Home%/bin <apk-file> | <apk-folder> \n finds leaks in the app");
+         System.out.println("java -jar HornDroid.jar [options] %Z3Home%/bin %apktool%/ <apk-file> | <apk-folder> \n finds leaks in the app");
          System.out.println("options:");
          System.out.println("-q precise query results");
          System.out.println("-w sensitive array indexes");
