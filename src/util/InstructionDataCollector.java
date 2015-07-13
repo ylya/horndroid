@@ -56,6 +56,7 @@ import org.jf.dexlib2.iface.instruction.ThreeRegisterInstruction;
 import org.jf.dexlib2.iface.instruction.TwoRegisterInstruction;
 import org.jf.dexlib2.iface.instruction.WideLiteralInstruction;
 import org.jf.dexlib2.iface.instruction.formats.Instruction31t;
+import org.jf.dexlib2.iface.instruction.formats.PackedSwitchPayload;
 import org.jf.dexlib2.iface.reference.FieldReference;
 import org.jf.dexlib2.iface.reference.MethodReference;
 import org.jf.dexlib2.iface.reference.Reference;
@@ -79,6 +80,7 @@ public class InstructionDataCollector<T extends Instruction> {
 		this.c = c;
 		this.m = m;
 	}
+	
 	public void collect(final IndStr indStr, final RefClassElement refClassElement, final ImmutableList<Instruction> instructions, final Set<ConstString> constStrings, final Set<Integer> launcherActivities){
         char mode = 'n';
         String referenceString = null;
@@ -109,7 +111,7 @@ public class InstructionDataCollector<T extends Instruction> {
 	        assert referenceString != null;
 		 }
         Opcode opcode = instruction.getOpcode();
-		switch (instruction.getOpcode().format) {    		
+		switch (instruction.getOpcode().format) {  
 		case Format21c:
 			if (opcode.name.equals((String)"const-string")){
 				if (referenceString.contains(".")){
@@ -254,11 +256,6 @@ public class InstructionDataCollector<T extends Instruction> {
         char mode = 'n';
         String referenceIndex = null;
         int nextCode = codeAddress + instruction.getCodeUnits();        
-        for (int i = 0; i<instructions.size(); i++){
-        	if (nextCode == codeAddress){
-        		
-        	}
-        }
         
         Map<Integer, Boolean> fields = Collections.synchronizedMap(new HashMap <Integer, Boolean>());
 
@@ -311,7 +308,7 @@ public class InstructionDataCollector<T extends Instruction> {
             try {
             	ClassDefinition clD = new ClassDefinition(null, classDef);
             	MethodDefinition methodDef = new MethodDefinition(clD, method, method.getImplementation());
-                methodDef.findSwitchPayload(this.codeAddress + ((Instruction31t)instruction).getCodeOffset(),
+                Instruction inst = methodDef.findSwitchPayload(this.codeAddress + ((Instruction31t)instruction).getCodeOffset(),
                         payloadOpcode);
             } catch (InvalidSwitchPayload ex) {
             }
@@ -368,6 +365,19 @@ public class InstructionDataCollector<T extends Instruction> {
         		gen.addClause(cl);
         		break;//((short)0x0c, "move-result-object", ReferenceType.NONE, Format.Format11x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case MOVE_EXCEPTION:
+        		int previousCode = 0;
+        		for (final Instruction ins: instructions){
+        			if ((previousCode + ins.getCodeUnits()) == codeAddress){
+        				cl2.appendHead(refClassElement.rPred(classIndex, methodIndex, previousCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+                		cl2.appendBody(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+                		gen.addClause(cl2);
+        			}
+        			previousCode += ins.getCodeUnits();
+        		}
+        		cl.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        		gen.addClause(cl);
+                
         		//System.out.println("Unsupported Intsruction! MOVE_EXCEPTION");
         		break;//((short)0x0d, "move-exception", ReferenceType.NONE, Format.Format11x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case RETURN_VOID:
@@ -523,6 +533,9 @@ public class InstructionDataCollector<T extends Instruction> {
         		//System.out.println("Unsupported Intsruction! FILL_ARRAY_DATA");
         		break;//((short)0x26, "fill-array-data", ReferenceType.NONE, Format.Format31t, Opcode.CAN_CONTINUE),
         	case THROW:
+        		cl.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        		gen.addClause(cl);
         		//System.out.println("Unsupported Intsruction! THROW");
         		break;//((short)0x27, "throw", ReferenceType.NONE, Format.Format11x, Opcode.CAN_THROW),
         	case GOTO://((short)0x28, "goto", ReferenceType.NONE, Format.Format10t),
@@ -926,13 +939,33 @@ public class InstructionDataCollector<T extends Instruction> {
         		break;//((short)0x6d, "sput-short", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
         	case INVOKE_VIRTUAL:
         	case INVOKE_SUPER:
-        	case INVOKE_INTERFACE: 			
-        		implementations = refClassElement.getImplementations(referenceClassIndex, referenceIntIndex, classDefs, indStr, gen);
+        	case INVOKE_INTERFACE: 		   	
+        		if (referenceIntIndex == indStr.get("start()V", 'm')){
+        			implementations = refClassElement.getImplementations(referenceClassIndex, indStr.get("run()V", 'm'), classDefs, indStr, gen);
+        		}
+        		else{
+        			if (referenceIntIndex == indStr.get("execute([Ljava/lang/Object;)Landroid/os/AsyncTask;", 'm')){
+        				implementations = refClassElement.getImplementations(referenceClassIndex, indStr.get("doInBackground([Ljava/lang/Object;)Ljava/lang/Object;", 'm'), classDefs, indStr, gen);
+        			}
+        			else{
+        				implementations = refClassElement.getImplementations(referenceClassIndex, referenceIntIndex, classDefs, indStr, gen);
+        			}
+        		}
         		isDefined = !implementations.isEmpty();
         		FiveRegisterInstruction instr = (FiveRegisterInstruction)this.instruction;	
         		if (isDefined){
         			for (Map.Entry<Integer, Integer> entry : implementations.entrySet()){
-        				numRegCall = numLoc.get(entry.getValue(), referenceIntIndex);
+            			if ((Utils.isThread(classDefs, entry.getValue(), indStr)) && (referenceIntIndex == indStr.get("start()V", 'm')))
+
+            				numRegCall = numLoc.get(entry.getValue(), indStr.get("run()V", 'm'));
+            			else{
+            				if ((Utils.isThread(classDefs, entry.getValue(), indStr)) && (referenceIntIndex == indStr.get("execute([Ljava/lang/Object;)Landroid/os/AsyncTask;", 'm'))){
+            					numRegCall = numLoc.get(entry.getValue(), indStr.get("doInBackground([Ljava/lang/Object;)Ljava/lang/Object;", 'm'));
+            				}
+            				else{
+            					numRegCall = numLoc.get(entry.getValue(), referenceIntIndex);
+            				}
+            			}
         				//numArgCall = instr.getRegisterCount();
         				if (numRegCall == 0)
                 			numRegCallp = instr.getRegisterCount();
@@ -947,21 +980,44 @@ public class InstructionDataCollector<T extends Instruction> {
             			regUpdate.clear();
                 		regUpdateL.clear();
                 		regUpdateB.clear();
+                		
             			cl10.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen) + 
             					" (= v" + Integer.toString(referenceReg) + ' ' + 
-            					Utils.hexDec64(entry.getKey(), size) + "))");  
-        				numArgCall = numLoc.getp(entry.getValue(), referenceIntIndex);
-
+            					Utils.hexDec64(entry.getKey(), size) + "))");
+            			
+            			if ((Utils.isThread(classDefs, entry.getValue(), indStr)) && (referenceIntIndex == indStr.get("start()V", 'm')))
+            				numArgCall = numLoc.getp(entry.getValue(), indStr.get("run()V", 'm'));
+            			else{
+            				if ((Utils.isThread(classDefs, entry.getValue(), indStr)) && (referenceIntIndex == indStr.get("execute([Ljava/lang/Object;)Landroid/os/AsyncTask;", 'm'))){
+            					numArgCall = numLoc.getp(entry.getValue(), indStr.get("doInBackground([Ljava/lang/Object;)Ljava/lang/Object;", 'm'));
+            				}
+            				else{
+            					numArgCall = numLoc.getp(entry.getValue(), referenceIntIndex);
+            				}
+            			}
             			regUpdate = updateReg(numRegCall, numArgCall, 'v', false);
             			regUpdateL = updateReg(numRegCall, numArgCall, 'l', false);
             			regUpdateB = updateReg(numRegCall, numArgCall, 'b', false);
-                		cl10.appendBody(refClassElement.rInvokePred(Integer.toString(entry.getValue()), Integer.toString(referenceIntIndex), 0,  
+            			
+            			if ((Utils.isThread(classDefs, entry.getValue(), indStr)) && (referenceIntIndex == indStr.get("start()V", 'm'))){
+            				cl10.appendBody(refClassElement.rInvokePred(Integer.toString(entry.getValue()), Integer.toString(indStr.get("run()V", 'm')), 0,  
+                    				regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, gen, size));
+            			}
+            			else{
+            				if ((Utils.isThread(classDefs, entry.getValue(), indStr)) && (referenceIntIndex == indStr.get("execute([Ljava/lang/Object;)Landroid/os/AsyncTask;", 'm'))){
+                				cl10.appendBody(refClassElement.rInvokePred(Integer.toString(entry.getValue()), Integer.toString(indStr.get("doInBackground([Ljava/lang/Object;)Ljava/lang/Object;", 'm')), 0,  
+                        				regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, gen, size));
+            				}
+                			else{
+            				cl10.appendBody(refClassElement.rInvokePred(Integer.toString(entry.getValue()), Integer.toString(referenceIntIndex), 0,  
                 				regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, gen, size));
+                			}
+            			}
                 		regUpdate.clear();
                 		regUpdateL.clear();
                 		regUpdateB.clear();
                 		gen.addClause(cl10);
-                		
+            			
                 		
                 		if (callReturns){
                 			head = "(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen);
@@ -2282,6 +2338,34 @@ public class InstructionDataCollector<T extends Instruction> {
         Map<Integer, Boolean> fields = Collections.synchronizedMap(new HashMap <Integer, Boolean>());
         
         ////////////////////////////////////
+        if  (c == (indStr.get("Ljava/lang/RuntimeException;", 'c')) && 
+    			(indStr.get("<init>(Ljava/lang/String;)V", 'm') == m)){
+			FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
+    		cl2.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+    		cl2.appendBody(refClassElement.hPred(Utils.hexDec64(indStr.get("Ljava/lang/RuntimeException;", 'c'), size), 
+    				'v' + Integer.toString(instruction.getRegisterC()), Utils.hexDec64(indStr.get("message", 'f'), size), 
+    				'v' + Integer.toString(instruction.getRegisterD()), 'l' + Integer.toString(instruction.getRegisterD()), 'b' + Integer.toString(instruction.getRegisterD())));
+    		gen.addClause(cl2);
+			cl.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+			cl.appendBody(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+			gen.addClause(cl);
+			return true;
+        }
+        if  (c == (indStr.get("Ljava/lang/RuntimeException;", 'c')) && 
+    			(indStr.get("getMessage()Ljava/lang/String;", 'm') == m)){
+			FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
+    		cl.appendHead("(and " + refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
+    				+ ' ' +
+    		refClassElement.hPred(Utils.hexDec64(indStr.get("Ljava/lang/RuntimeException;", 'c'), size), 
+    				'v' + Integer.toString(instruction.getRegisterC()), Utils.hexDec64(indStr.get("message", 'f'), size), 
+    				"f", "lf", "bf") + ')');
+    		regUpdate.put(numRegLoc, "f");
+			regUpdateL.put(numRegLoc, "lf");
+			regUpdateB.put(numRegLoc, "bf");
+			cl.appendBody(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+			gen.addClause(cl);
+			return true;
+        }
         if  (c == (indStr.get("Landroid/telephony/SmsManager;", 'c')) && 
     			(indStr.get("getDefault()Landroid/telephony/SmsManager;", 'm') == m)){
 			final int instanceNum = refClassElement.getInstNum(ci, mi, codeAddress);

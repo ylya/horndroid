@@ -1475,6 +1475,12 @@ private static void addFactsFound(String className, String methodName, IndStr in
     		  if (found) break;
     		  	if (className.equals(classDef.getType())) {
     		  		found = lookInDirectMethods(classDef, methodName);
+    		  		if ((Utils.isThread(classDefs, classDef, indStr)) && (indStr.get(methodName, 'm') == indStr.get("execute([Ljava/lang/Object;)Landroid/os/AsyncTask;", 'm'))){
+    		  			methodName = "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;";
+    		  		}
+    		  		if ((Utils.isThread(classDefs, classDef, indStr)) && (indStr.get(methodName, 'm') == indStr.get("start()V", 'm'))){
+    		  			methodName = "run()V";
+    		  		}
     		        if (!found) found = lookInVirtualMethods(classDef, methodName);
     		        //look in the interface implementations
     		        if ((!found) && classDef.getClass().isInterface()){
