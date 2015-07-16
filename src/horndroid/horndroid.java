@@ -31,42 +31,28 @@ package horndroid;
 import gen.Gen;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.jf.baksmali.Adaptors.BlankMethodItem;
-import org.jf.baksmali.Adaptors.CatchMethodItem;
-import org.jf.baksmali.Adaptors.LabelMethodItem;
-import org.jf.baksmali.Adaptors.MethodDefinition;
-import org.jf.baksmali.Adaptors.MethodItem;
-import org.jf.baksmali.Adaptors.SyntheticAccessCommentMethodItem;
-import org.jf.baksmali.Adaptors.Format.InstructionMethodItemFactory;
 import org.jf.dexlib2.AccessFlags;
-import org.jf.dexlib2.Opcode;
-import org.jf.dexlib2.ReferenceType;
 import org.jf.dexlib2.dexbacked.DexBackedClassDef;
-import org.jf.dexlib2.dexbacked.DexBackedDexFile.InvalidItemIndex;
 import org.jf.dexlib2.iface.ClassDef;
 import org.jf.dexlib2.iface.DexFile;
-import org.jf.dexlib2.iface.ExceptionHandler;
 import org.jf.dexlib2.iface.Field;
 import org.jf.dexlib2.iface.Method;
 import org.jf.dexlib2.iface.MethodImplementation;
 import org.jf.dexlib2.iface.MethodParameter;
-import org.jf.dexlib2.iface.TryBlock;
 import org.jf.dexlib2.iface.instruction.Instruction;
-import org.jf.dexlib2.iface.instruction.ReferenceInstruction;
-import org.jf.dexlib2.iface.reference.MethodReference;
 import org.jf.dexlib2.iface.value.EncodedValue;
 import org.jf.dexlib2.util.ReferenceUtil;
-import org.jf.dexlib2.util.SyntheticAccessorResolver;
 import org.jf.dexlib2.util.TypeUtils;
-import org.jf.util.ExceptionWithContext;
-import org.jf.util.IndentingWriter;
+
+import payload.ArrayData;
+import payload.PackedSwitch;
+import payload.SparseSwitch;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -101,13 +87,17 @@ public class horndroid {
 	
 	public static void collectDataFromApk(final NumLoc numLoc, final RefClassElement refClassElement, 
 		    final IndStr indStr, 
-    		final DexFile dexFile, final options options, final Gen gen, final Set<Integer> activities, final Set<ConstString> constStrings, final Set<Integer> launcherActivities) {
+    		final DexFile dexFile, final options options, final Gen gen, final Set<Integer> activities, final Set<ConstString> constStrings, final Set<Integer> launcherActivities,
+    		final Set<ArrayData> arrayDataPayload, final Set<PackedSwitch> packedSwitchPayload, 
+			final Set<SparseSwitch> sparseSwitchPayload) {
 
         List<? extends ClassDef> classDefs = Ordering.natural().sortedCopy(dexFile.getClasses());
       
         for (final ClassDef classDef: classDefs) {
         	if (!classDef.getType().contains("Landroid"))
-        		collectDataFromClass(numLoc, refClassElement, classDef, indStr, options, gen, constStrings, launcherActivities);
+        		collectDataFromClass(numLoc, refClassElement, classDef, indStr, options, gen, constStrings, launcherActivities,
+        				arrayDataPayload, packedSwitchPayload, 
+        				sparseSwitchPayload);
         }
 	}
 	
@@ -116,13 +106,21 @@ public class horndroid {
     
     private static void collectDataFromClass(final NumLoc numLoc, 
     		final RefClassElement refClassElement, final ClassDef classDef, final IndStr indStr, 
-                                            final options options, final Gen gen, final Set<ConstString> constStrings, final Set<Integer> launcherActivities) {
-        collectDataFromMethods(classDef, gen, false, indStr, refClassElement, numLoc, constStrings, launcherActivities); //direct
-        collectDataFromMethods(classDef, gen, true, indStr, refClassElement, numLoc, constStrings, launcherActivities); //virtual
+                                            final options options, final Gen gen, final Set<ConstString> constStrings, final Set<Integer> launcherActivities,
+                                            final Set<ArrayData> arrayDataPayload, final Set<PackedSwitch> packedSwitchPayload, 
+                                			final Set<SparseSwitch> sparseSwitchPayload) {
+        collectDataFromMethods(classDef, gen, false, indStr, refClassElement, numLoc, constStrings, launcherActivities,
+        		arrayDataPayload, packedSwitchPayload, 
+    			sparseSwitchPayload); //direct
+        collectDataFromMethods(classDef, gen, true, indStr, refClassElement, numLoc, constStrings, launcherActivities,
+        		arrayDataPayload, packedSwitchPayload, 
+    			sparseSwitchPayload); //virtual
     }
     
     private static void collectDataFromMethods(final ClassDef classDef, final Gen gen, final boolean virtual, 
-    		final IndStr indStr, final RefClassElement refClassElement, final NumLoc numLoc, final Set<ConstString> constStrings, final Set<Integer> launcherActivities) {
+    		final IndStr indStr, final RefClassElement refClassElement, final NumLoc numLoc, final Set<ConstString> constStrings, final Set<Integer> launcherActivities,
+    		final Set<ArrayData> arrayDataPayload, final Set<PackedSwitch> packedSwitchPayload, 
+			final Set<SparseSwitch> sparseSwitchPayload) {
          Iterable<? extends Method> methods;
          if (!virtual){
         	 if (classDef instanceof DexBackedClassDef) {
@@ -145,14 +143,18 @@ public class horndroid {
              MethodImplementation methodImpl = method.getImplementation();
              if (methodImpl == null) {
              } else {
-                 collectDataFromMethod(method, methodImpl, methodString, classIndex, methodIndex, refClassElement, indStr, gen, numLoc, constStrings, launcherActivities);
+                 collectDataFromMethod(method, methodImpl, methodString, classIndex, methodIndex, refClassElement, indStr, gen, numLoc, constStrings, launcherActivities,
+                		arrayDataPayload,  packedSwitchPayload, 
+             			sparseSwitchPayload, classDef);
              }
          }
     }
     private static void collectDataFromMethod(final Method method, final MethodImplementation methodImpl, 
     		final String methodString, final String classIndex, 
     		final String methodIndex,
-    		final RefClassElement refClassElement, final IndStr indStr, final Gen gen, final NumLoc numLoc, final Set<ConstString> constStrings, final Set<Integer> launcherActivities){
+    		final RefClassElement refClassElement, final IndStr indStr, final Gen gen, final NumLoc numLoc, final Set<ConstString> constStrings, final Set<Integer> launcherActivities,
+    		final Set<ArrayData> arrayDataPayload, final Set<PackedSwitch> packedSwitchPayload, 
+			final Set<SparseSwitch> sparseSwitchPayload, ClassDef classDef){
     	
     	int parameterRegisterCount = 0;
         if (!AccessFlags.STATIC.isSet(method.getAccessFlags())) {
@@ -178,7 +180,10 @@ public class horndroid {
         for (Instruction instruction: instructions){
         	InstructionDataCollector idc = new InstructionDataCollector(codeAddress, Integer.parseInt(classIndex), 
         			Integer.parseInt(methodIndex), instruction);
-        	idc.collect(indStr, refClassElement, ImmutableList.of(instructions), constStrings, launcherActivities);
+        	idc.collect(indStr, refClassElement, ImmutableList.of(instructions), constStrings, launcherActivities,
+        			classDef, method,
+        			arrayDataPayload, packedSwitchPayload, 
+        		    sparseSwitchPayload);
             codeAddress += instruction.getCodeUnits();
         }    
     }
@@ -200,7 +205,9 @@ public class horndroid {
 	
 	public static void smtApkFile(final NumLoc numLoc, final RefClassElement refClassElement, final IndStr indStr, 
     		DexFile dexFile, final options options, final Gen gen,  final Set<String> callbacks,  final Set<Integer> disabledActivities, final Set<Integer> activities,  
-    		final Set<Integer> launcherActivities, final Set<Integer> callbackImplementations, final Set<Integer> applications, final int size) throws IOException {
+    		final Set<Integer> launcherActivities, final Set<Integer> callbackImplementations, final Set<Integer> applications, final int size,
+    		final Set<ArrayData> arrayDataPayload, final Set<PackedSwitch> packedSwitchPayload, 
+			final Set<SparseSwitch> sparseSwitchPayload) throws Exception {
         List<? extends ClassDef> classDefs = Ordering.natural().sortedCopy(dexFile.getClasses());
         for (final ClassDef classDef: classDefs) {
         	if (isActivity(classDefs, classDef, indStr)){
@@ -210,13 +217,17 @@ public class horndroid {
         		if (activities.contains(indStr.get(formatClassName, 'c'))){
         			 if (!classDef.getType().contains("Landroid"))
         				 smtClass(numLoc, refClassElement, classDef, indStr, options, gen, classDefs, callbacks, disabledActivities, activities, launcherActivities, callbackImplementations,
-        						 applications, size);
+        						 applications, size,
+        						 arrayDataPayload,  packedSwitchPayload, 
+        							sparseSwitchPayload);
         		}
         		else{
         			if (parentActivity(classDefs,  activities, indStr.get(classDef.getType(), 'c'),  indStr)){
         				if (!classDef.getType().contains("Landroid"))
         					smtClass(numLoc, refClassElement, classDef, indStr, options, gen, classDefs, callbacks, disabledActivities, activities, launcherActivities, callbackImplementations,
-        							applications, size);
+        							applications, size,
+        							arrayDataPayload, packedSwitchPayload, 
+        							sparseSwitchPayload);
         			}
         			else{
         				if (!classDef.getType().contains("Landroid"))
@@ -228,7 +239,9 @@ public class horndroid {
         		if (!isActivity(classDefs, classDef, indStr)){
         			if (!classDef.getType().contains("Landroid")){
                    	 smtClass(numLoc, refClassElement, classDef, indStr, options, gen, classDefs, callbacks, disabledActivities, activities, launcherActivities, callbackImplementations,
-                   			 applications, size);
+                   			 applications, size,
+                   			arrayDataPayload, packedSwitchPayload, 
+                			sparseSwitchPayload);
         			}
         		}
         		
@@ -239,13 +252,19 @@ public class horndroid {
     private static void smtClass(final NumLoc numLoc, RefClassElement refClassElement, ClassDef classDef, IndStr indStr,
                                             options options, final Gen gen, final List<? extends ClassDef> classDefs,  final Set<String> callbacks,  final Set<Integer> disabledActivities,
                                             final Set<Integer> activities, final Set<Integer> launcherActivities, final Set<Integer> callbackImplementations,
-                                            final Set<Integer> applications, final int size) throws IOException {
+                                            final Set<Integer> applications, final int size,
+                                            final Set<ArrayData> arrayDataPayload, final Set<PackedSwitch> packedSwitchPayload, 
+                                			final Set<SparseSwitch> sparseSwitchPayload) throws Exception {
     	smtFields(classDef, gen, false, indStr, refClassElement, numLoc, size); //static
     	smtFields(classDef, gen, true, indStr, refClassElement, numLoc, size); //dynamic
     	smtMethods(classDef, gen, false, indStr, refClassElement, numLoc, classDefs, options, callbacks, disabledActivities, activities, launcherActivities, callbackImplementations,
-    			applications, size); //direct
+    			applications, size,
+    			 arrayDataPayload,  packedSwitchPayload, 
+    			 sparseSwitchPayload); //direct
         smtMethods(classDef, gen, true, indStr, refClassElement, numLoc, classDefs, options, callbacks, disabledActivities, activities, launcherActivities, callbackImplementations,
-        		applications, size); //virtual
+        		applications, size,
+        		arrayDataPayload, packedSwitchPayload, 
+    			sparseSwitchPayload); //virtual
     }
     
     private static void smtFields(final ClassDef classDef, final Gen gen, final boolean dynamic, 
@@ -281,7 +300,9 @@ public class horndroid {
     private static void smtMethods(final ClassDef classDef, final Gen gen, final boolean virtual, 
     		final IndStr indStr, final RefClassElement refClassElement, final NumLoc numLoc,
     		final List<? extends ClassDef> classDefs, final options options,  final Set<String> callbacks,  final Set<Integer> disabledActivities, final Set<Integer> activities,
-    		final Set<Integer> launcherActivities, final Set<Integer> callbackImplementations, final Set<Integer> applications, final int size) {
+    		final Set<Integer> launcherActivities, final Set<Integer> callbackImplementations, final Set<Integer> applications, final int size,
+    		final Set<ArrayData> arrayDataPayload, final Set<PackedSwitch> packedSwitchPayload, 
+			final Set<SparseSwitch> sparseSwitchPayload) throws Exception {
         Iterable<? extends Method> methods;
     	if (!virtual){
             if (classDef instanceof DexBackedClassDef) {
@@ -305,7 +326,9 @@ public class horndroid {
                 if (methodImpl == null) {
                 } else {
                 	 smtMethod(method, methodImpl, methodString, classIndex, methodIndex, refClassElement, indStr, gen, numLoc,
-                			 classDefs, options, classDef, callbacks, disabledActivities, activities, launcherActivities, callbackImplementations, applications, size);
+                			 classDefs, options, classDef, callbacks, disabledActivities, activities, launcherActivities, callbackImplementations, applications, size,
+                			 arrayDataPayload, packedSwitchPayload, 
+                				sparseSwitchPayload);
                 }
         }
     }
@@ -333,7 +356,8 @@ public class horndroid {
     		final RefClassElement refClassElement, final IndStr indStr, final Gen gen, final NumLoc numLoc,
     		final List<? extends ClassDef> classDefs, final options options, final ClassDef classDef,  final Set<String> callbacks,  final Set<Integer> disabledActivities,
     		final Set<Integer> activities, final Set<Integer> launcherActivities, final Set<Integer> callbackImplementations, final Set<Integer> applications,
-    		final int size){
+    		final int size, final Set<ArrayData> arrayDataPayload, final Set<PackedSwitch> packedSwitchPayload, 
+			final Set<SparseSwitch> sparseSwitchPayload) throws Exception{
     	List<String> interfaces = Lists.newArrayList(classDef.getInterfaces());
         Collections.sort(interfaces);
         if (interfaces.size() != 0) {
@@ -388,6 +412,9 @@ public class horndroid {
     		gen.addMain("(rule " + refClassElement.rPred(classIndex, methodIndex, 
 					0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall, gen) + ")");
     		
+    		//!create an instance of the entrypoint class
+    		refClassElement.putInstance(0, 0, 0, Integer.parseInt(classIndex), true);
+    		
     		gen.addMain("(rule " + refClassElement.hPred(Utils.hexDec64(indStr.get(classDef.getType(), 'c'), size), "fpp", "f", "val", "false", "true") + ")");
     	}
     	if (parentActivity(classDefs,  activities, indStr.get(classDef.getType(), 'c'),  indStr)){
@@ -400,6 +427,9 @@ public class horndroid {
     		for (i = 0; i<= numRegCall + regCount; i++){
 				regUpdateL.put(i, "false");
 			}
+    		
+    		//create an instance of the entrypoint class
+    		refClassElement.putInstance(0, 0, 0, Integer.parseInt(classIndex), true);
 			
     		gen.addMain("(rule " + refClassElement.rPred(classIndex, methodIndex, 
 					0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall, gen) + ")");
@@ -418,6 +448,8 @@ public class horndroid {
     		for (i = 0; i<= numRegCall + regCount; i++){
 				regUpdateL.put(i, "false");
 			}
+    		//create an instance of the entrypoint class
+    		refClassElement.putInstance(0, 0, 0, Integer.parseInt(classIndex), true);
 			
     		gen.addMain("(rule " + refClassElement.rPred(classIndex, methodIndex, 
 					0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall, gen) + ")");
@@ -446,7 +478,9 @@ public class horndroid {
         for (Instruction instruction: instructions){
         	InstructionDataCollector idc = new InstructionDataCollector(codeAddress, Integer.parseInt(classIndex), 
         			Integer.parseInt(methodIndex), instruction);
-        	idc.process(indStr, refClassElement, instructionsIL, classDefs, method, numLoc, gen, options, classDef, activities, size);
+        	idc.process(indStr, refClassElement, instructionsIL, classDefs, method, numLoc, gen, options, classDef, activities, size,
+        			arrayDataPayload,  packedSwitchPayload, 
+        			 sparseSwitchPayload);
             codeAddress += instruction.getCodeUnits();
         }    
     } 

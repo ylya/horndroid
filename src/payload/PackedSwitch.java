@@ -1,0 +1,28 @@
+package payload;
+
+import java.util.List;
+
+public class PackedSwitch {
+	final private int c, m, codeAddress;
+	final private List<Number> targets;
+	final private int firstKey;
+	public PackedSwitch(final int c, final int m, final int codeAddress, final List<Number> targets, final int firstKey){
+		this.c = c;
+		this.m = m;
+		this.codeAddress = codeAddress;
+		this.targets = targets;
+		this.firstKey = firstKey;
+	}
+	public List<Number> getTargets(final int c, final int m, final int codeAddress){
+		if ((this.c == c) && (this.m == m) && (this.codeAddress == codeAddress)){
+			return targets;
+		}
+		return null;
+	}
+	public int getFirstKey(final int c, final int m, final int codeAddress) throws Exception{
+		if ((this.c == c) && (this.m == m) && (this.codeAddress == codeAddress)){
+			return firstKey;
+		}
+		throw new Exception( "No first key found");
+	}
+}

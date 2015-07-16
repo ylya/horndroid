@@ -32,6 +32,7 @@ import gen.Clause;
 import gen.Gen;
 import horndroid.options;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -52,17 +53,24 @@ import org.jf.dexlib2.iface.instruction.Instruction;
 import org.jf.dexlib2.iface.instruction.OneRegisterInstruction;
 import org.jf.dexlib2.iface.instruction.ReferenceInstruction;
 import org.jf.dexlib2.iface.instruction.RegisterRangeInstruction;
+import org.jf.dexlib2.iface.instruction.SwitchElement;
 import org.jf.dexlib2.iface.instruction.ThreeRegisterInstruction;
 import org.jf.dexlib2.iface.instruction.TwoRegisterInstruction;
 import org.jf.dexlib2.iface.instruction.WideLiteralInstruction;
+import org.jf.dexlib2.iface.instruction.formats.ArrayPayload;
 import org.jf.dexlib2.iface.instruction.formats.Instruction31t;
 import org.jf.dexlib2.iface.instruction.formats.PackedSwitchPayload;
+import org.jf.dexlib2.iface.instruction.formats.SparseSwitchPayload;
 import org.jf.dexlib2.iface.reference.FieldReference;
 import org.jf.dexlib2.iface.reference.MethodReference;
 import org.jf.dexlib2.iface.reference.Reference;
 import org.jf.dexlib2.iface.reference.StringReference;
 import org.jf.dexlib2.iface.reference.TypeReference;
 import org.jf.util.ExceptionWithContext;
+
+import payload.ArrayData;
+import payload.PackedSwitch;
+import payload.SparseSwitch;
 
 import com.google.common.collect.ImmutableList;
 
@@ -81,7 +89,9 @@ public class InstructionDataCollector<T extends Instruction> {
 		this.m = m;
 	}
 	
-	public void collect(final IndStr indStr, final RefClassElement refClassElement, final ImmutableList<Instruction> instructions, final Set<ConstString> constStrings, final Set<Integer> launcherActivities){
+	public void collect(final IndStr indStr, final RefClassElement refClassElement, final ImmutableList<Instruction> instructions, final Set<ConstString> constStrings, final Set<Integer> launcherActivities,
+			final ClassDef classDef, final Method method, final Set<ArrayData> arrayDataPayload, final Set<PackedSwitch> packedSwitchPayload, 
+			final Set<SparseSwitch> sparseSwitchPayload){
         char mode = 'n';
         String referenceString = null;
     	String referenceStringClass = null;
@@ -110,14 +120,71 @@ public class InstructionDataCollector<T extends Instruction> {
 	        referenceIntIndex = indStr.get(referenceString, mode);
 	        assert referenceString != null;
 		 }
+		
+		if (instruction instanceof Instruction31t) {
+            try {
+        	ClassDefinition clD = new ClassDefinition(null, classDef);
+        	MethodDefinition methodDef = new MethodDefinition(clD, method, method.getImplementation());
+            Opcode payloadOpcode;
+            final int payloadAddress = codeAddress + ((Instruction31t)instruction).getCodeOffset();
+            switch (instruction.getOpcode()) {
+                case PACKED_SWITCH:
+                    payloadOpcode = Opcode.PACKED_SWITCH_PAYLOAD;
+                    PackedSwitchPayload psInst = (PackedSwitchPayload) methodDef.findSwitchPayload(this.codeAddress + ((Instruction31t)instruction).getCodeOffset(),
+                            payloadOpcode);
+                    boolean first = true;
+                    int firstKey = -1;
+                    final int basePCodeAddress = methodDef.getPackedSwitchBaseAddress(payloadAddress);
+                    final List<Number> targets = new ArrayList<Number>();
+                    for (SwitchElement switchElement: psInst.getSwitchElements()) {
+                        if (first) {
+                            firstKey = switchElement.getKey();
+                            first = false;
+                        }
+                        targets.add(basePCodeAddress + switchElement.getOffset());
+                    }
+                    packedSwitchPayload.add(new PackedSwitch(c, m, payloadAddress, targets, firstKey));
+                    break;
+                case SPARSE_SWITCH:
+                    payloadOpcode = Opcode.SPARSE_SWITCH_PAYLOAD;
+                    final int baseSCodeAddress = methodDef.getSparseSwitchBaseAddress(codeAddress);
+                    SparseSwitchPayload ssInst = (SparseSwitchPayload) methodDef.findSwitchPayload(this.codeAddress + ((Instruction31t)instruction).getCodeOffset(),
+                            payloadOpcode);
+                    final Map<Integer, Integer> sTargets  = Collections.synchronizedMap(new HashMap <Integer, Integer>());
+                    for (SwitchElement switchElement: ssInst.getSwitchElements()) {
+                        sTargets.put(switchElement.getKey(), baseSCodeAddress + switchElement.getOffset());
+                    }
+                    sparseSwitchPayload.add(new SparseSwitch(c, m, payloadAddress, sTargets));
+                    break;
+                case FILL_ARRAY_DATA:
+                    payloadOpcode = Opcode.ARRAY_PAYLOAD;
+                    ArrayPayload apInst = (ArrayPayload) methodDef.findSwitchPayload(this.codeAddress + ((Instruction31t)instruction).getCodeOffset(),
+                            payloadOpcode);
+                    List<Number> elements = apInst.getArrayElements();
+                    //for (Number number: elements) {
+                    //	elements.add(number.longValue());
+                    //}
+                    arrayDataPayload.add(new ArrayData(c, m, payloadAddress, elements));
+                    break;
+                default:
+                    throw new ExceptionWithContext("Invalid 31t opcode: %s", instruction.getOpcode());
+            }
+
+            	
+                
+            } catch (InvalidSwitchPayload ex) {
+            }
+        }
+		
         Opcode opcode = instruction.getOpcode();
 		switch (instruction.getOpcode().format) {  
 		case Format21c:
 			if (opcode.name.equals((String)"const-string")){
 				if (referenceString.contains(".")){
-					String[] parts = referenceString.split("\\.");
-					String classN = parts[parts.length -1].substring(0, parts[parts.length -1].length()-1);
-		    		constStrings.add(new ConstString(c, m, codeAddress, ((OneRegisterInstruction)instruction).getRegisterA(), indStr.get(classN, 'c')));
+					final String[] parts = referenceString.split("\\.");
+					final String classN = parts[parts.length -1].substring(0, parts[parts.length -1].length()-1);
+					final String dalvikName = "L" + referenceString.substring(1, referenceString.length()-1).replaceAll("\\.", "/") + ";";
+		    		constStrings.add(new ConstString(c, m, codeAddress, ((OneRegisterInstruction)instruction).getRegisterA(), indStr.get(classN, 'c'), indStr.get(dalvikName, 'c')));
 				}
 				break;
 			}
@@ -129,8 +196,26 @@ public class InstructionDataCollector<T extends Instruction> {
          		refClassElement.putInstance(c, m, codeAddress, referenceIntIndex, false);
          	break;
 		 case Format35c:
+			 
+			if (opcode.name.equals((String) "filled-new-array")){
+	         		refClassElement.putInstance(c, m, codeAddress, referenceIntIndex, false);
+	         		break;
+			}
+			
          	nextCode = codeAddress + instruction.getCodeUnits();
          	
+         	//reflection
+         	if  (referenceClassIndex == (indStr.get("Ljava/lang/Class;", 'c')) && 
+        			(indStr.get("newInstance()Ljava/lang/Object;", 'm') == referenceIntIndex)){
+    			FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
+    			for (final ConstString constString: constStrings){
+    				if ((constString.getC() == c) && (constString.getM() == m) && (constString.getPC() < codeAddress) && (constString.getV() == instruction.getRegisterC())){
+    					refClassElement.putInstance(c, m, codeAddress, constString.getDalvikName(), true);
+    					break;
+    				}
+    			}
+            }
+         	//
          	
          	if  (referenceClassIndex == (indStr.get("Landroid/content/ComponentName;", 'c')) && 
         			(indStr.get("<init>(Landroid/content/Context;Ljava/lang/String;)V", 'm') == referenceIntIndex)){
@@ -200,6 +285,10 @@ public class InstructionDataCollector<T extends Instruction> {
              }
              break;
 		 case Format3rc:
+			 if (opcode.name.equals((String) "filled-new-array/range")){
+	         		refClassElement.putInstance(c, m, codeAddress, referenceIntIndex, false);
+	         		break;
+				}
 			nextCode = codeAddress + instruction.getCodeUnits();
 			
          	refClassElement.addCallRef(referenceClassIndex, referenceIntIndex, c, m, nextCode);
@@ -234,8 +323,11 @@ public class InstructionDataCollector<T extends Instruction> {
 		}
 	}
 	public void process(final IndStr indStr, final RefClassElement refClassElement, final ImmutableList<Instruction> instructions,
-			final List<? extends ClassDef> classDefs, final Method method, final NumLoc numLoc, final Gen gen, final options options, final ClassDef classDef, final Set<Integer> activities, final int size){
-
+			final List<? extends ClassDef> classDefs, final Method method, final NumLoc numLoc, final Gen gen, final options options, final ClassDef classDef, final Set<Integer> activities, final int size,
+			final Set<ArrayData> arrayDataPayload, final Set<PackedSwitch> packedSwitchPayload, 
+			final Set<SparseSwitch> sparseSwitchPayload) throws Exception{
+		String negationString = null;
+		boolean moreToNegate = false;
 	  	int jump = 0;
     	int referenceReg;
     	boolean isDefined;
@@ -289,30 +381,7 @@ public class InstructionDataCollector<T extends Instruction> {
         assert referenceString != null;
         }    
             
-        if (instruction instanceof Instruction31t) {
-            Opcode payloadOpcode;
-            switch (instruction.getOpcode()) {
-                case PACKED_SWITCH:
-                    payloadOpcode = Opcode.PACKED_SWITCH_PAYLOAD;
-                    break;
-                case SPARSE_SWITCH:
-                    payloadOpcode = Opcode.SPARSE_SWITCH_PAYLOAD;
-                    break;
-                case FILL_ARRAY_DATA:
-                    payloadOpcode = Opcode.ARRAY_PAYLOAD;
-                    break;
-                default:
-                    throw new ExceptionWithContext("Invalid 31t opcode: %s", instruction.getOpcode());
-            }
-
-            try {
-            	ClassDefinition clD = new ClassDefinition(null, classDef);
-            	MethodDefinition methodDef = new MethodDefinition(clD, method, method.getImplementation());
-                Instruction inst = methodDef.findSwitchPayload(this.codeAddress + ((Instruction31t)instruction).getCodeOffset(),
-                        payloadOpcode);
-            } catch (InvalidSwitchPayload ex) {
-            }
-        }
+        
 
         String methodName = Utils.getShortMethodDescriptor(method);
         String className = method.getDefiningClass();
@@ -524,12 +593,245 @@ public class InstructionDataCollector<T extends Instruction> {
         		}
         		break;//((short)0x23, "new-array", ReferenceType.TYPE, Format.Format22c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case FILLED_NEW_ARRAY:
+        		Clause clf1 = new Clause();
+        		Clause clf2 = new Clause();
+        		Clause clf3 = new Clause();
+        		Clause clf4 = new Clause();
+        		Clause clf5 = new Clause();
+        		FiveRegisterInstruction instructionA = (FiveRegisterInstruction)this.instruction;
+                final int regCount = instructionA.getRegisterCount();
+        		instanceNum = refClassElement.getInstNum(ci, mi, codeAddress);
+        		cl.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        		regUpdate.put(numRegLoc, Utils.hexDec64(instanceNum, size));
+        		regUpdateL.put(numRegLoc, "false");
+        		regUpdateB.put(numRegLoc, "true");
+        		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        		gen.addClause(cl);
+        		regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
+        		if (options.arrays){
+        			switch(regCount){
+        			case 1:
+        				clf1.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf1.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(0, size), "v" + instructionA.getRegisterC(), "l" + instructionA.getRegisterC(), "b" + instructionA.getRegisterC()));
+        				gen.addClause(clf1);
+        				break;
+        			case 2:
+        				clf1.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf1.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(0, size), "v" + instructionA.getRegisterC(), "l" + instructionA.getRegisterC(), "b" + instructionA.getRegisterC()));
+        				gen.addClause(clf1);
+        				clf2.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf2.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(1, size), "v" + instructionA.getRegisterD(), "l" + instructionA.getRegisterD(), "b" + instructionA.getRegisterD()));
+        				gen.addClause(clf2);
+        				break;
+        			case 3:
+        				clf1.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf1.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(0, size), "v" + instructionA.getRegisterC(), "l" + instructionA.getRegisterC(), "b" + instructionA.getRegisterC()));
+        				gen.addClause(clf1);
+        				clf2.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf2.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(1, size), "v" + instructionA.getRegisterD(), "l" + instructionA.getRegisterD(), "b" + instructionA.getRegisterD()));
+        				gen.addClause(clf2);
+        				clf3.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf3.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(2, size), "v" + instructionA.getRegisterE(), "l" + instructionA.getRegisterE(), "b" + instructionA.getRegisterE()));
+        				gen.addClause(clf3);
+        				break;
+        			case 4:
+        				clf1.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf1.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(0, size), "v" + instructionA.getRegisterC(), "l" + instructionA.getRegisterC(), "b" + instructionA.getRegisterC()));
+        				gen.addClause(clf1);
+        				clf2.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf2.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(1, size), "v" + instructionA.getRegisterD(), "l" + instructionA.getRegisterD(), "b" + instructionA.getRegisterD()));
+        				gen.addClause(clf2);
+        				clf3.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf3.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(2, size), "v" + instructionA.getRegisterE(), "l" + instructionA.getRegisterE(), "b" + instructionA.getRegisterE()));
+        				gen.addClause(clf3);
+        				clf4.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf4.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(3, size), "v" + instructionA.getRegisterF(), "l" + instructionA.getRegisterF(), "b" + instructionA.getRegisterF()));
+        				gen.addClause(clf4);
+        				break;
+        			case 5:
+        				clf1.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf1.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(0, size), "v" + instructionA.getRegisterC(), "l" + instructionA.getRegisterC(), "b" + instructionA.getRegisterC()));
+        				gen.addClause(clf1);
+        				clf2.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf2.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(1, size), "v" + instructionA.getRegisterD(), "l" + instructionA.getRegisterD(), "b" + instructionA.getRegisterD()));
+        				gen.addClause(clf2);
+        				clf3.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf3.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(2, size), "v" + instructionA.getRegisterE(), "l" + instructionA.getRegisterE(), "b" + instructionA.getRegisterE()));
+        				gen.addClause(clf3);
+        				clf4.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf4.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(3, size), "v" + instructionA.getRegisterF(), "l" + instructionA.getRegisterF(), "b" + instructionA.getRegisterF()));
+        				gen.addClause(clf4);
+        				clf5.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf5.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(4, size), "v" + instructionA.getRegisterG(), "l" + instructionA.getRegisterG(), "b" + instructionA.getRegisterG()));
+        				gen.addClause(clf5);
+        				break;
+        			}
+        		}
+        		else{
+        			switch(regCount){
+        			case 1:
+        				clf1.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf1.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(0, size), "v" + instructionA.getRegisterC(), "l" + instructionA.getRegisterC(), "b" + instructionA.getRegisterC()));
+        				gen.addClause(clf1);
+        				break;
+        			case 2:
+        				clf1.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf1.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(0, size), "v" + instructionA.getRegisterC(), "l" + instructionA.getRegisterC(), "b" + instructionA.getRegisterC()));
+        				gen.addClause(clf1);
+        				clf2.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf2.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(0, size), "v" + instructionA.getRegisterD(), "l" + instructionA.getRegisterD(), "b" + instructionA.getRegisterD()));
+        				gen.addClause(clf2);
+        				break;
+        			case 3:
+        				clf1.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf1.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(0, size), "v" + instructionA.getRegisterC(), "l" + instructionA.getRegisterC(), "b" + instructionA.getRegisterC()));
+        				gen.addClause(clf1);
+        				clf2.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf2.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(0, size), "v" + instructionA.getRegisterD(), "l" + instructionA.getRegisterD(), "b" + instructionA.getRegisterD()));
+        				gen.addClause(clf2);
+        				clf3.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf3.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(0, size), "v" + instructionA.getRegisterE(), "l" + instructionA.getRegisterE(), "b" + instructionA.getRegisterE()));
+        				gen.addClause(clf3);
+        				break;
+        			case 4:
+        				clf1.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf1.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(0, size), "v" + instructionA.getRegisterC(), "l" + instructionA.getRegisterC(), "b" + instructionA.getRegisterC()));
+        				gen.addClause(clf1);
+        				clf2.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf2.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(0, size), "v" + instructionA.getRegisterD(), "l" + instructionA.getRegisterD(), "b" + instructionA.getRegisterD()));
+        				gen.addClause(clf2);
+        				clf3.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf3.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(0, size), "v" + instructionA.getRegisterE(), "l" + instructionA.getRegisterE(), "b" + instructionA.getRegisterE()));
+        				gen.addClause(clf3);
+        				clf4.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf4.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(0, size), "v" + instructionA.getRegisterF(), "l" + instructionA.getRegisterF(), "b" + instructionA.getRegisterF()));
+        				gen.addClause(clf4);
+        				break;
+        			case 5:
+        				clf1.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf1.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(0, size), "v" + instructionA.getRegisterC(), "l" + instructionA.getRegisterC(), "b" + instructionA.getRegisterC()));
+        				gen.addClause(clf1);
+        				clf2.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf2.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(0, size), "v" + instructionA.getRegisterD(), "l" + instructionA.getRegisterD(), "b" + instructionA.getRegisterD()));
+        				gen.addClause(clf2);
+        				clf3.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf3.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(0, size), "v" + instructionA.getRegisterE(), "l" + instructionA.getRegisterE(), "b" + instructionA.getRegisterE()));
+        				gen.addClause(clf3);
+        				clf4.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf4.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(0, size), "v" + instructionA.getRegisterF(), "l" + instructionA.getRegisterF(), "b" + instructionA.getRegisterF()));
+        				gen.addClause(clf4);
+        				clf5.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clf5.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(0, size), "v" + instructionA.getRegisterG(), "l" + instructionA.getRegisterG(), "b" + instructionA.getRegisterG()));
+        				gen.addClause(clf5);
+        				break;
+        			}
+        		}
         		//System.out.println("Unsupported Intsruction! FILLED_NEW_ARRAY");
         		break;//((short)0x24, "filled-new-array", ReferenceType.TYPE, Format.Format35c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_RESULT),
         	case FILLED_NEW_ARRAY_RANGE:
+        		instanceNum = refClassElement.getInstNum(ci, mi, codeAddress);
+        		cl.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        		regUpdate.put(numRegLoc, Utils.hexDec64(instanceNum, size));
+        		regUpdateL.put(numRegLoc, "false");
+        		regUpdateB.put(numRegLoc, "true");
+        		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        		gen.addClause(cl);
+        		regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
+        		
+        		RegisterRangeInstruction instructionAr = (RegisterRangeInstruction)this.instruction;
+        		int regCountr = instructionAr.getRegisterCount();
+    			int startRegister = instructionAr.getStartRegister();
+            	int endRegister   =   startRegister+regCountr-1;
+            	int cr = 0;
+            	
+            	if (options.arrays){
+            		for (int reg = startRegister; reg <= endRegister; reg++){
+            			Clause clR = new Clause();
+            			clR.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clR.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(cr, size), "v" + reg, "l" + reg, "b" + reg));
+        				gen.addClause(clR);
+            			cr++;
+            		}
+            	}
+                else{
+                	for (int reg = startRegister; reg <= endRegister; reg++){
+            			Clause clR = new Clause();
+            			clR.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				clR.appendBody(refClassElement.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
+        						Utils.hexDec64(0, size), "v" + reg, "l" + reg, "b" + reg));
+        				gen.addClause(clR);
+            		}
+                }
         		//System.out.println("Unsupported Intsruction! FILLED_NEW_ARRAY_RANGE");
         		break;//((short)0x25, "filled-new-array/range", ReferenceType.TYPE, Format.Format3rc, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_RESULT),
         	case FILL_ARRAY_DATA:
+        		for (final ArrayData ad: arrayDataPayload){
+        			List<Number> elements = ad.getElements(c, m, codeAddress + ((Instruction31t)instruction).getCodeOffset());
+        			if (elements != null){
+        				int elNum = 0;
+    					Clause cl16 = new Clause();
+        				cl16.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+		        		cl16.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        				for (final Number element: elements){
+        					Clause cl17 = new Clause();      					
+        					if (options.arrays){     		
+        		        		gen.addClause(cl16);
+        		        		cl17.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
+        		        				+ ' ' + refClassElement.hPred("cn", "v" + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()), Utils.hexDec64(0, size), Utils.hexDec64(0, size), "lf", "bf") +')');
+        		        		cl17.appendBody(refClassElement.hPred("cn", "v" + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()), 
+        		        				Utils.hexDec64(elNum, size), 
+        		        				Utils.hexDec64(element.intValue(), size), "false",
+        		        				"false"));
+        		        		gen.addClause(cl17);
+        		        		}
+        		        		else{
+        		        		cl17.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
+        		        				+ ' ' + refClassElement.hPred("cn", "v" + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()), Utils.hexDec64(0, size), Utils.hexDec64(0, size), "lf", "bf") +')');
+        		        		cl17.appendBody(refClassElement.hPred("cn", "v" + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()), 
+        		        				Utils.hexDec64(0, size), 
+        		        				Utils.hexDec64(element.intValue(), size), 
+        		        				"false",
+        		        				"false"));
+        		        		gen.addClause(cl17);
+        		        		}
+        					
+        					
+        					elNum++;
+        				}
+        			break;
+        			}
+        		}
         		//System.out.println("Unsupported Intsruction! FILL_ARRAY_DATA");
         		break;//((short)0x26, "fill-array-data", ReferenceType.NONE, Format.Format31t, Opcode.CAN_CONTINUE),
         	case THROW:
@@ -547,13 +849,74 @@ public class InstructionDataCollector<T extends Instruction> {
         		gen.addClause(cl3);
         		break;//((short)0x2a, "goto/32", ReferenceType.NONE, Format.Format30t),
         	case PACKED_SWITCH:
-        		cl.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        		for (final PackedSwitch ps: packedSwitchPayload){
+        			List<Number> targets = ps.getTargets(c, m, codeAddress + ((Instruction31t)instruction).getCodeOffset());
+        			if (targets != null){
+        				if (targets.size() > 1){
+        					negationString = " (and";
+        					moreToNegate = true;
+        				}
+        				else
+        					negationString = "";
+        				int t = 0;
+        				final int payloadAddress = codeAddress + ((Instruction31t)instruction).getCodeOffset();
+        				for (final Number target: targets){
+        					Clause cl16 = new Clause();
+        					cl16.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
+        							+ " (= " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
+        				           Utils.hexDec64(ps.getFirstKey(c, m, payloadAddress) + t, size) + ")"
+        				           + ")");
+        					cl16.appendBody(refClassElement.rPred(classIndex, methodIndex, target.intValue(), 
+        					regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        					gen.addClause(cl16);
+        					
+        					negationString = negationString +  " (= " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
+         				           Utils.hexDec64(ps.getFirstKey(c, m, payloadAddress) + t, size) + ")";
+        					t++;
+        				}
+        			break;
+        			}
+        		}
+        		if (moreToNegate)
+        			negationString = negationString + ')';
+        		cl.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
+        				+ " (not" + negationString + ")"
+        				+ ')');
         		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		gen.addClause(cl);
         		//System.out.println("Unsupported Intsruction! PACKED_SWITCH");
         		break;//((short)0x2b, "packed-switch", ReferenceType.NONE, Format.Format31t, Opcode.CAN_CONTINUE),
         	case SPARSE_SWITCH:
-        		cl.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        		for (final SparseSwitch ss: sparseSwitchPayload){
+        			Map<Integer, Integer> targets = ss.getTargets(c, m, codeAddress + ((Instruction31t)instruction).getCodeOffset());
+        			if (targets != null){
+        				if (targets.size() > 1){
+        					negationString = " (and";
+        					moreToNegate = true;
+        				}
+        				else
+        					negationString = "";
+        				for (final Map.Entry<Integer, Integer> target: targets.entrySet()){
+        					Clause cl16 = new Clause();
+        					cl16.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
+        							+ " (= " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
+        				           Utils.hexDec64(target.getKey(), size) + ")"
+        				           + ")");
+        					cl16.appendBody(refClassElement.rPred(classIndex, methodIndex, target.getValue(), 
+        					regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        					gen.addClause(cl16);
+        					
+        					negationString = negationString +  " (= " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
+         				           Utils.hexDec64(target.getKey(), size) + ")";
+        				}
+        			break;
+        			}
+        		}
+        		if (moreToNegate)
+        			negationString = negationString + ')';
+        		cl.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
+        				+ " (not" + negationString + ")"
+        				+ ')');
         		cl.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		gen.addClause(cl);
         		//System.out.println("Unsupported Intsruction! SPARSE_SWITCH");
@@ -939,7 +1302,47 @@ public class InstructionDataCollector<T extends Instruction> {
         		break;//((short)0x6d, "sput-short", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
         	case INVOKE_VIRTUAL:
         	case INVOKE_SUPER:
-        	case INVOKE_INTERFACE: 		   	
+        	case INVOKE_INTERFACE: 	
+        		if ((referenceIntIndex == indStr.get("execute(Ljava/lang/Runnable;)V", 'm')) && (referenceClassIndex == indStr.get("Ljava/util/concurrent/ExecutorService;", 'c'))){
+        			implementations = refClassElement.getImplementations(indStr.get("Ljava/lang/Runnable;", 'c'), indStr.get("run()V", 'm'), classDefs, indStr, gen);
+        			isDefined = !implementations.isEmpty();
+            		FiveRegisterInstruction instr = (FiveRegisterInstruction)this.instruction;	
+            		if (isDefined){
+            			for (Map.Entry<Integer, Integer> entry : implementations.entrySet()){
+            				numRegCall = numLoc.get(entry.getValue(), indStr.get("run()V", 'm'));
+            				Clause cl10  = new Clause();
+                			Clause cl12 = new Clause();
+                			cl10.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen) + 
+                					" (= v" + Integer.toString(instr.getRegisterD()) + ' ' + 
+                					Utils.hexDec64(entry.getKey(), size) + "))");
+                			
+                			numArgCall = numLoc.getp(entry.getValue(), indStr.get("run()V", 'm'));
+                			
+                			regUpdate = updateReg(numRegCall, numArgCall, 'v', false);
+                			regUpdateL = updateReg(numRegCall, numArgCall, 'l', false);
+                			regUpdateB = updateReg(numRegCall, numArgCall, 'b', false);
+                			
+                			
+                			cl10.appendBody(refClassElement.rInvokePred(Integer.toString(entry.getValue()), Integer.toString(indStr.get("run()V", 'm')), 0,  
+                    				regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, gen, size));
+                			gen.addClause(cl10);
+                			regUpdate.clear();
+                    		regUpdateL.clear();
+                    		regUpdateB.clear();
+                			cl12.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+                			cl12.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+                			gen.addClause(cl12);
+            			}
+            		}
+            		else{
+            			Clause cl12 = new Clause();
+            			cl12.appendHead(refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+            			cl12.appendBody(refClassElement.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+            			gen.addClause(cl12);
+            		}
+        			break;
+        		}
+        		
         		if (referenceIntIndex == indStr.get("start()V", 'm')){
         			implementations = refClassElement.getImplementations(referenceClassIndex, indStr.get("run()V", 'm'), classDefs, indStr, gen);
         		}
@@ -1125,10 +1528,43 @@ public class InstructionDataCollector<T extends Instruction> {
         		break;
         	case INVOKE_DIRECT:
         	case INVOKE_STATIC:
-        		
-        		if ((ci == 9) && (mi == 2) && (codeAddress == 29)){
-        			int i= 0;
-        			i = i+1;
+        		//we do a resolution on thread init, not on thread start, as at thread start the class information is lost 
+        		//(it is stored somewhere in the thread class by the operating system, we can also simulate that storing class name somewhere). 
+        		//on the other hand, if one initializes the thread and never spawns it? rare
+        		//JavaThread2 for the reference
+        		if ((referenceIntIndex == indStr.get("<init>(Ljava/lang/Runnable;)V", 'm')) && (referenceClassIndex == indStr.get("Ljava/lang/Thread;", 'c'))){
+        			implementations = refClassElement.getImplementations(indStr.get("Ljava/lang/Runnable;", 'c'), indStr.get("run()V", 'm'), classDefs, indStr, gen);
+        			isDefined = !implementations.isEmpty();
+            		FiveRegisterInstruction instr2 = (FiveRegisterInstruction)this.instruction;	
+            		if (isDefined){
+            			for (Map.Entry<Integer, Integer> entry : implementations.entrySet()){
+            				numRegCall = numLoc.get(entry.getValue(), indStr.get("run()V", 'm'));
+            				Clause cl10  = new Clause();
+                			cl10.appendHead("(and " + refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen) + 
+                					" (= v" + Integer.toString(instr2.getRegisterD()) + ' ' + 
+                					Utils.hexDec64(entry.getKey(), size) + "))");
+                			
+                			numArgCall = numLoc.getp(entry.getValue(), indStr.get("run()V", 'm'));
+                			
+                			regUpdate.put(numRegCall - numArgCall + 0, 'v' + Integer.toString(instr2.getRegisterD())); 
+                        	regUpdate.put(numRegCall + 1 + 0, 'v' + Integer.toString(instr2.getRegisterD()));
+                        	regUpdateL.put(numRegCall - numArgCall + 0, 'l' + Integer.toString(instr2.getRegisterD())); 
+                        	regUpdateL.put(numRegCall + 1 + 0, 'l' + Integer.toString(instr2.getRegisterD()));
+                        	regUpdateB.put(numRegCall - numArgCall + 0, 'b' + Integer.toString(instr2.getRegisterD())); 
+                        	regUpdateB.put(numRegCall + 1 + 0, 'b' + Integer.toString(instr2.getRegisterD()));
+                			
+                			
+                			cl10.appendBody(refClassElement.rInvokePred(Integer.toString(entry.getValue()), Integer.toString(indStr.get("run()V", 'm')), 0,  
+                    				regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, gen, size));
+                			gen.addClause(cl10);
+                			
+                			regUpdate.clear();
+                			regUpdateL.clear();
+                			regUpdateB.clear();
+            			}
+            		}
+            		else{
+            		}
         		}
         		
         		FiveRegisterInstruction instr2 = (FiveRegisterInstruction)this.instruction;
@@ -2338,6 +2774,56 @@ public class InstructionDataCollector<T extends Instruction> {
         Map<Integer, Boolean> fields = Collections.synchronizedMap(new HashMap <Integer, Boolean>());
         
         ////////////////////////////////////
+        if  (c == (indStr.get("Landroid/os/Parcel;", 'c')) && 
+    			(indStr.get("writeValue(Ljava/lang/Object;)V", 'm') == m)){
+			FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
+    		cl2.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+    		cl2.appendBody(refClassElement.hPred(Utils.hexDec64(indStr.get("Landroid/os/Parcel;", 'c'), size), 
+    				'v' + Integer.toString(instruction.getRegisterC()), Utils.hexDec64(0, size), 
+    				'v' + Integer.toString(instruction.getRegisterD()), 'l' + Integer.toString(instruction.getRegisterD()), 'b' + Integer.toString(instruction.getRegisterD())));
+    		gen.addClause(cl2);
+			cl.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+			cl.appendBody(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+			gen.addClause(cl);
+			return true;
+        }
+        if  (c == (indStr.get("Landroid/os/Parcel;", 'c')) && 
+    			(indStr.get("marshall()[B", 'm') == m)){
+			FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
+    		cl.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+    		regUpdate.put(numRegLoc, "v" + Integer.toString(instruction.getRegisterC()));
+			regUpdateL.put(numRegLoc, "l" + Integer.toString(instruction.getRegisterC()));
+			regUpdateB.put(numRegLoc, "b" + Integer.toString(instruction.getRegisterC()));
+			cl.appendBody(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+			gen.addClause(cl);
+			return true;
+        }
+        if  (c == (indStr.get("Landroid/os/Parcel;", 'c')) && 
+    			(indStr.get("unmarshall([BII)V", 'm') == m)){
+			FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
+    		cl.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+    		regUpdate.put(instruction.getRegisterC(), "v" + Integer.toString(instruction.getRegisterD()));
+			regUpdateL.put(instruction.getRegisterC(), "l" + Integer.toString(instruction.getRegisterD()));
+			regUpdateB.put(instruction.getRegisterC(), "b" + Integer.toString(instruction.getRegisterD()));
+			cl.appendBody(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+			gen.addClause(cl);
+			return true;
+        }
+        if  (c == (indStr.get("Landroid/os/Parcel;", 'c')) && 
+    			(indStr.get("readValue(Ljava/lang/ClassLoader;)Ljava/lang/Object;", 'm') == m)){
+			FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
+    		cl.appendHead("(and " + refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
+    				+ ' ' +
+    		refClassElement.hPred(Utils.hexDec64(indStr.get("Landroid/os/Parcel;", 'c'), size), 
+    				'v' + Integer.toString(instruction.getRegisterC()), Utils.hexDec64(0, size), 
+    				"f", "lf", "bf") + ')');
+    		regUpdate.put(numRegLoc, "f");
+			regUpdateL.put(numRegLoc, "lf");
+			regUpdateB.put(numRegLoc, "bf");
+			cl.appendBody(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+			gen.addClause(cl);
+			return true;
+        }
         if  (c == (indStr.get("Ljava/lang/RuntimeException;", 'c')) && 
     			(indStr.get("<init>(Ljava/lang/String;)V", 'm') == m)){
 			FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;

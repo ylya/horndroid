@@ -41,6 +41,10 @@ import org.jf.util.ConsoleUtil;
 import org.jf.util.SmaliHelpFormatter;
 import org.xml.sax.SAXException;
 
+import payload.ArrayData;
+import payload.PackedSwitch;
+import payload.SparseSwitch;
+
 import com.google.common.collect.Ordering;
 
 import strings.ConstString;
@@ -79,7 +83,7 @@ public class main {
         options.addOption("n", true, "bitvector size (default 64)");
     }
     
-    public static void main(String[] args) throws IOException, SAXException, ParserConfigurationException {
+    public static void main(String[] args) throws Exception {
     	System.out.println("Starting Horndroid...");
         ExecutorService executorService = Executors.newCachedThreadPool();
         CommandLineParser parser = new PosixParser();
@@ -156,6 +160,11 @@ public class main {
              final Set<Integer> callbackImplementations = Collections.synchronizedSet(new HashSet <Integer>());
              final Set<String> callbacks = Collections.synchronizedSet(new HashSet <String>());;
 
+             final Set<ArrayData> arrayDataPayload = Collections.synchronizedSet(new HashSet <ArrayData>());
+             final Set<PackedSwitch> packedSwitchPayload = Collections.synchronizedSet(new HashSet <PackedSwitch>());
+             final Set<SparseSwitch> sparseSwitchPayload = Collections.synchronizedSet(new HashSet <SparseSwitch>());
+             
+             
         	 final IndStr indStr = new IndStrDef(); //contains the mapping from immutable strings to integers (index)
              final RefClassElement refClassElement = new RefClassElement();
              final NumLoc numLoc = new NumLoc();
@@ -180,7 +189,8 @@ public class main {
              initGen(gen, refClassElement, indStr, options);
              
              System.out.print("Collecting data for Horn Clause generation...");
-             horndroid.collectDataFromApk(numLoc, refClassElement, indStr, dexFile, options, gen, activities,  constStrings, launcherActivities);
+             horndroid.collectDataFromApk(numLoc, refClassElement, indStr, dexFile, options, gen, activities,  constStrings, launcherActivities,
+            		 arrayDataPayload, packedSwitchPayload, sparseSwitchPayload);
              endTime = System.nanoTime();
              System.out.println("done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
              List<? extends ClassDef> classDefs = Ordering.natural().sortedCopy(dexFile.getClasses());
@@ -204,7 +214,8 @@ public class main {
  
              System.out.print("Generating Horn Clauses...");
         
-             horndroid.smtApkFile(numLoc, refClassElement, indStr, dexFile, options, gen, callbacks, disabledActivities, activities, launcherActivities, callbackImplementations, applications, options.bitvectorSize);
+             horndroid.smtApkFile(numLoc, refClassElement, indStr, dexFile, options, gen, callbacks, disabledActivities, activities, launcherActivities,
+            		 callbackImplementations, applications, options.bitvectorSize, arrayDataPayload, packedSwitchPayload, sparseSwitchPayload);
         
              refClassElement.putConcurSynRange(refClassElement.getSynRange() + 1);
        
