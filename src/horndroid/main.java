@@ -35,8 +35,10 @@ import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
 import org.apache.commons.io.FilenameUtils;
 import org.jf.dexlib2.DexFileFactory;
+import org.jf.dexlib2.dexbacked.DexBackedClassDef;
 import org.jf.dexlib2.dexbacked.DexBackedDexFile;
 import org.jf.dexlib2.iface.ClassDef;
+import org.jf.dexlib2.iface.Method;
 import org.jf.util.ConsoleUtil;
 import org.jf.util.SmaliHelpFormatter;
 import org.xml.sax.SAXException;
@@ -45,6 +47,7 @@ import payload.ArrayData;
 import payload.PackedSwitch;
 import payload.SparseSwitch;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 
 import strings.ConstString;
@@ -194,6 +197,7 @@ public class main {
              endTime = System.nanoTime();
              System.out.println("done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
              List<? extends ClassDef> classDefs = Ordering.natural().sortedCopy(dexFile.getClasses());
+            	 
              refClassElement.formGen(classDefs, indStr, options.outputDirectory, sourcesSinks, gen);
              
              startTime = System.nanoTime();
@@ -214,6 +218,73 @@ public class main {
  
              System.out.print("Generating Horn Clauses...");
         
+             //add instances that were created for entry points
+             for (final ClassDef classDef: classDefs){
+            	String formatClassName = classDef.getType().replaceAll("\\.", "/").substring(1, classDef.getType().replaceAll("\\.", "/").length() -1);
+                String[] parts = formatClassName.split("/");
+         		String classN =  parts[parts.length - 1];
+         		
+         		Iterable<? extends Method> methods;
+         		if (classDef instanceof DexBackedClassDef) {
+                    methods = ((DexBackedClassDef)classDef).getDirectMethods(false);
+                } else {
+                    methods = classDef.getDirectMethods();
+                }
+         		boolean execByDefault = false;
+                String classIndex = Utils.Dec(indStr.get(classDef.getType(), 'c'));
+         		for (Method method: methods) {
+                     String methodString = Utils.getShortMethodDescriptor(method);
+                     String methodIndex  = Utils.Dec(indStr.get(methodString, 'm'));
+                    		 if ((!disabledActivities.contains(indStr.get(classN, 'c'))) && (horndroid.testEntryPoint(classDefs, classDef, Integer.parseInt(methodIndex), gen, indStr))
+                    				 && (launcherActivities.contains(indStr.get(classN, 'c')))){
+                    			 execByDefault = true;
+                    			 break;
+                    		 }
+         		}
+         		
+         		if (execByDefault){
+         			//!create an instance of the entrypoint class
+         			refClassElement.putInstance(0, 0, 0, Integer.parseInt(classIndex), true);    		
+         			//even more: if an activity implements an interface we should add instance also
+         			/*List<String> interfaces1 = Lists.newArrayList(classDef.getInterfaces());
+         			for (final String interfaceName: interfaces1){
+         				refClassElement.putInstance(0, 0, 0, indStr.get(interfaceName, 'c'), true);
+         			}*/
+         		}
+         		
+         		execByDefault = false;
+         		
+         		if (classDef instanceof DexBackedClassDef) {
+                    methods = ((DexBackedClassDef)classDef).getVirtualMethods(false);
+                } else {
+                    methods = classDef.getVirtualMethods();
+                }	
+         		
+         		for (Method method: methods) {
+                    String methodString = Utils.getShortMethodDescriptor(method);
+                    String methodIndex  = Utils.Dec(indStr.get(methodString, 'm'));
+                   		 if ((!disabledActivities.contains(indStr.get(classN, 'c'))) && (horndroid.testEntryPoint(classDefs, classDef, Integer.parseInt(methodIndex), gen, indStr))
+                   				 && (launcherActivities.contains(indStr.get(classN, 'c')))){
+                   			 execByDefault = true;
+                   			 break;
+                   		 }
+        		}
+         		
+         		if (execByDefault){
+         			//!create an instance of the entrypoint class
+         			refClassElement.putInstance(0, 0, 0, Integer.parseInt(classIndex), true);    		
+         			//even more: if an activity implements an interface we should add instance also
+         			List<String> interfaces1 = Lists.newArrayList(classDef.getInterfaces());
+         			for (final String interfaceName: interfaces1){
+         				refClassElement.putInstance(0, 0, 0, indStr.get(interfaceName, 'c'), true);
+         			}
+         		}
+         		
+            	
+             }
+            
+             //
+             
              horndroid.smtApkFile(numLoc, refClassElement, indStr, dexFile, options, gen, callbacks, disabledActivities, activities, launcherActivities,
             		 callbackImplementations, applications, options.bitvectorSize, arrayDataPayload, packedSwitchPayload, sparseSwitchPayload);
         

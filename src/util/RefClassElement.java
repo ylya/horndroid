@@ -243,6 +243,21 @@ public class RefClassElement {
 				addImplementationsFromSuperClass(c, m, classDefs, indStr, iNum, superClassInd, iType, gen);
 		}
 	}
+	/*private void addImplementationsFromInterface(final int c, final int m, final List<? extends ClassDef> classDefs, final IndStr indStr, 
+			final int iNum, final int iType, final Gen gen){
+		for (final ClassDef classDef: classDefs) {
+			if (indStr.get(classDef.getType(), 'c') == iType){
+				for (final String interfaceName: classDef.getInterfaces()){
+					int interfaceInd = indStr.get(interfaceName, 'c'); 
+					if (interfaceInd == c){
+						if (gen.isDefined(iType, m)){
+							implementations.put(iNum, iType);
+						}
+					}			
+				}
+			}
+		}
+	}*/
 	private void addImplementationsFromInterface(final int c, final int m, final List<? extends ClassDef> classDefs, final IndStr indStr, 
 			final int iNum, final int iType, final Gen gen){
 		for (final ClassDef classDef: classDefs) {
@@ -269,7 +284,6 @@ public class RefClassElement {
 			}
 		}
 	}
-
 	public final Map<Integer, Integer> getImplementations(final int c, final int m, final List<? extends ClassDef> classDefs, final IndStr indStr, final Gen gen){
 		implementations.clear();
 		for (Map.Entry<Integer, Instance> entry : instanceMapping.entrySet()){	
@@ -283,6 +297,24 @@ public class RefClassElement {
 		}
 		return implementations;
 	}
+	/*public final Map<Integer, Integer> getImplementations(final int c, final int m, final List<? extends ClassDef> classDefs, final IndStr indStr, final Gen gen){
+		implementations.clear();
+		
+		for (Map.Entry<Integer, Instance> entry : instanceMapping.entrySet()){				
+			if ((entry.getValue().getType() == c)){
+				if (gen.isDefined(c, m)){
+					implementations.put(entry.getKey(), c);
+					addChild(c, classDefs, indStr, c);
+				}
+			addImplementationsFromSuperClass(c, m, classDefs, indStr, entry.getKey(), entry.getValue().getType(), entry.getValue().getType(), gen);
+			addImplementationsFromInterface(c, m, classDefs, indStr, entry.getKey(), entry.getValue().getType(), gen);
+			}
+			else{
+				addImplementationsFromInterface(c, m, classDefs, indStr, entry.getKey(), entry.getValue().getType(), gen);
+			}
+		}
+		return implementations;
+	}*/
 	public void addCallRef(final int calleeC, final int calleeM, final int callerC, final int callerM, final int callerNextLine){
 		callRefs.add(new CallRef(calleeC, calleeM, callerC, callerM, callerNextLine));
 	}

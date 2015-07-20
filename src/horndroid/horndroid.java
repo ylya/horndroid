@@ -333,7 +333,7 @@ public class horndroid {
         }
     }
     
-    private static boolean testEntryPoint(final List<? extends ClassDef> classDefs, ClassDef classDef, int methodIndex, final Gen gen, final IndStr indStr){
+    public static boolean testEntryPoint(final List<? extends ClassDef> classDefs, ClassDef classDef, int methodIndex, final Gen gen, final IndStr indStr){
     	final String superClass = classDef.getSuperclass();
     	if (superClass != null){
     		if (gen.isEntryPoint(indStr.get(superClass, 'c'), methodIndex)){
@@ -371,8 +371,7 @@ public class horndroid {
             		int i;
             		for (i = 0; i<= numRegCall + regCount; i++){
         				regUpdateL.put(i, "false");
-        			}
-        			
+        			}            		
             		gen.addMain("(rule " + refClassElement.rPred(classIndex, methodIndex, 
         					0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall, gen) + ")");
             	}
@@ -412,8 +411,13 @@ public class horndroid {
     		gen.addMain("(rule " + refClassElement.rPred(classIndex, methodIndex, 
 					0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall, gen) + ")");
     		
-    		//!create an instance of the entrypoint class
-    		refClassElement.putInstance(0, 0, 0, Integer.parseInt(classIndex), true);
+    		/*//!create an instance of the entrypoint class
+    		refClassElement.putInstance(0, 0, 0, Integer.parseInt(classIndex), true);    		
+    		//even more: if an activity implements an interface we should add instance also
+    		List<String> interfaces1 = Lists.newArrayList(classDef.getInterfaces());
+    		for (final String interfaceName: interfaces1){
+    			refClassElement.putInstance(0, 0, 0, indStr.get(interfaceName, 'c'), true);
+    		}*/
     		
     		gen.addMain("(rule " + refClassElement.hPred(Utils.hexDec64(indStr.get(classDef.getType(), 'c'), size), "fpp", "f", "val", "false", "true") + ")");
     	}

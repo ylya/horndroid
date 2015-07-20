@@ -1302,7 +1302,8 @@ public class InstructionDataCollector<T extends Instruction> {
         		break;//((short)0x6d, "sput-short", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
         	case INVOKE_VIRTUAL:
         	case INVOKE_SUPER:
-        	case INVOKE_INTERFACE: 	
+        	case INVOKE_INTERFACE: 
+        		
         		if ((referenceIntIndex == indStr.get("execute(Ljava/lang/Runnable;)V", 'm')) && (referenceClassIndex == indStr.get("Ljava/util/concurrent/ExecutorService;", 'c'))){
         			implementations = refClassElement.getImplementations(indStr.get("Ljava/lang/Runnable;", 'c'), indStr.get("run()V", 'm'), classDefs, indStr, gen);
         			isDefined = !implementations.isEmpty();
