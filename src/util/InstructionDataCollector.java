@@ -1304,6 +1304,8 @@ public class InstructionDataCollector<T extends Instruction> {
         	case INVOKE_SUPER:
         	case INVOKE_INTERFACE: 
         		
+        	
+        		
         		if ((referenceIntIndex == indStr.get("execute(Ljava/lang/Runnable;)V", 'm')) && (referenceClassIndex == indStr.get("Ljava/util/concurrent/ExecutorService;", 'c'))){
         			implementations = refClassElement.getImplementations(indStr.get("Ljava/lang/Runnable;", 'c'), indStr.get("run()V", 'm'), classDefs, indStr, gen);
         			isDefined = !implementations.isEmpty();
@@ -1455,18 +1457,26 @@ public class InstructionDataCollector<T extends Instruction> {
             		}
         		}
         		else{
+        			if (gen.isSink(referenceClassIndex, referenceIntIndex)){
+        				addQuery(gen, refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen), className, methodName, Integer.toString(codeAddress), referenceString, options);
+        			}
         			if (processIntent(ci, mi, numParLoc, numRegLoc, nextCode, referenceClassIndex, referenceIntIndex, gen, referenceString, classDefs, indStr, refClassElement, size))
         				break;
         			numRegCall = numLoc.get(referenceClassIndex, referenceIntIndex);
     				if (numRegCall == 0)
             			numRegCallp = instr.getRegisterCount();
             		else numRegCallp = numRegCall;
+    				
+    				
+    				
             		if (gen.isSink(referenceClassIndex, referenceIntIndex))
             			addQuery(gen, refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen), className, methodName, Integer.toString(codeAddress), referenceString, options);
             		
         			head = refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen);
         			cl.appendHead(head);
-        			if (gen.isSource(referenceClassIndex, referenceIntIndex)) returnLabel = "true"; else returnLabel = getLabels();
+        			if (gen.isSource(referenceClassIndex, referenceIntIndex)) 
+        				returnLabel = "true"; 
+        			else returnLabel = getLabels();
         			
         			
         			
@@ -3208,16 +3218,36 @@ public class InstructionDataCollector<T extends Instruction> {
 			gen.addClause(cl2);
 			return true;
 		}
-		if (shortMethodName.contains((String) "get") && c == (indStr.get("Landroid/content/Intent;", 'c'))){
-			FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
-			cl.appendHead("(and " + refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
-					+ ' ' + refClassElement.hiPred(
-							"cn", 'v' + Utils.Dec(instruction.getRegisterC()), "val", "lf", "bf") + ')');
+		if  (c == (indStr.get("Landroid/content/Intent;", 'c')) && 
+				(indStr.get("getAction()Ljava/lang/String;", 'm') == m)){
+			cl.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			regUpdate.put(numRegLoc, "val");
-			regUpdateL.put(numRegLoc, "lf");
+			regUpdateL.put(numRegLoc, "false");
 			regUpdateB.put(numRegLoc, "bf");
 			cl.appendBody(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			gen.addClause(cl);
+			return true;
+		}
+		if (shortMethodName.contains((String) "get") && c == (indStr.get("Landroid/content/Intent;", 'c'))){
+			FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
+			if (gen.isSource(c, m)){
+				cl.appendHead(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+				regUpdate.put(numRegLoc, "val");
+				regUpdateL.put(numRegLoc, "true");
+				regUpdateB.put(numRegLoc, "bf");
+				cl.appendBody(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+				gen.addClause(cl);
+			}
+			else{
+				cl.appendHead("(and " + refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
+						+ ' ' + refClassElement.hiPred(
+								"cn", 'v' + Utils.Dec(instruction.getRegisterC()), "val", "lf", "bf") + ')');
+				regUpdate.put(numRegLoc, "val");
+				regUpdateL.put(numRegLoc, "lf");	
+				regUpdateB.put(numRegLoc, "bf");
+				cl.appendBody(refClassElement.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+				gen.addClause(cl);
+			}
 			return true;
 		}
 		if (m ==  indStr.get("setResult(ILandroid/content/Intent;)V", 'm')){

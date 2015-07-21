@@ -46,7 +46,7 @@
 %<android.content.Intent: java.lang.String getDataString()> -> _SOURCE_
 %<android.content.Intent: double[] getDoubleArrayExtra(java.lang.String)> -> _SOURCE_
 %<android.content.Intent: double getDoubleExtra(java.lang.String, double)> -> _SOURCE_
-%<android.content.Intent: android.os.Bundle getExtras()> -> _SOURCE_
+<android.content.Intent: android.os.Bundle getExtras()> -> _SOURCE_
 %<android.content.Intent: int getFlags()> -> _SOURCE_
 %<android.content.Intent: float[] getFloatArrayExtra(java.lang.String)> -> _SOURCE_
 %<android.content.Intent: float getFloatExtra(java.lang.String, float)> -> _SOURCE_
@@ -201,6 +201,9 @@
 %<android.content.Intent: android.content.Intent putExtra(java.lang.String,byte)> -> _SINK_
 %<android.content.Intent: android.content.Intent putExtra(java.lang.String,char[])> -> _SINK_
 %<android.content.Intent: android.content.Intent putExtra(java.lang.String,java.lang.CharSequence[])> -> _SINK_
+
+<android.app.Activity: void setResult(int,android.content.Intent)> -> _SINK_
+<java.lang.ProcessBuilder: java.lang.ProcessBuilder command(java.lang.String[])> -> _SINK_
 
 <android.content.Context: void sendBroadcast(android.content.Intent)> -> _SINK_
 <android.content.Context: void sendBroadcast(android.content.Intent,java.lang.String)> -> _SINK_

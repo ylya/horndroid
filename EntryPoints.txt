@@ -35,6 +35,7 @@ Landroid/app/Activity; onEnterAnimationComplete()V
 Landroid/app/Activity; onNavigateUp()V
 Landroid/app/Activity; onSearchRequested()V
 Landroid/app/Activity; attachBaseContext(Landroid/content/Context;)V
+Landroid/app/Activity; onActivityResult(IILandroid/content/Intent;)V
 %service
 Landroid/app/Service; onBind(Landroid/content/Intent;)Landroid/os/IBinder;
 Landroid/app/Service; onConfigurationChanged(Landroid/content/res/Configuration;)V

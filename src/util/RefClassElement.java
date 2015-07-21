@@ -1472,25 +1472,39 @@ private static void addFactsFound(String className, String methodName, IndStr in
     	return ("(I " + cname + ' ' + inst + ' ' + value + ' ' + label + ' ' + block + ')');
     }
     
-    public static void addSourceSink(String className, String methodName, IndStr indStr, String outputDirectory, Set<SourceSinkMethod> sourcesSinks, Gen gen) throws IOException {
-		int classIndex = indStr.get(className, 'c');
-		int methodIndex = indStr.get(methodName, 'm');
-		String classNameFormat = className.substring(1, className.length()-1);
-		String methodNameFormat = methodName.substring(0, methodName.indexOf('('));
+    public static void addSourceSink(final String originalClassName, final List<? extends ClassDef> classDefs, final String className, final String methodName, final IndStr indStr, final Set<SourceSinkMethod> sourcesSinks, final Gen gen)
+    		{
+    	
+    	
+    	final int originalClassIndex = indStr.get(originalClassName, 'c');
+    	final int classIndex = indStr.get(className, 'c');
+		final int methodIndex = indStr.get(methodName, 'm');
+		final String classNameFormat = className.substring(1, className.length()-1);
+		final String methodNameFormat = methodName.substring(0, methodName.indexOf('('));
+		
     	for (SourceSinkMethod sourceSink: sourcesSinks){
     		
     		if (classNameFormat.equals(sourceSink.className)){
     			
     			if (methodNameFormat.equals(sourceSink.name)){
     				if (sourceSink.source)
-    					gen.putSource(classIndex, methodIndex);
+    					gen.putSource(originalClassIndex, methodIndex);
     				else
-    					gen.putSink(classIndex, methodIndex);
+    					gen.putSink(originalClassIndex, methodIndex);
     				break;
     			}
     		}	
     	}
-    	gen.putSink(indStr.get("Ljava/lang/ProcessBuilder;", 'c'), indStr.get("command([Ljava/lang/String;)Ljava/lang/ProcessBuilder;", 'm'));
+    	
+    	for (final ClassDef classDef: classDefs){
+			if (classIndex == indStr.get(classDef.getType(), 'c')){
+				if (classDef.getSuperclass()!= null){
+					addSourceSink(originalClassName, classDefs, classDef.getSuperclass(), methodName, indStr, sourcesSinks, gen);
+					break;
+				}
+			}
+		}
+    	//gen.putSink(indStr.get("Ljava/lang/ProcessBuilder;", 'c'), indStr.get("command([Ljava/lang/String;)Ljava/lang/ProcessBuilder;", 'm'));
     }
     
     public void formGen(List<? extends ClassDef> classDefs, IndStr indStr, String outputDirectory, Set<SourceSinkMethod> sourcesSinks, Gen gen) throws IOException{ 
@@ -1502,7 +1516,7 @@ private static void addFactsFound(String className, String methodName, IndStr in
     		Pair p = it.next();
     		className = p.className;
     		methodName = p.item;
-    		addSourceSink(className, methodName, indStr, outputDirectory, sourcesSinks, gen);
+    		addSourceSink(className, classDefs, className, methodName, indStr, sourcesSinks, gen);
       		for (final ClassDef classDef: classDefs) {
     		  if (found) break;
     		  	if (className.equals(classDef.getType())) {
