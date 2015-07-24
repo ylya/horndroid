@@ -71,6 +71,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import javax.xml.parsers.ParserConfigurationException;
 
@@ -88,7 +89,8 @@ public class main {
     
     public static void main(String[] args) throws Exception {
     	System.out.println("Starting Horndroid...");
-        ExecutorService executorService = Executors.newCachedThreadPool();
+        final ExecutorService executorService = Executors.newCachedThreadPool();
+        final ExecutorService instructionExecutorService = Executors.newCachedThreadPool();
         CommandLineParser parser = new PosixParser();
         CommandLine commandLine;
         try {
@@ -286,7 +288,7 @@ public class main {
              //
              
              horndroid.smtApkFile(numLoc, refClassElement, indStr, dexFile, options, gen, callbacks, disabledActivities, activities, launcherActivities,
-            		 callbackImplementations, applications, options.bitvectorSize, arrayDataPayload, packedSwitchPayload, sparseSwitchPayload);
+            		 callbackImplementations, applications, options.bitvectorSize, arrayDataPayload, packedSwitchPayload, sparseSwitchPayload, instructionExecutorService);
         
              refClassElement.putConcurSynRange(refClassElement.getSynRange() + 1);
        
@@ -294,7 +296,14 @@ public class main {
 	         System.out.println("done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
 
 	         if (!options.oneQuery){
+	        	 
+	        	 instructionExecutorService.shutdown();
+	        	 instructionExecutorService.awaitTermination(2, TimeUnit.HOURS);
+	        	 
 	         gen.writeOne(options);
+	         
+	   
+	        
         
 	         String smtFile = options.outputDirectory + '/' + "clauses.smt2";
 	         try {

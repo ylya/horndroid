@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 
 import org.jf.dexlib2.AccessFlags;
 import org.jf.dexlib2.dexbacked.DexBackedClassDef;
@@ -207,8 +208,8 @@ public class horndroid {
     		DexFile dexFile, final options options, final Gen gen,  final Set<String> callbacks,  final Set<Integer> disabledActivities, final Set<Integer> activities,  
     		final Set<Integer> launcherActivities, final Set<Integer> callbackImplementations, final Set<Integer> applications, final int size,
     		final Set<ArrayData> arrayDataPayload, final Set<PackedSwitch> packedSwitchPayload, 
-			final Set<SparseSwitch> sparseSwitchPayload) throws Exception {
-        List<? extends ClassDef> classDefs = Ordering.natural().sortedCopy(dexFile.getClasses());
+			final Set<SparseSwitch> sparseSwitchPayload, final ExecutorService instructionExecutorService) throws Exception {
+        final List<? extends ClassDef> classDefs = Ordering.natural().sortedCopy(dexFile.getClasses());
         for (final ClassDef classDef: classDefs) {
         	if (isActivity(classDefs, classDef, indStr)){
         		final String[] parts = classDef.getType().split("/");
@@ -216,18 +217,41 @@ public class horndroid {
             			
         		if (activities.contains(indStr.get(formatClassName, 'c'))){
         			 if (!classDef.getType().contains("Landroid"))
-        				 smtClass(numLoc, refClassElement, classDef, indStr, options, gen, classDefs, callbacks, disabledActivities, activities, launcherActivities, callbackImplementations,
-        						 applications, size,
-        						 arrayDataPayload,  packedSwitchPayload, 
-        							sparseSwitchPayload);
+        				 
+        				 instructionExecutorService.submit(new Runnable() {
+        		   			 @Override
+        		   			 public void run() {
+        		   				 try {
+									smtClass(numLoc, refClassElement, classDef, indStr, options, gen, classDefs, callbacks, disabledActivities, activities, launcherActivities, callbackImplementations,
+											 applications, size,
+											 arrayDataPayload,  packedSwitchPayload, 
+												sparseSwitchPayload, instructionExecutorService);
+								} catch (Exception e1) {
+									// TODO Auto-generated catch block
+									e1.printStackTrace();
+								}
+        		   			 }
+        		        	});
+        				 
+        				
         		}
         		else{
         			if (parentActivity(classDefs,  activities, indStr.get(classDef.getType(), 'c'),  indStr)){
         				if (!classDef.getType().contains("Landroid"))
-        					smtClass(numLoc, refClassElement, classDef, indStr, options, gen, classDefs, callbacks, disabledActivities, activities, launcherActivities, callbackImplementations,
-        							applications, size,
-        							arrayDataPayload, packedSwitchPayload, 
-        							sparseSwitchPayload);
+        					instructionExecutorService.submit(new Runnable() {
+           		   			 @Override
+           		   			public void run() {
+        					try {
+								smtClass(numLoc, refClassElement, classDef, indStr, options, gen, classDefs, callbacks, disabledActivities, activities, launcherActivities, callbackImplementations,
+										applications, size,
+										arrayDataPayload, packedSwitchPayload, 
+										sparseSwitchPayload, instructionExecutorService);
+							} catch (Exception e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+           		   			 }
+        					});
         			}
         			else{
         				if (!classDef.getType().contains("Landroid"))
@@ -238,10 +262,20 @@ public class horndroid {
         	else{
         		if (!isActivity(classDefs, classDef, indStr)){
         			if (!classDef.getType().contains("Landroid")){
-                   	 smtClass(numLoc, refClassElement, classDef, indStr, options, gen, classDefs, callbacks, disabledActivities, activities, launcherActivities, callbackImplementations,
-                   			 applications, size,
-                   			arrayDataPayload, packedSwitchPayload, 
-                			sparseSwitchPayload);
+        				instructionExecutorService.submit(new Runnable() {
+          		   			 @Override
+          		   			public void run() {
+                   	 try {
+						smtClass(numLoc, refClassElement, classDef, indStr, options, gen, classDefs, callbacks, disabledActivities, activities, launcherActivities, callbackImplementations,
+								 applications, size,
+								arrayDataPayload, packedSwitchPayload, 
+								sparseSwitchPayload, instructionExecutorService);
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+          		   			 }
+        				}); 
         			}
         		}
         		
@@ -254,7 +288,7 @@ public class horndroid {
                                             final Set<Integer> activities, final Set<Integer> launcherActivities, final Set<Integer> callbackImplementations,
                                             final Set<Integer> applications, final int size,
                                             final Set<ArrayData> arrayDataPayload, final Set<PackedSwitch> packedSwitchPayload, 
-                                			final Set<SparseSwitch> sparseSwitchPayload) throws Exception {
+                                			final Set<SparseSwitch> sparseSwitchPayload, final ExecutorService instructionExecutorService) throws Exception {
     	smtFields(classDef, gen, false, indStr, refClassElement, numLoc, size); //static
     	smtFields(classDef, gen, true, indStr, refClassElement, numLoc, size); //dynamic
     	smtMethods(classDef, gen, false, indStr, refClassElement, numLoc, classDefs, options, callbacks, disabledActivities, activities, launcherActivities, callbackImplementations,
@@ -476,15 +510,15 @@ public class horndroid {
     					0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall, gen) + ")");
     		}
     	}
-        Iterable<? extends Instruction> instructions = methodImpl.getInstructions();
-        ImmutableList<Instruction> instructionsIL = ImmutableList.<Instruction>builder().addAll(instructions).build();
+        final Iterable<? extends Instruction> instructions = methodImpl.getInstructions();
+        final ImmutableList<Instruction> instructionsIL = ImmutableList.<Instruction>builder().addAll(instructions).build();
         int codeAddress = 0;
-        for (Instruction instruction: instructions){
+        for (final Instruction instruction: instructions){
         	InstructionDataCollector idc = new InstructionDataCollector(codeAddress, Integer.parseInt(classIndex), 
-        			Integer.parseInt(methodIndex), instruction);
+	        			Integer.parseInt(methodIndex), instruction);
         	idc.process(indStr, refClassElement, instructionsIL, classDefs, method, numLoc, gen, options, classDef, activities, size,
-        			arrayDataPayload,  packedSwitchPayload, 
-        			 sparseSwitchPayload);
+					arrayDataPayload,  packedSwitchPayload, 
+					 sparseSwitchPayload);
             codeAddress += instruction.getCodeUnits();
         }    
     } 

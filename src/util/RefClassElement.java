@@ -44,6 +44,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
 
@@ -212,7 +213,7 @@ public class RefClassElement {
 	@Nonnull private final Map<Integer, Instance> instanceMapping;
 	@Nonnull private final Map<Integer, ConcurInstance> instanceConcurMapping;
 	@Nonnull private final Set<ClassDefGen> classDefSet;
-	@Nonnull private final Map<Integer, Integer> implementations;
+	//@Nonnull private final Map<Integer, Integer> implementations;
 	private String heapDef;
 	public RefClassElement(){
 		this.synConcurRange = 0;
@@ -220,12 +221,12 @@ public class RefClassElement {
 		this.refClassMethod = Collections.synchronizedSet(new HashSet <Pair>());
 		this.classDefSet = Collections.synchronizedSet(new HashSet <ClassDefGen>());
 		this.callRefs = Collections.synchronizedSet(new HashSet <CallRef>());
-		this.instanceMapping = Collections.synchronizedMap(new HashMap <Integer, Instance>());
+		this.instanceMapping = Collections.synchronizedMap(new ConcurrentHashMap <Integer, Instance>());
 		this.instanceConcurMapping = Collections.synchronizedMap(new HashMap <Integer, ConcurInstance>());
-		this.implementations = Collections.synchronizedMap(new HashMap <Integer, Integer>());
+		//this.implementations = Collections.synchronizedMap(new HashMap <Integer, Integer>());
 	}
 	private void addImplementationsFromSuperClass(final int c, final int m, final List<? extends ClassDef> classDefs, final IndStr indStr, 
-			final int iNum, final int cSuper, final int iType, final Gen gen){
+			final int iNum, final int cSuper, final int iType, final Gen gen, final Map<Integer, Integer> implementations){
 		String superClassName = "";
 		for (final ClassDef classDef: classDefs) {
 			if (indStr.get(classDef.getType(), 'c') == cSuper){
@@ -240,7 +241,7 @@ public class RefClassElement {
 					implementations.put(iNum, iType);
 				}
 			else
-				addImplementationsFromSuperClass(c, m, classDefs, indStr, iNum, superClassInd, iType, gen);
+				addImplementationsFromSuperClass(c, m, classDefs, indStr, iNum, superClassInd, iType, gen, implementations);
 		}
 	}
 	/*private void addImplementationsFromInterface(final int c, final int m, final List<? extends ClassDef> classDefs, final IndStr indStr, 
@@ -259,7 +260,7 @@ public class RefClassElement {
 		}
 	}*/
 	private void addImplementationsFromInterface(final int c, final int m, final List<? extends ClassDef> classDefs, final IndStr indStr, 
-			final int iNum, final int iType, final Gen gen){
+			final int iNum, final int iType, final Gen gen, final Map<Integer, Integer> implementations){
 		for (final ClassDef classDef: classDefs) {
 			if (indStr.get(classDef.getType(), 'c') == iType){
 				for (final String interfaceName: classDef.getInterfaces()){
@@ -273,27 +274,31 @@ public class RefClassElement {
 			}
 		}
 	}
-	private void addChild(int superClass, final List<? extends ClassDef> classDefs, final IndStr indStr, final int c){
+	private void addChild(int superClass, final List<? extends ClassDef> classDefs, final IndStr indStr, final int c, final Map<Integer, Integer> implementations){
 		for (final ClassDef classDef: classDefs) {
 			if (indStr.get(classDef.getSuperclass(), 'c') == superClass){
 				for (Map.Entry<Integer, Instance> entry : instanceMapping.entrySet()){	
 					if (entry.getValue().getType() == indStr.get(classDef.getType(), 'c'))
 							implementations.put(entry.getKey(), c);
 				}
-				addChild(indStr.get(classDef.getType(), 'c'), classDefs, indStr, c);
+				addChild(indStr.get(classDef.getType(), 'c'), classDefs, indStr, c, implementations);
 			}
 		}
 	}
 	public final Map<Integer, Integer> getImplementations(final int c, final int m, final List<? extends ClassDef> classDefs, final IndStr indStr, final Gen gen){
-		implementations.clear();
-		for (Map.Entry<Integer, Instance> entry : instanceMapping.entrySet()){	
+		final Map<Integer, Integer> implementations = Collections.synchronizedMap(new HashMap <Integer, Integer>());
+		//implementations.clear();
+		final Map<Integer, Instance> instanceMappingUn = Collections.unmodifiableMap(instanceMapping);
+		final Iterator it = instanceMappingUn.entrySet().iterator();
+		while(it.hasNext()){	
+			Map.Entry<Integer, Instance> entry = (Map.Entry<Integer, Instance>) it.next();
 			if (entry.getValue().getType() == c)
 				if (gen.isDefined(c, m)){
 					implementations.put(entry.getKey(), c);
-					addChild(c, classDefs, indStr, c);
+					addChild(c, classDefs, indStr, c, implementations);
 				}
-			addImplementationsFromSuperClass(c, m, classDefs, indStr, entry.getKey(), entry.getValue().getType(), entry.getValue().getType(), gen);
-			addImplementationsFromInterface(c, m, classDefs, indStr, entry.getKey(), entry.getValue().getType(), gen);
+			addImplementationsFromSuperClass(c, m, classDefs, indStr, entry.getKey(), entry.getValue().getType(), entry.getValue().getType(), gen, implementations);
+			addImplementationsFromInterface(c, m, classDefs, indStr, entry.getKey(), entry.getValue().getType(), gen, implementations);
 		}
 		return implementations;
 	}
