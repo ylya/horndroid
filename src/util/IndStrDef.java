@@ -39,22 +39,22 @@ import util.iface.IndStr;
 
 
 public class IndStrDef implements IndStr {
-	private final int def = 1; //reserving 0 for the artificial 'main' class
-	@Nonnull public final Map<String, Integer> classMap;
-	@Nonnull private int classInd;
-	@Nonnull public final Map<String, Integer> fieldMap;
-	@Nonnull private int fieldInd;
-	@Nonnull public final Map<String, Integer> methodMap;
-	@Nonnull private int methodInd;
-	@Nonnull public final Map<String, Integer> stringMap;
-	@Nonnull private int stringInd;
+	//private final int def = 1; //reserving 0 for the artificial 'main' class
+	//@Nonnull public final Map<String, Integer> classMap;
+	//@Nonnull private int classInd;
+	//@Nonnull public final Map<String, Integer> fieldMap;
+	//@Nonnull private int fieldInd;
+	//@Nonnull public final Map<String, Integer> methodMap;
+	//@Nonnull private int methodInd;
+	//@Nonnull public final Map<String, Integer> stringMap;
+	//@Nonnull private int stringInd;
 	public IndStrDef() {
-		this.classMap = Collections.synchronizedMap(new HashMap <String, Integer>());
-		this.fieldMap =  Collections.synchronizedMap(new HashMap <String, Integer>());
-		this.methodMap =  Collections.synchronizedMap(new HashMap <String, Integer>());
-		this.stringMap =  Collections.synchronizedMap(new HashMap <String, Integer>());
+		//this.classMap = Collections.synchronizedMap(new HashMap <String, Integer>());
+		//this.fieldMap =  Collections.synchronizedMap(new HashMap <String, Integer>());
+		//this.methodMap =  Collections.synchronizedMap(new HashMap <String, Integer>());
+		//this.stringMap =  Collections.synchronizedMap(new HashMap <String, Integer>());
 		}
-	@Override
+	/*@Override
 	public int biggestC(){
 		int max = 0;
 		for (Map.Entry<String, Integer> entry : classMap.entrySet())
@@ -69,11 +69,12 @@ public class IndStrDef implements IndStr {
 	    	if (entry.getValue() > max) 
 	    		max = entry.getValue();
 		return max;
-	}
+	}*/
 	
 	@Override
 	public int get(String str, char c) {
-		int ind = -1;
+		return str.hashCode();
+		/*int ind = -1;
 		try{
 			switch (c)
 			{
@@ -88,10 +89,10 @@ public class IndStrDef implements IndStr {
 		catch(NullPointerException e)
 		{
 			return put(str, c);
-		}
+		}*/
 	}
 
-	@Override
+	/*@Override
 	public int put(String str, char c) {
 		switch (c){
 		case 'c' :
@@ -116,9 +117,9 @@ public class IndStrDef implements IndStr {
 			if (stringMap.isEmpty()) {stringInd = def;} else stringInd++; stringMap.put(str , Integer.valueOf(stringInd)); return stringInd;
 		}
 		return -1;
-	}
+	}*/
 	
-	public void printMethodIndex() throws FileNotFoundException, UnsupportedEncodingException{
+	/*public void printMethodIndex() throws FileNotFoundException, UnsupportedEncodingException{
 		PrintWriter writer = new PrintWriter("methodIndex.txt", "UTF-8");
 		for (String str: methodMap.keySet()){
 			String ind = Integer.toString(methodMap.get(str));
@@ -134,6 +135,6 @@ public class IndStrDef implements IndStr {
             writer.println(ind + " " + str);  
 		}
 		writer.close();
-	}
+	}*/
 
 }

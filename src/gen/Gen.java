@@ -76,7 +76,6 @@ public class Gen {
 		this.methodIsSource = Collections.synchronizedSet(new HashSet <CMPair>());
 		this.methodIsEntryPoint = Collections.synchronizedSet(new HashSet <CMPair>());
 		this.staticConstructor = Collections.synchronizedSet(new HashSet <Integer>());
-		
 	}
 	public int numberOfQueries(){
 		return queries.size();
@@ -170,9 +169,9 @@ public class Gen {
 		}
 	}*/
 	public void write(options options){
+		int count = 0;
 		Iterator<String> itq = this.queries.iterator();
 		System.out.println("Number of queries to solve: " + queries.size());
-		int count = 0;
 		while (itq.hasNext()){
 			File clausesFile = new File (outputDirectory + "/clauses" + Integer.toString(count) + ".smt2");
 			if (clausesFile.exists()) clausesFile.delete();
@@ -217,12 +216,16 @@ public class Gen {
 	    		}catch (IOException e) {
 	    		}
 			}
+			int numQueriesWritten = 0;
+			while (itq.hasNext() && numQueriesWritten < options.numQueries){
 			String query = itq.next();
 			try
 			(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(clausesFile, true)))) {
     			out.println(query);
     		}catch (IOException e) {
     		}
+			numQueriesWritten++;
+			}
 			count++;
 		}
 	}

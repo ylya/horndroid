@@ -83,14 +83,12 @@ public class main {
         options = new Options();
         options.addOption("q", false, "precise query results");
         options.addOption("w", false, "sensitive array indexes");
-        options.addOption("s", false, "one query per file, run Z3 in parallel saving results to the /out folder");
+        options.addOption("s", true, "number of queries per file, run Z3 in parallel saving results to the /out folder");
         options.addOption("n", true, "bitvector size (default 64)");
     }
     
     public static void main(String[] args) throws Exception {
     	System.out.println("Starting Horndroid...");
-        final ExecutorService executorService = Executors.newCachedThreadPool();
-        final ExecutorService instructionExecutorService = Executors.newCachedThreadPool();
         CommandLineParser parser = new PosixParser();
         CommandLine commandLine;
         try {
@@ -116,7 +114,7 @@ public class main {
                 	options.verboseResults = true;
                     break;
                 case 's':
-                	options.oneQuery = true;
+                	options.numQueries = Integer.parseInt(commandLine.getOptionValue("s"));;
                     break;
                 case 'n':
                 	options.bitvectorSize = Integer.parseInt(commandLine.getOptionValue("n"));
@@ -154,6 +152,10 @@ public class main {
         endTime = System.nanoTime();
         System.out.println("done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
         for (final File file: filesToProcess) {
+            final ExecutorService executorService = Executors.newCachedThreadPool();
+
+        	final ExecutorService instructionExecutorService = Executors.newCachedThreadPool();
+
         	 System.out.println("Analysing " + file.getName());
         	 startTime = System.nanoTime();
         	 final Set<Integer> disabledActivities = Collections.synchronizedSet(new HashSet <Integer>());
@@ -216,7 +218,7 @@ public class main {
              
              startTime = System.nanoTime();
              refClassElement.formClassDefGen(classDefs, indStr);
-             refClassElement.formHeapDef(gen);
+             //refClassElement.formHeapDef(gen);
  
              System.out.print("Generating Horn Clauses...");
         
@@ -295,7 +297,7 @@ public class main {
 	         endTime = System.nanoTime();
 	         System.out.println("done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
 
-	         if (!options.oneQuery){
+	         if (options.numQueries == 0){
 	        	 
 	        	 instructionExecutorService.shutdown();
 	        	 instructionExecutorService.awaitTermination(2, TimeUnit.HOURS);
@@ -315,13 +317,16 @@ public class main {
 	         System.out.println("----------------------------------------------------------------------------");
 	         }
 	         else{
-	         
+	        	 instructionExecutorService.shutdown();
+	        	 instructionExecutorService.awaitTermination(2, TimeUnit.HOURS);
+	        	 
+	        	 final int numberOfFiles = (int) gen.getQueriesV().size() / options.numQueries;
 	        	 gen.write(options);
        
 	        	 final String outputDirectory = options.outputDirectory;
 	        	 final String z3f = z3Folder;
         
-	        	 for (int i = 0; i < gen.numberOfQueries(); i++){
+	        	 for (int i = 0; i < numberOfFiles; i++){
 	        		 final int count = i;
 	        		 executorService.submit(new Runnable() {
 	        			 @Override
@@ -335,6 +340,8 @@ public class main {
 	        			 }
 	        		 });
 	        	 }
+	        	executorService.shutdown();
+	        	executorService.awaitTermination(2, TimeUnit.HOURS);
 	         }
         }
     }
