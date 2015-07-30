@@ -131,7 +131,7 @@ public class main {
         String apktoolFolder = otherArgs[1];
         String inputApk = otherArgs[2];
    
-        final String sourcesSinksF = "SourcesAndSinks.txt";        
+        final String sourcesSinksF = "SourcesAndSinksDroidSafe.txt";        
         File sourceSinkFile = new File(sourcesSinksF);
         final Set<SourceSinkMethod> sourcesSinks = Collections.synchronizedSet(new HashSet <SourceSinkMethod>());
        

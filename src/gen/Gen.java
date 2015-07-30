@@ -41,6 +41,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
 
@@ -65,7 +66,7 @@ public class Gen {
 	public Gen(int verRange, String outputDirectory){
 		this.verRange = verRange;
 		this.outputDirectory = outputDirectory;
-		this.clauses = Collections.synchronizedSet(new HashSet<Clause>());
+		/*this.clauses = Collections.synchronizedSet(new HashSet<Clause>());
 		this.defs = Collections.synchronizedSet(new HashSet<String>());
 		this.vars = Collections.synchronizedSet(new HashSet<String>());
 		this.queries = Collections.synchronizedSet(new HashSet<String>());
@@ -75,7 +76,18 @@ public class Gen {
 		this.methodIsSink = Collections.synchronizedSet(new HashSet <CMPair>());
 		this.methodIsSource = Collections.synchronizedSet(new HashSet <CMPair>());
 		this.methodIsEntryPoint = Collections.synchronizedSet(new HashSet <CMPair>());
-		this.staticConstructor = Collections.synchronizedSet(new HashSet <Integer>());
+		this.staticConstructor = Collections.synchronizedSet(new HashSet <Integer>());*/
+		this.clauses = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<Clause, Boolean>()));
+		this.defs = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>()));
+		this.vars = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>()));
+		this.queries = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>()));
+		this.queriesV = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>()));
+		this.mainMethod = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>()));
+		this.methodIsDefined = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<CMPair, Boolean>()));
+		this.methodIsSink = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<CMPair, Boolean>()));
+		this.methodIsSource = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<CMPair, Boolean>()));
+		this.methodIsEntryPoint = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<CMPair, Boolean>()));
+		this.staticConstructor = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<Integer, Boolean>()));
 	}
 	public int numberOfQueries(){
 		return queries.size();

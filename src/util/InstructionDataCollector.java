@@ -1304,8 +1304,6 @@ public class InstructionDataCollector<T extends Instruction> {
         	case INVOKE_SUPER:
         	case INVOKE_INTERFACE: 
         		
-        	
-        		
         		if ((referenceIntIndex == indStr.get("execute(Ljava/lang/Runnable;)V", 'm')) && (referenceClassIndex == indStr.get("Ljava/util/concurrent/ExecutorService;", 'c'))){
         			implementations = refClassElement.getImplementations(indStr.get("Ljava/lang/Runnable;", 'c'), indStr.get("run()V", 'm'), classDefs, indStr, gen);
         			isDefined = !implementations.isEmpty();
@@ -1640,7 +1638,9 @@ public class InstructionDataCollector<T extends Instruction> {
         				break;
         			head = refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen);
         			cl.appendHead(head);
-        			if (gen.isSource(referenceClassIndex, referenceIntIndex)) returnLabel = "true"; else returnLabel = getLabels();
+        			if (gen.isSource(referenceClassIndex, referenceIntIndex)) 
+        				returnLabel = "true"; 
+        			else returnLabel = getLabels();
         			
         			if (returnType.equals((String)"Ljava/lang/String;")){
         				regUpdate.put(numRegLoc, "f");
@@ -1776,7 +1776,9 @@ public class InstructionDataCollector<T extends Instruction> {
             		
         			head = refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen);
         			cl.appendHead(head);
-        			if (gen.isSource(referenceClassIndex, referenceIntIndex)) returnLabel = "true"; else returnLabel = getLabelsRange();
+        			if (gen.isSource(referenceClassIndex, referenceIntIndex)) 
+        				returnLabel = "true"; 
+        			else returnLabel = getLabelsRange();
         			
         			if (returnType.equals((String)"Ljava/lang/String;")){
         				regUpdate.put(numRegLoc, "f");
@@ -1896,7 +1898,9 @@ public class InstructionDataCollector<T extends Instruction> {
         		else{            		
         			head = refClassElement.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen);
         			cl.appendHead(head);
-        			if (gen.isSource(referenceClassIndex, referenceIntIndex)) returnLabel = "true"; else returnLabel = getLabelsRange();
+        			if (gen.isSource(referenceClassIndex, referenceIntIndex)) 
+        				returnLabel = "true"; 
+        			else returnLabel = getLabelsRange();
         			
         			if (returnType.equals((String)"Ljava/lang/String;")){
         				regUpdate.put(numRegLoc, "f");
