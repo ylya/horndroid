@@ -318,7 +318,7 @@ public class main {
 	         }
 	         else{
 	        	 instructionExecutorService.shutdown();
-	        	 instructionExecutorService.awaitTermination(2, TimeUnit.HOURS);
+	        	 instructionExecutorService.awaitTermination(2, TimeUnit.DAYS);
 	        	 
 	        	 final int numberOfFiles = (int) gen.getQueriesV().size() / options.numQueries;
 	        	 gen.write(options);
@@ -341,7 +341,8 @@ public class main {
 	        		 });
 	        	 }
 	        	executorService.shutdown();
-	        	executorService.awaitTermination(2, TimeUnit.HOURS);
+	        	executorService.awaitTermination(2, TimeUnit.DAYS);
+	        	printQueries(gen);
 	         }
         }
     }
