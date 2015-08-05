@@ -217,7 +217,7 @@ public class main {
              System.out.println("...done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
              
              startTime = System.nanoTime();
-             refClassElement.formClassDefGen(classDefs, indStr);
+             //refClassElement.formClassDefGen(classDefs, indStr);
              //refClassElement.formHeapDef(gen);
  
              System.out.print("Generating Horn Clauses...");
