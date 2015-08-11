@@ -138,7 +138,7 @@
 <android.os.Handler: android.os.Message obtainMessage(int,int,int,java.lang.Object)> -> _SOURCE_
 <android.os.Handler: android.os.Message obtainMessage(int)> -> _SOURCE_
 <android.os.Handler: android.os.Message obtainMessage(int,java.lang.Object)> -> _SOURCE_
-
+<andIntentService;.onHandleIntent:(Landroid/content/Intent;)V,
 <android.util.Log: int d(java.lang.String,java.lang.String)> -> _SINK_
 <android.util.Log: int d(java.lang.String,java.lang.String,java.lang.Throwable)> -> _SINK_
 <android.util.Log: int e(java.lang.String,java.lang.String)> -> _SINK_
