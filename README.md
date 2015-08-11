@@ -1,9 +1,6 @@
 # horndroid
 ![logo](/logo.png?raw=true "")
 
-Build horndroid, depends on:
-https://github.com/JesusFreke/smali.git
-
 Build Z3 to %Z3Home%:
 https://github.com/Z3Prover/z3.git
 
