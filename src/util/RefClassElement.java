@@ -32,11 +32,7 @@ import gen.Gen;
 import gen.CallRef;
 import util.iface.IndStr;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -50,13 +46,11 @@ import javax.annotation.Nonnull;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.jf.baksmali.Adaptors.FieldDefinition;
 import org.jf.dexlib2.dexbacked.DexBackedClassDef;
 import org.jf.dexlib2.iface.ClassDef;
 import org.jf.dexlib2.iface.Field;
 import org.jf.dexlib2.iface.Method;
 import org.jf.dexlib2.util.ReferenceUtil;
-import org.jf.util.StringUtils;
 
 import com.google.common.collect.Lists;
 
@@ -214,7 +208,6 @@ public class RefClassElement {
 	@Nonnull private final Map<Integer, ConcurInstance> instanceConcurMapping;
 	@Nonnull private final Set<ClassDefGen> classDefSet;
 	//@Nonnull private final Map<Integer, Integer> implementations;
-	private String heapDef;
 	public RefClassElement(){
 		this.synConcurRange = 0;
 		this.refClassField = Collections.synchronizedSet(new HashSet <Pair>());
@@ -244,21 +237,7 @@ public class RefClassElement {
 				addImplementationsFromSuperClass(c, m, classDefs, indStr, iNum, superClassInd, iType, gen, implementations);
 		}
 	}
-	/*private void addImplementationsFromInterface(final int c, final int m, final List<? extends ClassDef> classDefs, final IndStr indStr, 
-			final int iNum, final int iType, final Gen gen){
-		for (final ClassDef classDef: classDefs) {
-			if (indStr.get(classDef.getType(), 'c') == iType){
-				for (final String interfaceName: classDef.getInterfaces()){
-					int interfaceInd = indStr.get(interfaceName, 'c'); 
-					if (interfaceInd == c){
-						if (gen.isDefined(iType, m)){
-							implementations.put(iNum, iType);
-						}
-					}			
-				}
-			}
-		}
-	}*/
+	
 	private void addImplementationsFromInterface(final int c, final int m, final List<? extends ClassDef> classDefs, final IndStr indStr, 
 			final int iNum, final int iType, final Gen gen, final Map<Integer, Integer> implementations){
 		for (final ClassDef classDef: classDefs) {
@@ -302,40 +281,11 @@ public class RefClassElement {
 		}
 		return implementations;
 	}
-	/*public final Map<Integer, Integer> getImplementations(final int c, final int m, final List<? extends ClassDef> classDefs, final IndStr indStr, final Gen gen){
-		implementations.clear();
-		
-		for (Map.Entry<Integer, Instance> entry : instanceMapping.entrySet()){				
-			if ((entry.getValue().getType() == c)){
-				if (gen.isDefined(c, m)){
-					implementations.put(entry.getKey(), c);
-					addChild(c, classDefs, indStr, c);
-				}
-			addImplementationsFromSuperClass(c, m, classDefs, indStr, entry.getKey(), entry.getValue().getType(), entry.getValue().getType(), gen);
-			addImplementationsFromInterface(c, m, classDefs, indStr, entry.getKey(), entry.getValue().getType(), gen);
-			}
-			else{
-				addImplementationsFromInterface(c, m, classDefs, indStr, entry.getKey(), entry.getValue().getType(), gen);
-			}
-		}
-		return implementations;
-	}*/
+
 	public void addCallRef(final int calleeC, final int calleeM, final int callerC, final int callerM, final int callerNextLine){
 		callRefs.add(new CallRef(calleeC, calleeM, callerC, callerM, callerNextLine));
 	}
 
-	private void addHeapDef(final int c, final int m, final int line, final Gen gen){
-    	gen.addDef("(declare-rel H_" + Integer.toString(c) + '_' + Integer.toString(m) + '_' + Integer.toString(line) + ' ' + getHeapDef() + ')');
-    }
-	private void addHeapVar (String var, final Gen gen){
-		if (var.equals((String) "true") || var.equals((String) "false")) return;
-		char firstLetter = var.charAt(0);
-		switch (firstLetter){
-			case 't': gen.addVar("(declare-var " + var + " Int)"); break;
-			case 'l': gen.addVar("(declare-var " + var + " Bool)"); break;
-			case 'f': gen.addVar("(declare-var " + var + " bv64)"); break;
-		}		
-	}
 	public int staticFieldLookup(List<? extends ClassDef> classDefs, IndStr indStr, int c, int f){
 		for (final ClassDef classDef: classDefs) {
 			int curc = indStr.get(classDef.getType(), 'c');
@@ -442,348 +392,7 @@ public class RefClassElement {
 				}
 			}
 	}
-	public String addHeapPredMain(final int c, final int m, final int line, final Gen gen, final Map<Integer, String> fieldUpdate, final Map<Integer, String> fieldUpdateL){
-    	String res = "(H_" + Integer.toString(c) + '_' + Integer.toString(m) + '_' + Integer.toString(line) + ' ';
-    	String var = "";
-    	int prev = 0;
-    	int i = 0;
-    	boolean found;
-    	if (getHeapDef() != null){
-    		addHeapDef(c, m, line, gen);
-    		for (Map.Entry<Integer, Instance> entry : instanceMapping.entrySet()){	
-    			found = false;
-				var = 't' + Integer.toString(entry.getKey());
-				addHeapVar(var, gen);
-				res += var + ' ';
-				if (entry.getValue().isObj()){
-					for (ClassDefGen cldef : classDefSet)
-						if (cldef.getType() == entry.getValue().getType()){
-							for (i = prev; i < cldef.getNumberOfFields() + prev; i++){
-								var = 'f' + Integer.toString(i);
-								addHeapVar(var, gen);
-								res += var + ' ';
-								var = fieldUpdateL.get(i);
-								if (var != null)
-									addHeapVar(var, gen);
-								else{
-									var = "lf" + Integer.toString(i);
-									addHeapVar(var, gen);
-								}
-								res += var + ' ';
-							}
-							found = true;
-							break;
-						}
-					if (!found){
-						for (i = prev; i < refClassField.size() + prev; i++){
-							var = 'f' + Integer.toString(i);
-							addHeapVar(var, gen);
-							res += var + ' ';
-							var = fieldUpdateL.get(i);
-							if (var != null)
-								addHeapVar(var, gen);
-							else{
-								var = "lf" + Integer.toString(i);
-								addHeapVar(var, gen);
-							}
-							res += var + ' ';
-						}
-					}
-				}
-				else
-					for (i=prev; i < gen.verRange + prev; i++){
-						var = 'f' + Integer.toString(i);
-						addHeapVar(var, gen);
-						res += var + ' ';
-						var = fieldUpdateL.get(i);
-						if (var != null)
-							addHeapVar(var, gen);
-						else{
-							var = "lf" + Integer.toString(i);
-							addHeapVar(var, gen);
-						}
-						res += var + ' ';
-					}
-			prev = prev + i;	
-			}
-    	}
-    	return res + ')';
-    }		
-    public String addHeapPred(final int c, final int m, final int line, final Gen gen, final Map<Integer, String> fieldUpdate, final Map<Integer, String> fieldUpdateL, final int iNum){
-    	String res = "(H_" + Integer.toString(c) + '_' + Integer.toString(m) + '_' + Integer.toString(line) + ' ';
-    	String var = "";
-    	int prev = 0;
-    	int i = 0;
-    	boolean found;
-    	if (getHeapDef() != null){
-    		addHeapDef(c, m, line, gen);
-    		for (Map.Entry<Integer, Instance> entry : instanceMapping.entrySet()){	
-    			found = false;
-				var = 't' + Integer.toString(entry.getKey());
-				addHeapVar(var, gen);
-				res += var + ' ';
-				if (entry.getValue().isObj()){
-					for (ClassDefGen cldef : classDefSet)
-						if (cldef.getType() == entry.getValue().getType()){
-							for (i = prev; i < cldef.getNumberOfFields() + prev; i++){
-								var = fieldUpdate.get(i);
-								if ((var != null) && (entry.getKey() == iNum))
-									addHeapVar(var, gen);
-								else{
-									var = 'f' + Integer.toString(i);
-									addHeapVar(var, gen);
-								}
-								res += var + ' ';
-								var = fieldUpdateL.get(i);
-								if ((var != null) && (entry.getKey() == iNum))
-									addHeapVar(var, gen);
-								else{
-									var = "lf" + Integer.toString(i);
-									addHeapVar(var, gen);
-								}
-								res += var + ' ';
-							}
-							found = true;
-							break;
-						}
-					if (!found){
-						for (i = prev; i < refClassField.size() + prev; i++){
-							var = 'f' + Integer.toString(i);
-							addHeapVar(var, gen);
-							res += var + ' ';
-							var = fieldUpdateL.get(i);
-							if (var != null)
-								addHeapVar(var, gen);
-							else{
-								var = "lf" + Integer.toString(i);
-								addHeapVar(var, gen);
-							}
-							res += var + ' ';
-						}
-					}
-				}
-				else
-					for (i=prev; i < gen.verRange + prev; i++){
-						var = fieldUpdate.get(i);
-						if ((var != null) && (entry.getKey() == iNum))
-							addHeapVar(var, gen);
-						else{
-							var = 'f' + Integer.toString(i);
-							addHeapVar(var, gen);
-						}
-						res += var + ' ';
-						var = fieldUpdateL.get(i);
-						if ((var != null) && (entry.getKey() == iNum))
-							addHeapVar(var, gen);
-						else{
-							var = "lf" + Integer.toString(i);
-							addHeapVar(var, gen);
-						}
-						res += var + ' ';
-					}
-			prev = prev + i;	
-			}
-    	}
-    	return res + ')';
-    }
-    private void addHeapDefR(final int c, final int m, final Gen gen, boolean forReturn){
-    	gen.addDef("(declare-rel H_" + Integer.toString(c) + '_' + Integer.toString(m) + "_r " + getHeapDef() + ')');
-    }
-    public String addHeapPredRBody(final int c, final int m, final int line, final Gen gen){
-    	String res = "(H_" + Integer.toString(c) + '_' + Integer.toString(m) + '_' + Integer.toString(line) + ' ';
-    	String var = "";
-    	int prev = 0;
-    	boolean found;
-    	int i = 0;
-    		if (getHeapDef() != null){
-    				for (Map.Entry<Integer, Instance> entry : instanceMapping.entrySet()){	
-    					found = false;
-    					var = 't' + Integer.toString(entry.getKey()) + 'p';
-    					addHeapVar(var, gen);
-    					res += var + ' ';
-    					if (entry.getValue().isObj()){
-    						for (ClassDefGen cldef : classDefSet)
-    							if (cldef.getType() == entry.getValue().getType()){
-    								for (i=prev; i < cldef.getNumberOfFields() + prev; i++){
-    									var = 'f' + Integer.toString(i) + 'p';
-    									addHeapVar(var, gen);
-    									res += var + ' ';
-    									var = "lf" + Integer.toString(i) + 'p';
-    									addHeapVar(var, gen);
-    									res += var + ' ';
-    								}
-    								found = true;
-    								break;
-    							}
-    						if (!found){
-    							for (i=prev; i < refClassField.size() + prev; i++){
-									var = 'f' + Integer.toString(i) + 'p';
-									addHeapVar(var, gen);
-									res += var + ' ';
-									var = "lf" + Integer.toString(i) + 'p';
-									addHeapVar(var, gen);
-									res += var + ' ';
-								}
-    						}
-    					}
-    					else
-    						for (i=prev; i < gen.verRange+prev; i++){
-								var = 'f' + Integer.toString(i) + 'p';
-								addHeapVar(var, gen);
-								res += var + ' ';
-								var = "lf" + Integer.toString(i) + 'p';
-								addHeapVar(var, gen);
-								res += var + ' ';
-							}
-    					prev = prev + i;	
-    			} 		
-    		}
-    	return res + ')';
-    }
-    public String addHeapPredR(final int c, final int m, final Gen gen, boolean forReturn){
-    	String res = "(H_" + Integer.toString(c) + '_' + Integer.toString(m) + "_r ";
-    	String var = "";
-    	int prev = 0;
-    	boolean found;
-    	int i = 0;
-    	if (forReturn){
-    		if (getHeapDef() != null){
-    			addHeapDefR(c, m, gen, forReturn);
-    				for (Map.Entry<Integer, Instance> entry : instanceMapping.entrySet()){	
-    					found = false;
-    					var = 't' + Integer.toString(entry.getKey());
-    					addHeapVar(var, gen);
-    					res += var + ' ';
-    					if (entry.getValue().isObj()){
-    						for (ClassDefGen cldef : classDefSet)
-    							if (cldef.getType() == entry.getValue().getType()){
-    								for (i=prev; i < cldef.getNumberOfFields() + prev; i++){
-    									var = 'f' + Integer.toString(i);
-    									addHeapVar(var, gen);
-    									res += var + ' ';
-    									var = "lf" + Integer.toString(i);
-    									addHeapVar(var, gen);
-    									res += var + ' ';
-    								}
-    								found = true;
-    								break;
-    							}
-    					
-    						if (!found){
-    							for (i=prev; i < refClassField.size() + prev; i++){
-									var = 'f' + Integer.toString(i);
-									addHeapVar(var, gen);
-									res += var + ' ';
-									var = "lf" + Integer.toString(i);
-									addHeapVar(var, gen);
-									res += var + ' ';
-								}
-    						}
-    					}
-    					else
-    						for (i=prev; i < gen.verRange + prev; i++){
-								var = 'f' + Integer.toString(i);
-								addHeapVar(var, gen);
-								res += var + ' ';
-								var = "lf" + Integer.toString(i);
-								addHeapVar(var, gen);
-								res += var + ' ';
-							}
-    			prev = prev + i;
-    			} 		
-    		}
-    	}
-    	else{
-    		if (getHeapDef() != null){
-    			addHeapDefR(c, m, gen, forReturn);
-    				for (Map.Entry<Integer, Instance> entry : instanceMapping.entrySet()){	
-    					found = false;
-    					var = 't' + Integer.toString(entry.getKey()) + 'p';
-    					addHeapVar(var, gen);
-    					res += var + ' ';
-    					if (entry.getValue().isObj()){
-    						for (ClassDefGen cldef : classDefSet)
-    							if (cldef.getType() == entry.getValue().getType()){
-    								for (i=prev; i < cldef.getNumberOfFields() + prev; i++){
-    									var = 'f' + Integer.toString(i) + 'p';
-    									addHeapVar(var, gen);
-    									res += var + ' ';
-    									var = "lf" + Integer.toString(i) + 'p';
-    									addHeapVar(var, gen);
-    									res += var + ' ';
-    								}
-    								found = true;
-    								break;
-    							}
-    						if (!found){
-    							for (i=prev; i < refClassField.size() + prev; i++){
-									var = 'f' + Integer.toString(i) + 'p';
-									addHeapVar(var, gen);
-									res += var + ' ';
-									var = "lf" + Integer.toString(i) + 'p';
-									addHeapVar(var, gen);
-									res += var + ' ';
-    							}
-    						}
-    					}
-    					else
-    						for (i=prev; i < gen.verRange + prev; i++){
-								var = 'f' + Integer.toString(i) + 'p';
-								addHeapVar(var, gen);
-								res += var + ' ';
-								var = "lf" + Integer.toString(i) + 'p';
-								addHeapVar(var, gen);
-								res += var + ' ';
-							}
-    						
-    					prev = prev + i;			
-    			} 		
-    		}
-    		
-    	}
-    	return res + ')';
-    }
-	public String getHeapDef(){
-		return heapDef;
-	}
-	public void formHeapDef(final Gen gen){
-		if (instanceMapping.isEmpty()) {heapDef = null; return;}
-		boolean fieldsPresent = false;
-		boolean found;
-		heapDef = "(";
-		for (Map.Entry<Integer, Instance> entry : instanceMapping.entrySet()){	
-			heapDef += " Int ";
-			found = false;
-			if (entry.getValue().isObj())
-			{
-				for (ClassDefGen cldef : classDefSet)
-					if (cldef.getType() == entry.getValue().getType()){
-						for (int i=0; i < cldef.getNumberOfFields(); i++){
-							heapDef += " bv64 Bool ";
-							fieldsPresent = true;
-						}
-						found = true;
-						break;
-					}
-				if (!found){
-					for (int i=0; i < refClassField.size(); i++){
-						heapDef += " bv64 Bool ";
-						fieldsPresent = true;
-					}
-				}
-			}
-			else
-				for (int i=0; i < gen.verRange; i++){
-					heapDef += " bv64 Bool ";
-					fieldsPresent = true;
-				}
-				
-		}	
-		if (fieldsPresent)
-			heapDef += ")";
-		else 
-			heapDef = null;
-	}
+	
 	public int getSynRange(){
 		return synRange;
 	}
@@ -1030,204 +639,8 @@ public class RefClassElement {
     }
 
     
-    private static boolean lookInStaticFields(ClassDef classDef, String fieldName){
-    	Iterable<? extends Field> staticFields;
-        if (classDef instanceof DexBackedClassDef) {
-            staticFields = ((DexBackedClassDef)classDef).getStaticFields(false);
-        } else {
-            staticFields = classDef.getStaticFields();
-        }
-        for (Field field: staticFields) {
-        	if (fieldName.equals(Utils.getShortReferenceString(field))) {
-        		return true;
-        	}
-        }
-        return false;
-    }
-    
-    private static boolean lookInDynamicFields(ClassDef classDef, String fieldName){
-    	Iterable<? extends Field> instanceFields;
-        if (classDef instanceof DexBackedClassDef) {
-            instanceFields = ((DexBackedClassDef)classDef).getInstanceFields(false);
-        } else {
-            instanceFields = classDef.getInstanceFields();
-        }
-        for (Field field: instanceFields) {
-        	if (fieldName.equals(Utils.getShortReferenceString(field))) {
-        		return true;
-        	}
-        }
-        return false;
-    }
-    
-    private static void writeMissedItem (String className, String item, boolean mode) throws IOException{
-    	String fileName = "";
-    	if (mode) fileName = "missField.txt"; else fileName = "missMethod.txt";
-    	File missFile = new File(fileName);
-    	try
-		(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(missFile, true)))) {
-    		out.println(className + ' ' + item);
-    	}catch (IOException e) {
-    	}
-    }
-    
-   /* private static void writeFoundItem(String className, String item, boolean mode) throws IOException{
-    	String fileName = "";
-    	if (mode) fileName = "missField.txt"; else fileName = "missMethod.txt";
-    	File missFile = new File(fileName);
-    	try
-		(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(missFile, true)))) {
-    		out.println("founded! " + className + ' ' + item);
-    	}catch (IOException e) {
-    	}
-    }*/
-    
-    
-    /*public static void writeSourceSink(String className, String methodName, IndStr indStr, String outputDirectory, Set<SourceSinkMethod> sourcesSinks) throws IOException {
-    	//check if the method is source/sink, and write it to the file in case is is the source/sink
-    	File sourcesSinksFile = new File(outputDirectory+"/sourcesSinks.txt");
-		boolean isSource = false;
-		String classIndex = Integer.toString(indStr.get(className, 'c'));
-		String methodIndex = Integer.toString(indStr.get(methodName, 'm'));
-    	for (SourceSinkMethod sourceSink: sourcesSinks){
-    		String classNameFormat = className.substring(1, className.length()-1);
-    		String methodNameFormat = methodName.substring(0, methodName.indexOf('('));
-    		
-    		if (classNameFormat.equals(sourceSink.className)){
-    			if (methodNameFormat.equals(sourceSink.name)){
-    				if (!sourceSink.source){
-        				isSource = true;
-    					try
-    					(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(sourcesSinksFile, true)))) {
-    						out.println(Utils.factIt("source " + classIndex + ' ' + methodIndex)
-    								+ "\n;" + Utils.factIt("source " + sourceSink.className + ' ' + sourceSink.name));
-    					}catch (IOException e) {
-    					}
-    				}
-    				else
-    					try
-						(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(sourcesSinksFile, true)))) {
-    						out.println(Utils.factIt("sink " + classIndex + ' ' + methodIndex)
-    								+ "\n;" + Utils.factIt("sink " + sourceSink.className + ' ' + sourceSink.name));
-    					}catch (IOException e) {
-    					}
-    				break;
-    			}
-    		}	
-    	}
-    	if (!isSource){
-    		try
-			(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(sourcesSinksFile, true)))) {
-				out.println(Utils.factIt("non-source " + classIndex + ' ' + methodIndex));
-			}catch (IOException e) {
-			}
-    	}
-    }*/
-    
-    private static String getReturnTypeIndex(String methodName, IndStr indStr){
-    	if (methodName.charAt(methodName.length()-1) == ';')
-    		return Integer.toString(indStr.get(methodName.substring(methodName.lastIndexOf(')') + 1), 'c'));
-    	else return null;
-    }
-    
-    private static void addFacts(String className, String methodName, IndStr indStr, String outputDirectory){
-    	
-    	File addFactsFile = new File (outputDirectory + "/additionalFacts.txt");
-    	String classIndex = Integer.toString(indStr.get(className, 'c'));
-    	String methodIndex = Integer.toString(indStr.get(methodName, 'm'));
-    	String returnTypeIndex = getReturnTypeIndex(methodName, indStr);
-    	if (methodName.charAt(methodName.length()-1) == 'V')
-    		try
-			(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(addFactsFile, true)))) {
-    			out.println("(rule (absent-void " + classIndex + ' ' + methodIndex + "))");
-    		}catch (IOException e) {
-    		}
-    	else
-    		if ((methodName.charAt(methodName.length()-1) != ';') && (!methodName.contains("[")))
-    			try
-				(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(addFactsFile, true)))) {
-    				out.println("(rule (absent-r " + classIndex + ' ' + methodIndex + "))");
-    			}catch (IOException e) {
-    			}
-    		else
-    			try
-				(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(addFactsFile, true)))) {
-    				out.println("(rule (absent-r " + classIndex + ' ' + methodIndex  + "))");
-    			}catch (IOException e) {
-    			}
-    }
-    
-private static void addFactsFound(String className, String methodName, IndStr indStr, String outputDirectory){
-    	File addFactsFile = new File (outputDirectory + "/additionalFacts.txt");
-    	String classIndex = Integer.toString(indStr.get(className, 'c'));
-    	String methodIndex = Integer.toString(indStr.get(methodName, 'm'));
-    	try
-		(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(addFactsFile, true)))) {
-			out.println("(rule (present " + classIndex + ' ' + methodIndex + "))");
-		}catch (IOException e) {
-		}
-    }
-    
-    
-   /* public void findMissedReferences(List<? extends ClassDef> classDefs, IndStr indStr, String outputDirectory, Set<SourceSinkMethod> sourcesSinks) throws IOException{
-    
-        Iterator<Pair> it = this.refClassField.iterator();
-        String className, fieldName, methodName;
-        boolean found;
-    	while (it.hasNext()){
-    		found = false;
-    		Pair p = it.next();
-    		className = p.className;
-    		fieldName = p.item;
-    		for (final ClassDef classDef: classDefs) {
-    			if (className.equals(classDef.getType())) {
-    				//look in static fields
-    				found = lookInStaticFields(classDef, fieldName);
-    		        if (!found) {
-    		        	//look in dynamic fields
-    		        	found = lookInDynamicFields(classDef, fieldName);
-    		        }
-    			}		
-    		}
-    	    if (!found) 
-    	    	writeMissedItem(className, fieldName, true);
-    	    //else 
-    	    //	writeFoundItem(className, fieldName, true);
-    	}
-    	
-    	it = this.refClassMethod.iterator();
-    	while (it.hasNext()){
-    		found = false;
-    		Pair p = it.next();
-    		className = p.className;
-    		methodName = p.item;
-    		writeSourceSink(className, methodName, indStr, outputDirectory, sourcesSinks);
-      		for (final ClassDef classDef: classDefs) {
-    		  if (found) break;
-    		  	if (className.equals(classDef.getType())) {
-    		  		found = lookInDirectMethods(classDef, methodName);
-    		        if (!found) found = lookInVirtualMethods(classDef, methodName);
-    		        //look in the interface implementations
-    		        if ((!found) && classDef.getClass().isInterface()){
-    		        	found = findMissedInterfaceMethod(classDefs, className, methodName);
-    		        }
-    		        if (!found) {
-    		        		found = findMissedSuperMethod(classDefs, classDef, methodName);
-    		        }
-    		  	}
-    		}
-    		if (!found) {
-    			writeMissedItem(className, methodName, false);
-    			addFacts(className, methodName, indStr, outputDirectory);
-    		}
-    		else 
-    			addFactsFound(className, methodName, indStr, outputDirectory);
-    	}
-    }*/
-    
     public int getNumArg(final int c, final int m, final List<? extends ClassDef> classDefs, final IndStr indStr){
     	int numArg = 0;
-    	int superClassInd;
     	String superClassName;
 		Iterable<? extends Method> directMethods;
         Iterable<? extends Method> virtualMethods;
@@ -1273,42 +686,7 @@ private static void addFactsFound(String className, String methodName, IndStr in
     	return numArg;
     }
     
-    /*public Set<Integer> getClassFields(final List<? extends ClassDef> classDefs, final IndStr indStr, final String className, final int instanceNum){
-    	Set<Integer> result = Collections.synchronizedSet(new HashSet <Integer>());
-    	boolean found = false;
-    	for (final ClassDef classDef: classDefs) {
-    		if (classDef.getType().equals(className)){
-    			found = true;
-    			Iterable<? extends Field> instanceFields;
-    	        if (classDef instanceof DexBackedClassDef) 
-    	            instanceFields = ((DexBackedClassDef)classDef).getInstanceFields(false);
-    	        else 
-    	            instanceFields = classDef.getInstanceFields();
-    	        for (Field field: instanceFields) {
-        			result.add(indStr.get(Utils.getShortReferenceString(field), 'f'));
-    	        }
-    	    }
-        }
-    	if (!found){
-    		String javaName = Utils.toStandardJavaClassName(className);
-    		try {
-    		Class<?> c = Class.forName(javaName);
-    		
-    		
-    		java.lang.reflect.Field[] fields = c.getFields();
-    		
-    			if (fields.length != 0)
-    				for (java.lang.reflect.Field f: fields){
-    					result.add(indStr.get(className + "->" + f.getName() + ':' + Utils.toDalvikType(f.getType().toString()), 'f'));
-    				}
-    		}
-    		catch (ClassNotFoundException e) {
-				e.printStackTrace();
-			}
-    	}
-    	return result;
-    }
-    */
+   
     
     public Map<Integer, Boolean> getClassFields(final List<? extends ClassDef> classDefs, final IndStr indStr, final String className, final int instanceNum){
     	Map<Integer, Boolean> result = Collections.synchronizedMap(new HashMap <Integer, Boolean>());
