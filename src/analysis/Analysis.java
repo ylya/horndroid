@@ -645,7 +645,7 @@ public class Analysis {
     public boolean isSink(final int c, final int m){
     	for (final Map.Entry<CMPair, Boolean> rs: refSource.entrySet()){
     		if ((rs.getKey().getC() == c) && (rs.getKey().getM() == m)){
-    			if (!rs.getValue() && (rs.getValue() != null))
+    			if (!rs.getValue())
     				return true;
     		}
     	}
@@ -806,7 +806,9 @@ public class Analysis {
          	/*refClassElement.addCallRef(referenceClassIndex, referenceIntIndex, c, m, nextCode);
          	 * */
          	if (referenceStringClass != null){
-             	refSource.put(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()), isSourceSink(classDefs, referenceStringClass, referenceString));
+         		final Boolean isSourceSink = isSourceSink(classDefs, referenceStringClass, referenceString);
+         		if (isSourceSink != null)
+         			refSource.put(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()), isSourceSink(classDefs, referenceStringClass, referenceString));
          	}
              
              if ((referenceClassIndex == "Landroid/content/Intent;".hashCode())
@@ -849,7 +851,9 @@ public class Analysis {
          	/*refClassElement.addCallRef(referenceClassIndex, referenceIntIndex, c, m, nextCode);
          	*/
          	if (referenceStringClass != null){
-             	refSource.put(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()), isSourceSink(classDefs, referenceStringClass, referenceString));
+         		final Boolean isSourceSink = isSourceSink(classDefs, referenceStringClass, referenceString);
+         		if (isSourceSink != null)
+         			refSource.put(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()), isSourceSink(classDefs, referenceStringClass, referenceString));
          	}
              if ((referenceClassIndex == "Landroid/content/Intent;".hashCode())
              		&& (referenceIntIndex == "<init>(Landroid/content/Context;Ljava/lang/Class;)V".hashCode())){

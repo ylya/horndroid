@@ -47,7 +47,6 @@ import javax.annotation.Nonnull;
 import util.CMPair;
 
 public class Gen {
-	public int verRange;
 	
 	String outputDirectory;
 	@Nonnull private final Set<CMPair> methodIsDefined;
