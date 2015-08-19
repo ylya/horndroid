@@ -631,6 +631,28 @@ public class Analysis {
     	}
     	return null;
 }
+    
+    public boolean isSource(final int c, final int m){
+    	for (final Map.Entry<CMPair, Boolean> rs: refSource.entrySet()){
+    		if ((rs.getKey().getC() == c) && (rs.getKey().getM() == m)){
+    			if (rs.getValue())
+    				return true;
+    		}
+    	}
+    	return false;
+    }
+    
+    public boolean isSink(final int c, final int m){
+    	for (final Map.Entry<CMPair, Boolean> rs: refSource.entrySet()){
+    		if ((rs.getKey().getC() == c) && (rs.getKey().getM() == m)){
+    			if (!rs.getValue() && (rs.getValue() != null))
+    				return true;
+    		}
+    	}
+    	return false;
+    }
+    
+    
     private void collect(final List<? extends ClassDef> classDefs, final Instruction instruction, final int codeAddress, final int c, final int m, 
     		final ClassDef classDef, final Method method){
         String referenceString = null;

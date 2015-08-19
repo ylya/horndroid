@@ -90,15 +90,15 @@ public class Gen {
 	public int numberOfQueries(){
 		return queries.size();
 	}
-	public boolean isSource(int c, int m){
-		return methodIsSource.contains(new CMPair(c, m));
-	}
-	public boolean isSink(int c, int m){
-		return methodIsSink.contains(new CMPair(c, m));
-	}
-	public boolean isDefined(int c, int m){
-		return methodIsDefined.contains(new CMPair(c, m));
-	}
+	//public boolean isSource(int c, int m){
+	//	return methodIsSource.contains(new CMPair(c, m));
+	//}
+	//public boolean isSink(int c, int m){
+	//	return methodIsSink.contains(new CMPair(c, m));
+	//}
+	//public boolean isDefined(int c, int m){
+	//	return methodIsDefined.contains(new CMPair(c, m));
+	//}
 	public boolean isEntryPoint(int c, int m){
 		return methodIsEntryPoint.contains(new CMPair(c, m));
 	}
@@ -108,18 +108,18 @@ public class Gen {
 	public void putStaticConstructor(int c){
 		staticConstructor.add(c);
 	}
-	public void putSource(int c, int m){
-		methodIsSource.add(new CMPair (c, m));
-	}
+	//public void putSource(int c, int m){
+	//	methodIsSource.add(new CMPair (c, m));
+	//}
 	public void putEntryPoint(int c, int m){
 		methodIsEntryPoint.add(new CMPair (c, m));
 	}
-	public void putSink(int c, int m){
-		methodIsSink.add(new CMPair (c, m));
-	}
-	public void putDefined(int c, int m){
-		methodIsDefined.add(new CMPair (c, m));
-	}
+	//public void putSink(int c, int m){
+	//	methodIsSink.add(new CMPair (c, m));
+	//}
+	//public void putDefined(int c, int m){
+	//	methodIsDefined.add(new CMPair (c, m));
+	//}
 	public void addQuery(String query){
 		queries.add(query);
 	}

@@ -1054,7 +1054,7 @@ public class InstructionAnalysis {
                 		Clause cl12 = new Clause();
             			numRegCall = di.getMethod().getNumReg();
             			numArgCall = di.getMethod().getNumArg();
-            			if (gen.isSink(di.getInstance().getType().getType().hashCode(), referenceIntIndex))
+            			if (analysis.isSink(di.getInstance().getType().getType().hashCode(), referenceIntIndex))
                 			addQuery(gen, Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen), className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
         				referenceReg = instr.getRegisterC();
             			
@@ -1094,7 +1094,7 @@ public class InstructionAnalysis {
             			regUpdate.clear();
                 		regUpdateL.clear();
                 		regUpdateB.clear();
-            			if (gen.isSource(di.getInstance().getType().getType().hashCode(), referenceIntIndex)) returnLabel = "true"; else returnLabel = "lrez";
+            			if (analysis.isSource(di.getInstance().getType().getType().hashCode(), referenceIntIndex)) returnLabel = "true"; else returnLabel = "lrez";
             			if (callReturns) {
             				regUpdate.put(numRegLoc, "rez");
             				regUpdateL.put(numRegLoc, returnLabel);
@@ -1107,7 +1107,7 @@ public class InstructionAnalysis {
             		}
         		}
         		else{
-        			if (gen.isSink(referenceClassIndex, referenceIntIndex)){
+        			if (analysis.isSink(referenceClassIndex, referenceIntIndex)){
         				addQuery(gen, Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen), className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
         			}
         			if (processIntent(ci, mi, numParLoc, numRegLoc, nextCode, referenceClassIndex, referenceIntIndex, gen, referenceString, size))
@@ -1116,7 +1116,7 @@ public class InstructionAnalysis {
             		
         			head = Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen);
         			cl.appendHead(head);
-        			if (gen.isSource(referenceClassIndex, referenceIntIndex)) 
+        			if (analysis.isSource(referenceClassIndex, referenceIntIndex)) 
         				returnLabel = "true"; 
         			else returnLabel = getLabels();
         		
@@ -1225,7 +1225,7 @@ public class InstructionAnalysis {
         				numArgCall = definition.getValue().getNumArg();
         				Clause cl10 = new Clause();
         				Clause cl12 = new Clause();
-        				if (gen.isSink(referenceClassIndex, referenceIntIndex))
+        				if (analysis.isSink(referenceClassIndex, referenceIntIndex))
                 			addQuery(gen, Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen), className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
                 			/*for (int i = 0; i < numRegCallp; i++){
                 				gen.addQuery("(query (and " + "(P_" + referenceStringClassIndex + '_' + referenceIndex + '_' + 
@@ -1266,7 +1266,7 @@ public class InstructionAnalysis {
             			regUpdate.clear();
                 		regUpdateL.clear();
                 		regUpdateB.clear();
-            			if (gen.isSource(referenceClassIndex, referenceIntIndex)) returnLabel = "true"; else returnLabel = "lrez";
+            			if (analysis.isSource(referenceClassIndex, referenceIntIndex)) returnLabel = "true"; else returnLabel = "lrez";
             			if (callReturns) {
             				regUpdate.put(numRegLoc, "rez");
             				regUpdateL.put(numRegLoc, returnLabel);
@@ -1276,7 +1276,7 @@ public class InstructionAnalysis {
         				}
         		}
         		else{
-        			if (gen.isSink(referenceClassIndex, referenceIntIndex))
+        			if (analysis.isSink(referenceClassIndex, referenceIntIndex))
             			addQuery(gen, Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen), className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
             			/*for (int i = 0; i < numRegCallp; i++){
             				gen.addQuery("(query (and " + "(P_" + referenceStringClassIndex + '_' + referenceIndex + '_' + 
@@ -1288,7 +1288,7 @@ public class InstructionAnalysis {
         				break;
         			head = Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen);
         			cl.appendHead(head);
-        			if (gen.isSource(referenceClassIndex, referenceIntIndex)) 
+        			if (analysis.isSource(referenceClassIndex, referenceIntIndex)) 
         				returnLabel = "true"; 
         			else returnLabel = getLabels();
         			
@@ -1360,7 +1360,7 @@ public class InstructionAnalysis {
                 		Clause cl12 = new Clause();
             			numRegCall = di.getMethod().getNumReg();
             			numArgCall = di.getMethod().getNumArg();
-            			if (gen.isSink(di.getInstance().getType().getType().hashCode(), referenceIntIndex))
+            			if (analysis.isSink(di.getInstance().getType().getType().hashCode(), referenceIntIndex))
                 			addQueryRange(gen, Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen), className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
         				referenceReg = instr3.getStartRegister();
             			
@@ -1400,7 +1400,7 @@ public class InstructionAnalysis {
             			regUpdate.clear();
                 		regUpdateL.clear();
                 		regUpdateB.clear();
-            			if (gen.isSource(di.getInstance().getType().getType().hashCode(), referenceIntIndex)) returnLabel = "true"; else returnLabel = "lrez";
+            			if (analysis.isSource(di.getInstance().getType().getType().hashCode(), referenceIntIndex)) returnLabel = "true"; else returnLabel = "lrez";
             			if (callReturns) {
             				regUpdate.put(numRegLoc, "rez");
             				regUpdateL.put(numRegLoc, returnLabel);
@@ -1413,7 +1413,7 @@ public class InstructionAnalysis {
             		}
         		}
         		else{
-        			if (gen.isSink(referenceClassIndex, referenceIntIndex)){
+        			if (analysis.isSink(referenceClassIndex, referenceIntIndex)){
         				addQueryRange(gen, Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen), className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
         			}
         			if (processIntent(ci, mi, numParLoc, numRegLoc, nextCode, referenceClassIndex, referenceIntIndex, gen, referenceString, size))
@@ -1422,7 +1422,7 @@ public class InstructionAnalysis {
             		
         			head = Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen);
         			cl.appendHead(head);
-        			if (gen.isSource(referenceClassIndex, referenceIntIndex)) 
+        			if (analysis.isSource(referenceClassIndex, referenceIntIndex)) 
         				returnLabel = "true"; 
         			else returnLabel = getLabelsRange();
         		
@@ -1494,7 +1494,7 @@ public class InstructionAnalysis {
         				numArgCall = definition.getValue().getNumArg();
         				Clause cl10 = new Clause();
         				Clause cl12 = new Clause();
-        				if (gen.isSink(referenceClassIndex, referenceIntIndex))
+        				if (analysis.isSink(referenceClassIndex, referenceIntIndex))
                 			addQueryRange(gen, Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen), className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
                 			/*for (int i = 0; i < numRegCallp; i++){
                 				gen.addQuery("(query (and " + "(P_" + referenceStringClassIndex + '_' + referenceIndex + '_' + 
@@ -1535,7 +1535,7 @@ public class InstructionAnalysis {
             			regUpdate.clear();
                 		regUpdateL.clear();
                 		regUpdateB.clear();
-            			if (gen.isSource(referenceClassIndex, referenceIntIndex)) returnLabel = "true"; else returnLabel = "lrez";
+            			if (analysis.isSource(referenceClassIndex, referenceIntIndex)) returnLabel = "true"; else returnLabel = "lrez";
             			if (callReturns) {
             				regUpdate.put(numRegLoc, "rez");
             				regUpdateL.put(numRegLoc, returnLabel);
@@ -1545,7 +1545,7 @@ public class InstructionAnalysis {
         				}
         		}
         		else{
-        			if (gen.isSink(referenceClassIndex, referenceIntIndex))
+        			if (analysis.isSink(referenceClassIndex, referenceIntIndex))
             			addQueryRange(gen, Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen), className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
             			/*for (int i = 0; i < numRegCallp; i++){
             				gen.addQuery("(query (and " + "(P_" + referenceStringClassIndex + '_' + referenceIndex + '_' + 
@@ -1557,7 +1557,7 @@ public class InstructionAnalysis {
         				break;
         			head = Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen);
         			cl.appendHead(head);
-        			if (gen.isSource(referenceClassIndex, referenceIntIndex)) 
+        			if (analysis.isSource(referenceClassIndex, referenceIntIndex)) 
         				returnLabel = "true"; 
         			else returnLabel = getLabelsRange();
         			
@@ -2893,7 +2893,7 @@ public class InstructionAnalysis {
 		}
 		if (shortMethodName.contains((String) "get") && c == ("Landroid/content/Intent;".hashCode())){
 			FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
-			if (gen.isSource(c, m)){
+			if (analysis.isSource(c, m)){
 				cl.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 				regUpdate.put(numRegLoc, "val");
 				regUpdateL.put(numRegLoc, "true");
