@@ -48,7 +48,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import util.iface.IndStr;
+import analysis.Analysis;
 
 public class SourceSinkParser {
 	
@@ -72,22 +72,26 @@ public class SourceSinkParser {
 		    }
 		}
 	}
-	public static void parseEntryPoint(final Gen gen, final IndStr indStr) throws IOException{
+	public static void parseEntryPoint(final Gen gen) throws IOException{
 		try (BufferedReader br = new BufferedReader(new FileReader(new File("EntryPoints.txt")))) {
 		    String line;
 		    while ((line = br.readLine()) != null) {
 		    	if (line.charAt(0) == '%') continue;
 		    	String[] parts = line.split(Pattern.quote(" "));
-		    	int c = indStr.get(parts[0], 'c');
-		    	int m = indStr.get(parts[1], 'm');
+		    	int c = parts[0].hashCode();
+		    	int m = parts[1].hashCode();
 		    	gen.putEntryPoint(c, m);
 		    }
 		}
 	}
 	
-	public static void parseCallbacksFromXml(final Set<String> callbacks, final String outputDirectory, final String apkFileName, final Set<Integer> disabledActivities,
-			final Set<Integer> activities, final Set<Integer> launcherActivities, final IndStr indStr, final Set<Integer> callbackImplementations,
-			final Set<Integer> applications, final String apktoolFolder) throws IOException, SAXException, ParserConfigurationException{
+	public static void parseCallbacksFromXml(final Analysis analysis, final String outputDirectory, final String apkFileName, final String apktoolFolder) throws IOException, SAXException, ParserConfigurationException{
+		 final Set<String> callbacks = analysis.getCallbacks();
+		 final Set<Integer> disabledActivities = analysis.getDisabledActivities();
+		 final Set<Integer> activities = analysis.getActivities();
+		 final Set<Integer> launcherActivities = analysis.getLauncherActivities();
+		 final Set<Integer> callbackImplementations = analysis.getCallbackImplementations();
+		 final Set<Integer> applications = analysis.getApplications();
 		 System.out.println("Running apktool to obtain manifest xml and layout files");
 	     Runtime runtime = Runtime.getRuntime();
 		 Process proc = runtime.exec(new String[]{"/bin/sh", "-c", "java -jar " + apktoolFolder + "apktool.jar d " + apkFileName + " -s -f -o " + outputDirectory + "/apktool"});
@@ -140,13 +144,13 @@ public class SourceSinkParser {
     	        	 String formatClassName = el.getAttribute("android:name").replaceAll("\\.", "/");
     	        	 String[] parts = formatClassName.split("/");
     	    		 String classN =  parts[parts.length - 1];
-    	        	 disabledActivities.add(indStr.get(classN, 'c'));
+    	        	 disabledActivities.add(classN.hashCode());
     	         }
     	         else{
     	        	 String formatClassName = el.getAttribute("android:name").replaceAll("\\.", "/");
     	        	 String[] parts = formatClassName.split("/");
     	    		 String classN =  parts[parts.length - 1];
-    	        	 activities.add(indStr.get(classN, 'c'));
+    	        	 activities.add(classN.hashCode());
     	        	 NodeList nodeList2 = doc.getElementsByTagName("category");
     	        	 if(nodeList2 != null && nodeList2.getLength() > 0){
     	        	     for (int k = 0; k < nodeList2.getLength(); k++) {
@@ -158,7 +162,7 @@ public class SourceSinkParser {
     	        	    		 formatClassName = el3.getAttribute("android:name").replaceAll("\\.", "/");
     	        	    		 parts = formatClassName.split("/");
     	        	    		 classN =  parts[parts.length - 1];
-    	        	    		 launcherActivities.add(indStr.get(classN, 'c'));
+    	        	    		 launcherActivities.add(classN.hashCode());
     	        	    	 }
     	        	     }
     	        	 }
@@ -167,7 +171,7 @@ public class SourceSinkParser {
     	        	    formatClassName = el.getAttribute("android:name").replaceAll("\\.", "/");
     	        	    parts = formatClassName.split("/");
     	        	    classN =  parts[parts.length - 1];
-    	        	    launcherActivities.add(indStr.get(classN, 'c'));
+    	        	    launcherActivities.add(classN.hashCode());
     	        	 }
     	         }
     	     }
@@ -180,7 +184,7 @@ public class SourceSinkParser {
     	    	 String formatClassName = el.getAttribute("android:name").replaceAll("\\.", "/");
 	        	 String[] parts = formatClassName.split("/");
 	    		 String classN =  parts[parts.length - 1];
-	        	 applications.add(indStr.get(classN, 'c'));
+	        	 applications.add(classN.hashCode());
     	     }
     	 }
 	     
@@ -190,7 +194,7 @@ public class SourceSinkParser {
  		    	if (line.charAt(0) == '%') continue;
  		    	String noWhiteSpaces = 	line.replaceAll(" ", "");
  		    	String formatClassName = 'L' + noWhiteSpaces .replaceAll("\\.", "/") + ';';
- 		    	callbackImplementations.add(indStr.get(formatClassName, 'c'));
+ 		    	callbackImplementations.add(formatClassName.hashCode());
  		    }
  		}
 	}

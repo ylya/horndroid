@@ -38,7 +38,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -63,8 +62,7 @@ public class Gen {
 	@Nonnull private final Set<String> mainMethod;
 	@Nonnull private final Set<String> queries;
 	@Nonnull private final Set<String> queriesV;
-	public Gen(int verRange, String outputDirectory){
-		this.verRange = verRange;
+	public Gen(String outputDirectory){
 		this.outputDirectory = outputDirectory;
 		/*this.clauses = Collections.synchronizedSet(new HashSet<Clause>());
 		this.defs = Collections.synchronizedSet(new HashSet<String>());
