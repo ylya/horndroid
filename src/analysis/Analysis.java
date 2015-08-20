@@ -11,6 +11,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import org.jf.baksmali.Adaptors.ClassDefinition;
 import org.jf.baksmali.Adaptors.MethodDefinition;
@@ -468,10 +470,27 @@ public class Analysis {
 	    	} 
 	    	return false;
     }
-	public void collectDataFromApk(final List<? extends ClassDef> classDefs) {      
+	public void collectDataFromApk(final List<? extends ClassDef> classDefs) {  
+		ExecutorService classCollector = Executors.newCachedThreadPool();;
         for (final ClassDef classDef: classDefs) {
         	if (classDef.getType().contains("Landroid")) continue;
-        	classes.add(collectDataFromClass(classDefs, classDef));
+        	classCollector.submit(new Runnable() {
+	   			 @Override
+	   			 public void run() {
+	   				 try {
+	   					classes.add(collectDataFromClass(classDefs, classDef));	
+	   				 } catch (Exception e1) {
+						e1.printStackTrace();
+	   				 }
+	   			 }
+	        });	
+        }
+        classCollector.shutdown();
+        try {
+        	classCollector.awaitTermination(2, TimeUnit.DAYS);
+        } catch (InterruptedException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
         }
         formClassStructure();
         addEntryPointsInstances();
