@@ -1046,7 +1046,9 @@ public class InstructionAnalysis {
         		if (!modRes){
     				implementations = analysis.getImplementations(referenceClassIndex, referenceIntIndex);
     			}
-        		isDefined = !implementations.isEmpty();
+        		isDefined = false;
+        		if (implementations != null)
+        			isDefined = true;
             	FiveRegisterInstruction instr = (FiveRegisterInstruction)this.instruction;	
             	if (isDefined){
             		for (final DalvikImplementation di : implementations){
@@ -1216,7 +1218,9 @@ public class InstructionAnalysis {
             		}
         		}
         		staticDefinitions = analysis.isDefined(referenceClassIndex, referenceIntIndex);
-        		isDefined = staticDefinitions.isEmpty();
+        		isDefined = false;
+        		if (staticDefinitions != null)
+        			isDefined = true;
         		//FiveRegisterInstruction instr2 = (FiveRegisterInstruction)this.instruction;
 
         		if (isDefined){
@@ -1352,7 +1356,9 @@ public class InstructionAnalysis {
         		
     			implementations = analysis.getImplementations(referenceClassIndex, referenceIntIndex);
     			
-        		isDefined = !implementations.isEmpty();
+    			isDefined = false;
+        		if (implementations != null)
+        			isDefined = true;
         		RegisterRangeInstruction instr3 = (RegisterRangeInstruction)this.instruction;	
             	if (isDefined){
             		for (final DalvikImplementation di : implementations){
@@ -1477,7 +1483,7 @@ public class InstructionAnalysis {
         				}
         			}
         			}
-        			regUpdateL = highReg(false, regUpdateL);
+        			regUpdateL = highReg(true, regUpdateL);
         			cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         			gen.addClause(cl);
         		}
@@ -1485,7 +1491,9 @@ public class InstructionAnalysis {
         	case INVOKE_DIRECT_RANGE:
         	case INVOKE_STATIC_RANGE:
         		staticDefinitions = analysis.isDefined(referenceClassIndex, referenceIntIndex);
-        		isDefined = staticDefinitions.isEmpty();
+        		isDefined = false;
+        		if (staticDefinitions != null)
+        			isDefined = true;
         		//FiveRegisterInstruction instr4 = (FiveRegisterInstruction)this.instruction;
 
         		if (isDefined){
@@ -1610,7 +1618,7 @@ public class InstructionAnalysis {
         				}
         			}
         			}
-        			regUpdateL = highReg(false, regUpdateL);
+        			regUpdateL = highReg(true, regUpdateL);
         			cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		}
         		break;//((short)0x74, "invoke-virtual/range", ReferenceType.METHOD, Format.Format3rc, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_RESULT),

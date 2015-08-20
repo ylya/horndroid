@@ -384,6 +384,7 @@ public class Analysis {
 	public Set<DalvikImplementation> getImplementations(final int ci, final int mi){
 		final Set<DalvikImplementation> implementations = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<DalvikImplementation, Boolean>()));
 		final Map<DalvikClass, DalvikMethod> definitions = isDefined(ci, mi);
+		if (definitions == null) return null;
 		for (Map.Entry<DalvikClass, DalvikMethod> entry : definitions.entrySet()){
 			for (final DalvikInstance di: instances){
 				if (entry.getKey().getType().hashCode() == di.getType().getType().hashCode()){
@@ -469,6 +470,7 @@ public class Analysis {
     }
 	public void collectDataFromApk(final List<? extends ClassDef> classDefs) {      
         for (final ClassDef classDef: classDefs) {
+        	if (classDef.getType().contains("Landroid")) continue;
         	classes.add(collectDataFromClass(classDefs, classDef));
         }
         formClassStructure();
@@ -482,6 +484,7 @@ public class Analysis {
     		inter.add(new GeneralClass(interfaceName));
     	}
     	dc.putInterfaces(inter);
+    	
     	Set<DalvikField> dalvikFields = collectDataFromFields(classDef, false);
     	dalvikFields.addAll(collectDataFromFields(classDef, true));
     	dc.putFields(dalvikFields);
@@ -512,12 +515,14 @@ public class Analysis {
         for (Field field: fields) {
         	EncodedValue initialValue = field.getInitialValue();
             if (initialValue != null) {
+            	final String fieldName = ReferenceUtil.getShortFieldDescriptor(field);
+        		gen.addMain("(rule (S " + Utils.Dec(classDef.getType().hashCode()) + ' ' + Utils.Dec(fieldName.hashCode())+ " " + FormatEncodedValue.toString(initialValue, options.bitvectorSize) + " false bf))"); 
+        		
             	DalvikStaticField dsf = new DalvikStaticField(ReferenceUtil.getShortFieldDescriptor(field), FormatEncodedValue.toString(initialValue, options.bitvectorSize));
             		dalvikFields.add(dsf);
             	}
             else{
-            		final String fieldName = ReferenceUtil.getShortFieldDescriptor(field);
-            		gen.addMain("(rule (S " + Utils.Dec(classDef.getType().hashCode()) + ' ' + Utils.Dec(fieldName.hashCode())+ " " + FormatEncodedValue.toString(initialValue, options.bitvectorSize) + " false bf))"); 
+            		final String fieldName = ReferenceUtil.getShortFieldDescriptor(field);            		
             		dalvikFields.add(new DalvikField(fieldName));
             	}
         }

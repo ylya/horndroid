@@ -48,7 +48,7 @@ import util.CMPair;
 
 public class Gen {
 	
-	String outputDirectory;
+	//String outputDirectory;
 	@Nonnull private final Set<CMPair> methodIsDefined;
 	@Nonnull private final Set<CMPair> methodIsSource;
 	@Nonnull private final Set<CMPair> methodIsSink;
@@ -61,8 +61,8 @@ public class Gen {
 	@Nonnull private final Set<String> mainMethod;
 	@Nonnull private final Set<String> queries;
 	@Nonnull private final Set<String> queriesV;
-	public Gen(String outputDirectory){
-		this.outputDirectory = outputDirectory;
+	public Gen(){
+		//this.outputDirectory = outputDirectory;
 		/*this.clauses = Collections.synchronizedSet(new HashSet<Clause>());
 		this.defs = Collections.synchronizedSet(new HashSet<String>());
 		this.vars = Collections.synchronizedSet(new HashSet<String>());
@@ -182,7 +182,7 @@ public class Gen {
 		Iterator<String> itq = this.queries.iterator();
 		System.out.println("Number of queries to solve: " + queries.size());
 		while (itq.hasNext()){
-			File clausesFile = new File (outputDirectory + "/clauses" + Integer.toString(count) + ".smt2");
+			File clausesFile = new File (options.outputDirectory + "/clauses" + Integer.toString(count) + ".smt2");
 			if (clausesFile.exists()) clausesFile.delete();
 			try
 			(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(clausesFile, true)))) {
@@ -241,12 +241,13 @@ public class Gen {
 	
 	public void writeOne(options options){
 		System.out.println("Number of queries to solve: " + queries.size());
-		File clausesFile = new File (outputDirectory + "/clauses.smt2");
+		File clausesFile = new File (options.outputDirectory + "/clauses.smt2");
 		if (clausesFile.exists()) clausesFile.delete();
 		try
 		(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(clausesFile, true)))) {
 			out.println(" (set-option :pp.bv-literals false) \n (set-option :fixedpoint.engine pdr) \n (define-sort bv64 () (_ BitVec " + Integer.toString(options.bitvectorSize) + "))\n");
 		}catch (IOException e) {
+			System.out.println("Cannot write to a file!");
 		}
 		Iterator<String> it = this.vars.iterator();
 		while (it.hasNext()){

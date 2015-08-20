@@ -85,7 +85,7 @@ public class main {
         //collect all apk files to process
         
         for (final File file: filesToProcess) {
-            final Gen gen = new Gen(hornDroidOptions.outputDirectory);
+            final Gen gen = new Gen();
             initGen(gen, hornDroidOptions);
             final ExecutorService executorService = Executors.newCachedThreadPool();
          	final ExecutorService instructionExecutorService = Executors.newCachedThreadPool();
