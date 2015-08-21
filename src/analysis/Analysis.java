@@ -233,7 +233,12 @@ public class Analysis {
 			else{
 				if (c instanceof DalvikClass){
 					final DalvikClass dc = (DalvikClass) c;
-					return isDefinedActivity(dc.getSuperClass());
+					boolean definedChildren = false;
+					for (final DalvikClass child: dc.getChildClasses()){
+						if (isDefinedActivity(child))
+							definedChildren = true;
+					}
+					return definedChildren;
 				}
 			}
 		}
@@ -345,11 +350,12 @@ public class Analysis {
 		for (final GeneralClass c: classes){
 			if (c instanceof DalvikClass){
 				final DalvikClass cd = (DalvikClass) c;
-				final int superClass = cd.getSuperClass().hashCode();
+				final int superClass = cd.getSuperClass().getType().hashCode();
 				for (final GeneralClass cs: classes){
 					if (cs instanceof DalvikClass){
 						if (cs.getType().hashCode() == superClass){
 							cd.putSuperClass(cs);
+							((DalvikClass) cs).putChildClass(cd);
 							break;
 						}
 					}
@@ -388,52 +394,62 @@ public class Analysis {
 		final Map<DalvikClass, DalvikMethod> definitions = isDefined(ci, mi);
 		if (definitions == null) return null;
 		for (Map.Entry<DalvikClass, DalvikMethod> entry : definitions.entrySet()){
-			for (final DalvikInstance di: instances){
-				if (entry.getKey().getType().hashCode() == di.getType().getType().hashCode()){
-					implementations.add(new DalvikImplementation(di, entry.getValue()));
-				}
-			}
-		}
-		return implementations;
-	}
-	
-	public Map<DalvikClass, DalvikMethod> isDefined(final int ci, int mi){
-		Map<DalvikClass, DalvikMethod> resolvents = new ConcurrentHashMap<DalvikClass, DalvikMethod>();
-		for (final GeneralClass c: classes){
-			if ((c.getType().hashCode() == ci) && (c instanceof DalvikClass)){	
-				final DalvikClass cd = ((DalvikClass) c);
-				
-				if (isThread(cd) && (mi == "execute([Ljava/lang/Object;)Landroid/os/AsyncTask;".hashCode())){
-		  			mi = "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode();
-		  		}
-		  		if (isThread(cd) && (mi == "start()V".hashCode())){
-		  			mi = "run()V".hashCode();
-		  		}
-				
-				for (final DalvikMethod m: cd.getMethods()){
-					if (m.getName().hashCode() == mi){
-						resolvents.put(cd, m);
-						break;
-					}
-				}
-				final GeneralClass sc = cd.getSuperClass();
-				if (sc instanceof DalvikClass){
-					resolvents.putAll(isDefined(sc.getType().hashCode(), mi));
-				}
-				for (final GeneralClass cint: classes){
-					if (cint instanceof DalvikClass){
-						for (final GeneralClass cintc: ((DalvikClass) cint).getInterfaces()){
-							if ((cintc instanceof DalvikClass) && (cintc.getType().hashCode() == ci)){
-								for (final DalvikMethod m: ((DalvikClass)cintc).getMethods()){
-									if (m.getName().hashCode() == mi){
-										resolvents.put((DalvikClass)cintc, m);
-										break;
-									}
-								}
+			final DalvikImplementation di = new DalvikImplementation(entry.getKey(), entry.getValue());
+			for (final DalvikInstance instance: instances){
+				if (entry.getKey().getType().hashCode() == instance.getType().getType().hashCode()){
+					di.putInstance(instance);
+					for (final DalvikClass child: entry.getKey().getChildClasses()){
+						for (final DalvikInstance childInstance: instances){
+							if (child.getType().hashCode() == childInstance.getType().getType().hashCode()){
+								di.putInstance(childInstance);
 							}
 						}
 					}
 				}
+			}
+			implementations.add(di);
+
+		}
+		return implementations;
+	}
+	
+	public Map<DalvikClass, DalvikMethod> isDefined(final int ci, int mi){	
+		Map<DalvikClass, DalvikMethod> resolvents = new ConcurrentHashMap<DalvikClass, DalvikMethod>();
+		if (isThread(ci) && (mi == "execute([Ljava/lang/Object;)Landroid/os/AsyncTask;".hashCode())){
+  			mi = "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode();
+  		}
+  		if (isThread(ci) && (mi == "start()V".hashCode())){
+  			mi = "run()V".hashCode();
+  		}
+		for (final GeneralClass c: classes){
+			if ((c instanceof DalvikClass)){
+				final DalvikClass cd = ((DalvikClass) c);	
+				if (c.getType().hashCode() == ci){
+					for (final DalvikMethod m: cd.getMethods()){
+						if (m.getName().hashCode() == mi){
+							resolvents.put(cd, m);
+							break;
+						}
+					}
+					for (final DalvikClass sc: cd.getChildClasses()){
+						if (sc != null){
+							final Map<DalvikClass, DalvikMethod> resolventsChild = isDefined(sc.getType().hashCode(), mi);
+							if (resolventsChild != null)
+								resolvents.putAll(resolventsChild);
+						}
+					}
+				}
+				for (final GeneralClass cint: cd.getInterfaces()){
+					if ((cint.getType().hashCode() == ci)){
+						for (final DalvikMethod m: 
+							cd.getMethods()){
+							if (m.getName().hashCode() == mi){
+								resolvents.put(cd, m);
+								break;
+							}
+						}
+					}
+				}				
 			}
 		}
 		if (resolvents.isEmpty()) return null;
@@ -459,6 +475,7 @@ public class Analysis {
 	    		if ((c instanceof DalvikClass) && (c.getType().hashCode() == classInd)){
 	    			final DalvikClass dc = (DalvikClass) c;
 	    			final Set <GeneralClass> interfaces = dc.getInterfaces();
+	    			
 	    	        if (interfaces.size() != 0) {
 	    	        	for (final GeneralClass interfaceName: interfaces){
 	    	        		if (interfaceName.getType().hashCode() == "Ljava/lang/Runnable;".hashCode())

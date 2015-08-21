@@ -49,6 +49,7 @@ public class InstructionAnalysis {
 	}
 	public void CreateHornClauses(){
 		boolean modRes;
+		Integer staticFieldClassName;
 		Set<DalvikImplementation> implementations = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<DalvikImplementation, Boolean>()));
 		Map<DalvikClass, DalvikMethod> staticDefinitions = new ConcurrentHashMap<DalvikClass, DalvikMethod>();
 		DalvikMethod dmc;
@@ -993,8 +994,12 @@ public class InstructionAnalysis {
         	case SGET_BYTE://((short)0x64, "sget-byte", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case SGET_CHAR://((short)0x65, "sget-char", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case SGET_SHORT:
+        		staticFieldClassName = analysis.staticFieldsLookup(referenceClassIndex, referenceIntIndex);
+        		if (staticFieldClassName == null){
+        			staticFieldClassName = referenceClassIndex;
+        		}
         		cl.appendHead("(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen) + 
-        				' ' + "(S " + Integer.toString(analysis.staticFieldsLookup(referenceClassIndex, referenceIntIndex)) + ' ' + Integer.toString(referenceIntIndex) + " f lf bf))");
+        				' ' + "(S " + Integer.toString(staticFieldClassName) + ' ' + Integer.toString(referenceIntIndex) + " f lf bf))");
         		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), "f");
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "lf");
         		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), "bf");
@@ -1017,19 +1022,23 @@ public class InstructionAnalysis {
         	case SPUT_BYTE://((short)0x6b, "sput-byte", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
         	case SPUT_CHAR://((short)0x6c, "sput-char", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
         	case SPUT_SHORT:
+        		staticFieldClassName = analysis.staticFieldsLookup(referenceClassIndex, referenceIntIndex);
+        		if (staticFieldClassName == null){
+        			staticFieldClassName = referenceClassIndex;
+        		}
         		cl.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		gen.addClause(cl);
         		
         		cl3.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		cl3.appendBody("(S " + Integer.toString(analysis.staticFieldsLookup(referenceClassIndex, referenceIntIndex)) + ' ' + Integer.toString(referenceIntIndex) + " v" + 
+        		cl3.appendBody("(S " + Integer.toString(staticFieldClassName) + ' ' + Integer.toString(referenceIntIndex) + " v" + 
         				Integer.toString(((OneRegisterInstruction)instruction).getRegisterA())
         				+ " l" + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) +  " b" + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ')');
         		gen.addClause(cl3);
         		break;//((short)0x6d, "sput-short", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
         	case INVOKE_VIRTUAL:
         	case INVOKE_SUPER:
-        	case INVOKE_INTERFACE: 
+        	case INVOKE_INTERFACE:      		
         		modRes = false;
         		if ((referenceIntIndex == "execute(Ljava/lang/Runnable;)V".hashCode()) && (referenceClassIndex == "Ljava/util/concurrent/ExecutorService;".hashCode())){
         			implementations = analysis.getImplementations("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode());
@@ -1052,32 +1061,34 @@ public class InstructionAnalysis {
             	FiveRegisterInstruction instr = (FiveRegisterInstruction)this.instruction;	
             	if (isDefined){
             		for (final DalvikImplementation di : implementations){
-            			Clause cl10  = new Clause();
-                		Clause cl12 = new Clause();
             			numRegCall = di.getMethod().getNumReg();
             			numArgCall = di.getMethod().getNumArg();
-            			if (analysis.isSink(di.getInstance().getType().getType().hashCode(), referenceIntIndex))
+            			if (analysis.isSink(di.getDalvikClass().getType().hashCode(), referenceIntIndex))
                 			addQuery(gen, Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen), className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
         				referenceReg = instr.getRegisterC();
             			
-        				cl10.appendHead("(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen) + 
+        				for (final DalvikInstance instance: di.getInstances()){
+        					Clause cl10  = new Clause();
+        					cl10.appendHead("(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen) + 
             					" (= v" + Integer.toString(referenceReg) + ' ' + 
-            					Utils.hexDec64(di.getInstance().hashCode(), size) + "))");
+            					Utils.hexDec64(instance.hashCode(), size) + "))");
             			            			
-            			regUpdate = updateReg(numRegCall, numArgCall, 'v', false);
-            			regUpdateL = updateReg(numRegCall, numArgCall, 'l', false);
-            			regUpdateB = updateReg(numRegCall, numArgCall, 'b', false);
+        					regUpdate = updateReg(numRegCall, numArgCall, 'v', false);
+        					regUpdateL = updateReg(numRegCall, numArgCall, 'l', false);
+        					regUpdateB = updateReg(numRegCall, numArgCall, 'b', false);
             			
             			
-            			cl10.appendBody(Utils.rInvokePred(Integer.toString(di.getInstance().getType().getType().hashCode()), Integer.toString(di.getMethod().getName().hashCode()), 0,  
+        					cl10.appendBody(Utils.rInvokePred(Integer.toString(di.getDalvikClass().getType().hashCode()), Integer.toString(di.getMethod().getName().hashCode()), 0,  
                 				regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, gen, size));
-            			gen.addClause(cl10);
-            			regUpdate.clear();
-                		regUpdateL.clear();
-                		regUpdateB.clear();
-        				
+        					gen.addClause(cl10);
+        					regUpdate.clear();
+        					regUpdateL.clear();
+        					regUpdateB.clear();
+        				}
         				
         				if (callReturns){
+        					for (final DalvikInstance instance: di.getInstances()){
+        					Clause cl12 = new Clause();
                 			head = "(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen);
                 			regUpdate = updateRes(numRegCall, numArgCall, 'v', false);
                 			regUpdateL = updateRes(numRegCall, numArgCall, 'l', false);
@@ -1085,27 +1096,44 @@ public class InstructionAnalysis {
                 			regUpdate.put(numArgCall, "rez");
                 			regUpdateL.put(numArgCall, "lrez");
                 			regUpdateB.put(numArgCall, "brez");
-                			head = head + ' ' + Utils.resPred(Integer.toString(di.getInstance().getType().getType().hashCode()), referenceIndex, regUpdate, regUpdateL, regUpdateB, numArgCall, gen) +
+                			head = head + ' ' + Utils.resPred(Integer.toString(di.getDalvikClass().getType().hashCode()), referenceIndex, regUpdate, regUpdateL, regUpdateB, numArgCall, gen) +
                 					" (= v" + Integer.toString(referenceReg) + ' ' + 
-                					Utils.hexDec64(di.getInstance().hashCode(), size) + "))";
+                					Utils.hexDec64(instance.hashCode(), size) + "))";
+                			cl12.appendHead(head);
+                			regUpdate.clear();
+                    		regUpdateL.clear();
+                    		regUpdateB.clear();
+                			if (analysis.isSource(di.getDalvikClass().getType().hashCode(), referenceIntIndex)) returnLabel = "true"; else returnLabel = "lrez";
+                			if (callReturns) {
+                				regUpdate.put(numRegLoc, "rez");
+                				regUpdateL.put(numRegLoc, returnLabel);
+                			}
+                			cl12.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+                			gen.addClause(cl12);
+                			regUpdate.clear();
+                    		regUpdateL.clear();
+                    		regUpdateB.clear();
+        					}
                 		}
                 		else{
+                    		Clause cl12 = new Clause();
                 			head = Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen);
+                			cl12.appendHead(head);
+                			regUpdate.clear();
+                    		regUpdateL.clear();
+                    		regUpdateB.clear();
+                			if (analysis.isSource(di.getDalvikClass().getType().hashCode(), referenceIntIndex)) returnLabel = "true"; else returnLabel = "lrez";
+                			if (callReturns) {
+                				regUpdate.put(numRegLoc, "rez");
+                				regUpdateL.put(numRegLoc, returnLabel);
+                			}
+                			cl12.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+                			gen.addClause(cl12);
+                			regUpdate.clear();
+                    		regUpdateL.clear();
+                    		regUpdateB.clear();
                 		}
-            			cl12.appendHead(head);
-            			regUpdate.clear();
-                		regUpdateL.clear();
-                		regUpdateB.clear();
-            			if (analysis.isSource(di.getInstance().getType().getType().hashCode(), referenceIntIndex)) returnLabel = "true"; else returnLabel = "lrez";
-            			if (callReturns) {
-            				regUpdate.put(numRegLoc, "rez");
-            				regUpdateL.put(numRegLoc, returnLabel);
-            			}
-            			cl12.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-            			gen.addClause(cl12);
-            			regUpdate.clear();
-                		regUpdateL.clear();
-                		regUpdateB.clear();
+            			
             		}
         		}
         		else{
@@ -1191,10 +1219,12 @@ public class InstructionAnalysis {
             		if (isDefined){
             			for (final DalvikImplementation di : implementations){
             				numRegCall = di.getMethod().getNumReg();
+            				
+            				for (final DalvikInstance instance: di.getInstances()){
             				Clause cl10  = new Clause();
                 			cl10.appendHead("(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen) + 
                 					" (= v" + Integer.toString(instr2.getRegisterD()) + ' ' + 
-                					Utils.hexDec64(di.getInstance().hashCode(), size) + "))");
+                					Utils.hexDec64(instance.hashCode(), size) + "))");
                 			
                 			numArgCall = di.getMethod().getNumArg();
                 			
@@ -1204,13 +1234,15 @@ public class InstructionAnalysis {
                         	regUpdateL.put(numRegCall + 1 + 0, 'l' + Integer.toString(instr2.getRegisterD()));
                         	regUpdateB.put(numRegCall - numArgCall + 0, 'b' + Integer.toString(instr2.getRegisterD())); 
                         	regUpdateB.put(numRegCall + 1 + 0, 'b' + Integer.toString(instr2.getRegisterD()));
-                        	cl10.appendBody(Utils.rInvokePred(Integer.toString(di.getInstance().getType().getType().hashCode()), Integer.toString("run()V".hashCode()), 0,  
+                        	cl10.appendBody(Utils.rInvokePred(Integer.toString(di.getDalvikClass().getType().hashCode()), Integer.toString("run()V".hashCode()), 0,  
                     				regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, gen, size));
                 			gen.addClause(cl10);
                 			
                 			regUpdate.clear();
                 			regUpdateL.clear();
                 			regUpdateB.clear();
+            				}
+                			
                 			break;
             			}
             		}
@@ -1276,7 +1308,7 @@ public class InstructionAnalysis {
             				regUpdateL.put(numRegLoc, returnLabel);
             			}
             			cl10.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        				
+        				gen.addClause(cl10);
         				}
         		}
         		else{
@@ -1347,6 +1379,7 @@ public class InstructionAnalysis {
         			}
         			regUpdateL = highReg(false, regUpdateL);
         			cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        			gen.addClause(cl);
         		}
         		break;
         		//((short)0x6e, "invoke-virtual", ReferenceType.METHOD, Format.Format35c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_RESULT),
@@ -1362,32 +1395,35 @@ public class InstructionAnalysis {
         		RegisterRangeInstruction instr3 = (RegisterRangeInstruction)this.instruction;	
             	if (isDefined){
             		for (final DalvikImplementation di : implementations){
-            			Clause cl10  = new Clause();
-                		Clause cl12 = new Clause();
+                		
             			numRegCall = di.getMethod().getNumReg();
             			numArgCall = di.getMethod().getNumArg();
-            			if (analysis.isSink(di.getInstance().getType().getType().hashCode(), referenceIntIndex))
+            			if (analysis.isSink(di.getDalvikClass().getType().hashCode(), referenceIntIndex))
                 			addQueryRange(gen, Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen), className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
         				referenceReg = instr3.getStartRegister();
             			
+        				for (final DalvikInstance instance: di.getInstances()){
+            			Clause cl10  = new Clause();
         				cl10.appendHead("(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen) + 
             					" (= v" + Integer.toString(referenceReg) + ' ' + 
-            					Utils.hexDec64(di.getInstance().hashCode(), size) + "))");
+            					Utils.hexDec64(instance.hashCode(), size) + "))");
             			            			
             			regUpdate = updateReg(numRegCall, numArgCall, 'v', true);
             			regUpdateL = updateReg(numRegCall, numArgCall, 'l', true);
             			regUpdateB = updateReg(numRegCall, numArgCall, 'b', true);
             			
             			
-            			cl10.appendBody(Utils.rInvokePred(Integer.toString(di.getInstance().getType().getType().hashCode()), Integer.toString(di.getMethod().getName().hashCode()), 0,  
+            			cl10.appendBody(Utils.rInvokePred(Integer.toString(di.getDalvikClass().getType().hashCode()), Integer.toString(di.getMethod().getName().hashCode()), 0,  
                 				regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, gen, size));
             			gen.addClause(cl10);
             			regUpdate.clear();
                 		regUpdateL.clear();
                 		regUpdateB.clear();
-        				
+        				}
         				
         				if (callReturns){
+        					for (final DalvikInstance instance: di.getInstances()){
+        					Clause cl12 = new Clause();
                 			head = "(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen);
                 			regUpdate = updateRes(numRegCall, numArgCall, 'v', true);
                 			regUpdateL = updateRes(numRegCall, numArgCall, 'l', true);
@@ -1395,27 +1431,44 @@ public class InstructionAnalysis {
                 			regUpdate.put(numArgCall, "rez");
                 			regUpdateL.put(numArgCall, "lrez");
                 			regUpdateB.put(numArgCall, "brez");
-                			head = head + ' ' + Utils.resPred(Integer.toString(di.getInstance().getType().getType().hashCode()), referenceIndex, regUpdate, regUpdateL, regUpdateB, numArgCall, gen) +
+                			head = head + ' ' + Utils.resPred(Integer.toString(di.getDalvikClass().getType().hashCode()), referenceIndex, regUpdate, regUpdateL, regUpdateB, numArgCall, gen) +
                 					" (= v" + Integer.toString(referenceReg) + ' ' + 
-                					Utils.hexDec64(di.getInstance().hashCode(), size) + "))";
+                					Utils.hexDec64(instance.hashCode(), size) + "))";
+                			cl12.appendHead(head);
+                			regUpdate.clear();
+                    		regUpdateL.clear();
+                    		regUpdateB.clear();
+                			if (analysis.isSource(di.getDalvikClass().getType().hashCode(), referenceIntIndex)) returnLabel = "true"; else returnLabel = "lrez";
+                			if (callReturns) {
+                				regUpdate.put(numRegLoc, "rez");
+                				regUpdateL.put(numRegLoc, returnLabel);
+                			}
+                			cl12.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+                			gen.addClause(cl12);
+                			regUpdate.clear();
+                    		regUpdateL.clear();
+                    		regUpdateB.clear();
+        					}
                 		}
                 		else{
+                			Clause cl12 = new Clause();
                 			head = Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen);
+                			cl12.appendHead(head);
+                			regUpdate.clear();
+                    		regUpdateL.clear();
+                    		regUpdateB.clear();
+                			if (analysis.isSource(di.getDalvikClass().getType().hashCode(), referenceIntIndex)) returnLabel = "true"; else returnLabel = "lrez";
+                			if (callReturns) {
+                				regUpdate.put(numRegLoc, "rez");
+                				regUpdateL.put(numRegLoc, returnLabel);
+                			}
+                			cl12.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+                			gen.addClause(cl12);
+                			regUpdate.clear();
+                    		regUpdateL.clear();
+                    		regUpdateB.clear();
                 		}
-            			cl12.appendHead(head);
-            			regUpdate.clear();
-                		regUpdateL.clear();
-                		regUpdateB.clear();
-            			if (analysis.isSource(di.getInstance().getType().getType().hashCode(), referenceIntIndex)) returnLabel = "true"; else returnLabel = "lrez";
-            			if (callReturns) {
-            				regUpdate.put(numRegLoc, "rez");
-            				regUpdateL.put(numRegLoc, returnLabel);
-            			}
-            			cl12.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-            			gen.addClause(cl12);
-            			regUpdate.clear();
-                		regUpdateL.clear();
-                		regUpdateB.clear();
+            			
             		}
         		}
         		else{
@@ -1620,6 +1673,7 @@ public class InstructionAnalysis {
         			}
         			regUpdateL = highReg(true, regUpdateL);
         			cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        			gen.addClause(cl);
         		}
         		break;//((short)0x74, "invoke-virtual/range", ReferenceType.METHOD, Format.Format3rc, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_RESULT),
         	case NEG_INT://((short)0x7b, "neg-int", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
