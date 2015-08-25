@@ -111,12 +111,7 @@ public class main {
 				System.err.println("Error: Loading dex file failed!");
 				System.exit(1);
 			}
-            System.out.print("Collecting data for Horn Clause generation...");
-            List<? extends ClassDef> classDefs = Ordering.natural().sortedCopy(dexFile.getClasses());
-            analysis.collectDataFromApk(classDefs);
-            endTime = System.nanoTime();
-            System.out.println("done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
-            startTime = System.nanoTime();
+           
             System.out.print("Parsing entry points...");
             try {
 				SourceSinkParser.parseEntryPoint(gen);
@@ -143,6 +138,13 @@ public class main {
             endTime = System.nanoTime();
             System.out.println("...done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
             
+            System.out.print("Collecting data for Horn Clause generation...");
+            List<? extends ClassDef> classDefs = Ordering.natural().sortedCopy(dexFile.getClasses());
+            analysis.collectDataFromApk(classDefs);
+            endTime = System.nanoTime();
+            System.out.println("done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
+            
+            startTime = System.nanoTime();
             System.out.print("Generating Horn Clauses...");
             startTime = System.nanoTime();
             analysis.createHornClauses();

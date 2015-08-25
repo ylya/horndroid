@@ -244,7 +244,8 @@ public class Analysis {
 		}
 		return false;
 	}
-	private void addToMain(final int classIndex, final int methodIndex, final int numRegCall, final int regCount){
+	private void addToMain(final DalvikClass dc, final int methodIndex, final int numRegCall, final int regCount){
+		final int classIndex = dc.getType().hashCode();
 		Map<Integer, String> regUpdate = new HashMap<Integer, String>();
         Map<Integer, String> regUpdateL = new HashMap<Integer, String>();
         Map<Integer, String> regUpdateB = new HashMap<Integer, String>();
@@ -267,7 +268,7 @@ public class Analysis {
 				final boolean isEntryPoint = testEntryPoint(dc, m.getName().hashCode());
 				if (isCallbackImplementation || (isActivity && isEntryPoint) || (!isDisabledActivity && isEntryPoint) || isDefinedActivity ||
 						(isEntryPoint && !isActivity) || isCallback){
-					addToMain(dc.getType().hashCode(), m.getName().hashCode(), m.getNumReg(), m.getNumArg());
+					addToMain(dc, m.getName().hashCode(), m.getNumReg(), m.getNumArg());
 				}
 				int codeAddress = 0;
 		        for (final Instruction instruction: m.getInstructions()){
@@ -291,6 +292,7 @@ public class Analysis {
 					}
 				}
 				final boolean isDefinedActivity = isDefinedActivity(dc);
+				
 				final boolean isci = isCallbackImplementation;
 				instructionExecutorService.submit(new Runnable() {
 		   			 @Override
@@ -328,12 +330,13 @@ public class Analysis {
         		boolean execByDefault = false;
         		for (final DalvikMethod method: dc.getMethods()){
         			final int methodIndex = method.getName().hashCode();
-        			if ((!disabledActivities.contains(classN)) && (testEntryPoint(c, methodIndex))
+        			if ((!disabledActivities.contains(classN)) && (testEntryPoint(dc, methodIndex))
               				 && (launcherActivities.contains(classN))){
               			 execByDefault = true;
               			 break;
               		 }
         		}
+        		
         		if (execByDefault){
     			//!create an instance of the entrypoint class
     			instances.add(new DalvikInstance(0, 0, 0, dc, true));    		

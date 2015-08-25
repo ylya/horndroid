@@ -998,6 +998,17 @@ public class InstructionAnalysis {
         		if (staticFieldClassName == null){
         			staticFieldClassName = referenceClassIndex;
         		}
+        			cl2.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen) 
+            				);
+            		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), Utils.hexDec64(0, size));
+            		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "false");
+            		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), "bf");
+            		cl2.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+            		gen.addClause(cl2);
+            	
+        		regUpdate.clear();
+        		regUpdateL.clear();
+        		regUpdateB.clear();
         		cl.appendHead("(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen) + 
         				' ' + "(S " + Integer.toString(staticFieldClassName) + ' ' + Integer.toString(referenceIntIndex) + " f lf bf))");
         		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), "f");
@@ -1005,14 +1016,6 @@ public class InstructionAnalysis {
         		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), "bf");
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		gen.addClause(cl);
-        		
-        		cl2.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen) 
-        				);
-        		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), Utils.hexDec64(0, size));
-        		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "false");
-        		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), "bf");
-        		cl2.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl2);
         		
         		break;//((short)0x66, "sget-short", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case SPUT://((short)0x67, "sput", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
@@ -1052,12 +1055,17 @@ public class InstructionAnalysis {
     				implementations = analysis.getImplementations(referenceClassIndex, "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode());
     				modRes = true;
     			}
+        		if (referenceClassIndex == "Landroid/telephony/TelephonyManager;".hashCode() && referenceIntIndex == "getDeviceId()Ljava/lang/String;".hashCode()){
+        			int i = 0;
+        			i = i +1;
+        		}
         		if (!modRes){
     				implementations = analysis.getImplementations(referenceClassIndex, referenceIntIndex);
     			}
         		isDefined = false;
         		if (implementations != null)
         			isDefined = true;
+        		
             	FiveRegisterInstruction instr = (FiveRegisterInstruction)this.instruction;	
             	if (isDefined){
             		for (final DalvikImplementation di : implementations){
