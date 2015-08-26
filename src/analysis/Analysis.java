@@ -66,6 +66,7 @@ public class Analysis {
     final private Set<ArrayData> arrayDataPayload;
     final private Set<PackedSwitch> packedSwitchPayload;
     final private Set<SparseSwitch> sparseSwitchPayload;
+    final private Set<Integer> overapprox;
     final private Set<SourceSinkMethod> sourcesSinks;
     final private options options;
     final private Gen gen;
@@ -84,11 +85,22 @@ public class Analysis {
 		this.arrayDataPayload = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <ArrayData, Boolean>()));
 		this.packedSwitchPayload = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <PackedSwitch, Boolean>()));
 		this.sparseSwitchPayload = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <SparseSwitch, Boolean>()));
+		this.overapprox = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>()));
 		this.instructionExecutorService = instructionExecutorService;
 		this.sourcesSinks = sourcesSinks;
 		this.gen = gen;
 		this.options = options;
 		this.refSource = new ConcurrentHashMap <CMPair, Boolean>();
+		
+		this.overapprox.add("Landroid/content/ContentProvider;".hashCode());
+		this.overapprox.add("Landroid/app/Service;".hashCode());
+		this.overapprox.add("Landroid/content/BroadcastReceiver;".hashCode());
+		this.overapprox.add("Landroid/app/Fragment;".hashCode());
+		this.overapprox.add("Landroid/support/v4/app/FragmentActivity;".hashCode());
+		this.overapprox.add("Landroid/support/v4/app/Fragment;".hashCode());
+	    this.overapprox.add("Landroid/app/ListFragment;".hashCode());
+	    this.overapprox.add("Landroid/support/v4/app/ListFragment;".hashCode());
+	    this.overapprox.add("Landroid/os/Handler;".hashCode());
 	}
 	public  Set<Integer> getDisabledActivities(){
 		return disabledActivities;
@@ -210,7 +222,7 @@ public class Analysis {
 	    		return instance.hashCode();
 		return null;
 	}
-	private boolean isActivity(final GeneralClass c){
+	/*private boolean isActivity(final GeneralClass c){
     	if (c instanceof DalvikClass){
     		final DalvikClass dc = (DalvikClass) c;
     		final GeneralClass superClass = dc.getSuperClass();
@@ -222,8 +234,8 @@ public class Analysis {
     		}
     		}
 		return false;
-    }
-	private boolean isDefinedActivity(final GeneralClass c){
+    }*/
+	/*private boolean isDefinedActivity(final GeneralClass c){
 		if (isActivity(c)){
 			final String[] parts = c.getType().split("/");
 			final int formatClassName = parts[parts.length -1].substring(0, parts[parts.length -1].length()-1).hashCode();
@@ -243,8 +255,8 @@ public class Analysis {
 			}
 		}
 		return false;
-	}
-	private boolean parentActivity(final DalvikClass dc){
+	}*/
+	/*private boolean parentActivity(final DalvikClass dc){
 
     			final GeneralClass classDef = dc.getSuperClass();
     			final String[] parts = classDef.getType().split("/");
@@ -255,7 +267,7 @@ public class Analysis {
         		}
     
     	return false;
-    }
+    }*/
 
 	private void addToMain(final DalvikClass dc, final int methodIndex, final int numRegCall, final int regCount){
 		final int classIndex = dc.getType().hashCode();
@@ -281,9 +293,11 @@ public class Analysis {
 				0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall, gen) + ")");
 		gen.addMain("(rule " + Utils.hPred(Utils.hexDec64(classIndex, options.bitvectorSize), "fpp", "f", "val", "false", "true") + ")");
 	}
-	public void processClass(final DalvikClass dc, final boolean isActivity, final boolean isDisabledActivity, final boolean isCallbackImplementation, final boolean isDefinedActivity,
-			final boolean isLauncherActivity){
-		if (isDefinedActivity || (!isActivity)){
+	
+
+	public void processClass(final DalvikClass dc, final boolean isDisabledActivity, final boolean isCallbackImplementation,
+			final boolean isLauncherActivity, final boolean isApplication, final boolean isOverApprox){
+		//if (isDefinedActivity || (!isActivity)){
 			for (final DalvikMethod m: dc.getMethods()){
 				boolean isCallback = false;
 				for (final String callback: callbacks){
@@ -291,13 +305,16 @@ public class Analysis {
 		    			isCallback = true;
 		    		}
 				}
+				
+				
+				
 				final boolean isEntryPoint = testEntryPoint(dc, m.getName().hashCode());
 				
 				if (isCallbackImplementation){
 					addToMain(dc, m.getName().hashCode(), m.getNumReg(), m.getNumArg());
 				}
 				
-				if (isActivity && isEntryPoint){
+				if (isEntryPoint){
 					Map<Integer, String> regUpdate = new HashMap<Integer, String>();
 		            Map<Integer, String> regUpdateL = new HashMap<Integer, String>();
 		            Map<Integer, String> regUpdateB = new HashMap<Integer, String>();
@@ -314,11 +331,11 @@ public class Analysis {
 				         		+ "))");	
 				}
 				
-				if (!isDisabledActivity && isEntryPoint && isLauncherActivity){
+				if (!isDisabledActivity && isEntryPoint && (isLauncherActivity || isApplication || isOverApprox)){
 					addToMainHeap(dc, m.getName().hashCode(), m.getNumReg(), m.getNumArg());
 				}
 				
-				if (parentActivity(dc)){
+				/*if (parentActivity(dc)){
 					addToMainHeap(dc, m.getName().hashCode(), m.getNumReg(), m.getNumArg());
 					instances.add(new DalvikInstance(0, 0, 0, dc, true));
 				}
@@ -326,7 +343,7 @@ public class Analysis {
 				if (isEntryPoint && !isActivity){
 					addToMainHeap(dc, m.getName().hashCode(), m.getNumReg(), m.getNumArg());
 					instances.add(new DalvikInstance(0, 0, 0, dc, true));
-				}
+				}*/
 				
 				if (isCallback){
 					addToMain(dc, m.getName().hashCode(), m.getNumReg(), m.getNumArg());
@@ -344,29 +361,118 @@ public class Analysis {
 		        	codeAddress += instruction.getCodeUnits();
 		        }
 			}
+		//}
+	}
+	private String makeName(final GeneralClass c){
+		final String formatClassName = c.getType().replaceAll("\\.", "/").substring(1, c.getType().replaceAll("\\.", "/").length() -1);
+        final String[] parts = formatClassName.split("/");
+		final String classN =  parts[parts.length - 1];
+		return classN;
+	}
+	private boolean testOverapprox(final GeneralClass c){
+		if (overapprox.contains(c.getType().hashCode())){
+			return true;
 		}
+		else{
+			if (c instanceof DalvikClass){
+				final DalvikClass dc = (DalvikClass) c;
+				boolean launcherChild = false;
+				for (final DalvikClass childClass: dc.getChildClasses()){
+					if (overapprox.contains(childClass.getType().hashCode())){
+						launcherChild = true;
+					}
+				}
+				if (launcherChild) return true;
+				else 
+					return testOverapprox(dc.getSuperClass());
+			}
+		}
+		return false;
+	}
+	private boolean testLauncherActivity(final GeneralClass c){
+		if (launcherActivities.contains(makeName(c).hashCode())){
+			return true;
+		}
+		else{
+			if (c instanceof DalvikClass){
+				final DalvikClass dc = (DalvikClass) c;
+				boolean launcherChild = false;
+				for (final DalvikClass childClass: dc.getChildClasses()){
+					if (launcherActivities.contains(makeName(childClass).hashCode())){
+						launcherChild = true;
+					}
+				}
+				if (launcherChild) return true;
+				else 
+					return testLauncherActivity(dc.getSuperClass());
+			}
+		}
+		return false;
+	}
+	private boolean testDisabledActivity(final GeneralClass c){
+		if (disabledActivities.contains(makeName(c).hashCode())){
+			return true;
+		}
+		else{
+			if (c instanceof DalvikClass){
+				final DalvikClass dc = (DalvikClass) c;
+				boolean launcherChild = false;
+				for (final DalvikClass childClass: dc.getChildClasses()){
+					if (disabledActivities.contains(makeName(childClass).hashCode())){
+						launcherChild = true;
+					}
+				}
+				if (launcherChild) return true;
+				else 
+					return testDisabledActivity(dc.getSuperClass());
+			}
+		}
+		return false;
+	}
+	private boolean testApplication(final GeneralClass c){
+		if (applications.contains(makeName(c).hashCode())){
+			return true;
+		}
+		else{
+			if (c instanceof DalvikClass){
+				final DalvikClass dc = (DalvikClass) c;
+				boolean launcherChild = false;
+				for (final DalvikClass childClass: dc.getChildClasses()){
+					if (applications.contains(makeName(childClass).hashCode())){
+						launcherChild = true;
+					}
+				}
+				if (launcherChild) return true;
+				else 
+					return testApplication(dc.getSuperClass());
+			}
+		}
+		return false;
 	}
 	public void createHornClauses(){
 		for (final GeneralClass c: classes){
 			if ((c instanceof DalvikClass) && (!c.getType().contains("Landroid"))){
 				final DalvikClass dc = (DalvikClass) c;
-				final boolean isActivity = isActivity(dc);
-				final boolean isDisabledActivity = disabledActivities.contains(dc.getType().hashCode());
-				final boolean isLauncherActivity = launcherActivities.contains(dc.getType().hashCode());
+				//final boolean isActivity = isActivity(dc);
+				
+				final boolean isDisabledActivity = testDisabledActivity(dc);
+				final boolean isLauncherActivity = testLauncherActivity(dc);
+				final boolean isApplication = testApplication(dc);
+				final boolean isOverapprox = testOverapprox(dc);
 				boolean isCallbackImplementation = false;
 				for (final GeneralClass interfaceC: dc.getInterfaces()){
 					if (callbackImplementations.contains(interfaceC.getType().hashCode())){
 						isCallbackImplementation = true;
 					}
 				}
-				final boolean isDefinedActivity = isDefinedActivity(dc);
+				//final boolean isDefinedActivity = isDefinedActivity(dc);
 				
 				final boolean isci = isCallbackImplementation;
 				instructionExecutorService.submit(new Runnable() {
 		   			 @Override
 		   			 public void run() {
 		   				 try {
-		   					 processClass(dc, isActivity, isDisabledActivity, isci, isDefinedActivity, isLauncherActivity);	
+		   					 processClass(dc, isDisabledActivity, isci, isLauncherActivity, isApplication, isOverapprox);	
 		   				 } catch (Exception e1) {
 							e1.printStackTrace();
 		   				 }
@@ -376,6 +482,7 @@ public class Analysis {
 		}
 	}
 	private boolean testEntryPoint(final GeneralClass c, final int methodIndex){
+		
 		if (c instanceof DalvikClass){
 			final DalvikClass dc = (DalvikClass) c;
 			final GeneralClass superClass = dc.getSuperClass();
@@ -392,14 +499,11 @@ public class Analysis {
         for (final GeneralClass c: classes){
         	if (c instanceof DalvikClass){
         		final DalvikClass dc = (DalvikClass) c;
-        		final String formatClassName = dc.getType().replaceAll("\\.", "/").substring(1, dc.getType().replaceAll("\\.", "/").length() -1);
-        		final String[] parts = formatClassName.split("/");
-        		final int classN =  parts[parts.length - 1].hashCode();
         		boolean execByDefault = false;
         		for (final DalvikMethod method: dc.getMethods()){
         			final int methodIndex = method.getName().hashCode();
-        			if ((!disabledActivities.contains(classN)) && (testEntryPoint(dc, methodIndex))
-              				 && (launcherActivities.contains(classN))){
+        			if (!testDisabledActivity(dc) && testEntryPoint(dc, methodIndex)
+              				 && (testLauncherActivity(dc) || testApplication(dc) || testOverapprox(dc))){
               			 execByDefault = true;
               			 break;
               		 }
