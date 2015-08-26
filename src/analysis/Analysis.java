@@ -244,7 +244,32 @@ public class Analysis {
 		}
 		return false;
 	}
+	private boolean parentActivity(final DalvikClass dc){
+
+    			final GeneralClass classDef = dc.getSuperClass();
+    			final String[] parts = classDef.getType().split("/");
+            	final String formatClassName = parts[parts.length -1].substring(0, parts[parts.length -1].length()-1);
+            			
+        		if (activities.contains(formatClassName.hashCode())){
+        			return true;
+        		}
+    
+    	return false;
+    }
+
 	private void addToMain(final DalvikClass dc, final int methodIndex, final int numRegCall, final int regCount){
+		final int classIndex = dc.getType().hashCode();
+		Map<Integer, String> regUpdate = new HashMap<Integer, String>();
+        Map<Integer, String> regUpdateL = new HashMap<Integer, String>();
+        Map<Integer, String> regUpdateB = new HashMap<Integer, String>();
+		for (int i = 0; i<= numRegCall + regCount; i++){
+			regUpdateL.put(i, "false");
+		}            		
+		gen.addMain("(rule " + Utils.rPred(Integer.toString(classIndex), Integer.toString(methodIndex), 
+				0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall, gen) + ")");
+		
+	}
+	private void addToMainHeap(final DalvikClass dc, final int methodIndex, final int numRegCall, final int regCount){
 		final int classIndex = dc.getType().hashCode();
 		Map<Integer, String> regUpdate = new HashMap<Integer, String>();
         Map<Integer, String> regUpdateL = new HashMap<Integer, String>();
@@ -256,7 +281,8 @@ public class Analysis {
 				0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall, gen) + ")");
 		gen.addMain("(rule " + Utils.hPred(Utils.hexDec64(classIndex, options.bitvectorSize), "fpp", "f", "val", "false", "true") + ")");
 	}
-	public void processClass(final DalvikClass dc, final boolean isActivity, final boolean isDisabledActivity, final boolean isCallbackImplementation, final boolean isDefinedActivity){
+	public void processClass(final DalvikClass dc, final boolean isActivity, final boolean isDisabledActivity, final boolean isCallbackImplementation, final boolean isDefinedActivity,
+			final boolean isLauncherActivity){
 		if (isDefinedActivity || (!isActivity)){
 			for (final DalvikMethod m: dc.getMethods()){
 				boolean isCallback = false;
@@ -266,10 +292,51 @@ public class Analysis {
 		    		}
 				}
 				final boolean isEntryPoint = testEntryPoint(dc, m.getName().hashCode());
-				if (isCallbackImplementation || (isActivity && isEntryPoint) || (!isDisabledActivity && isEntryPoint) || isDefinedActivity ||
-						(isEntryPoint && !isActivity) || isCallback){
+				
+				if (isCallbackImplementation){
 					addToMain(dc, m.getName().hashCode(), m.getNumReg(), m.getNumArg());
 				}
+				
+				if (isActivity && isEntryPoint){
+					Map<Integer, String> regUpdate = new HashMap<Integer, String>();
+		            Map<Integer, String> regUpdateL = new HashMap<Integer, String>();
+		            Map<Integer, String> regUpdateB = new HashMap<Integer, String>();
+		            final int numRegCall = m.getNumReg();
+		            final int regCount = m.getNumArg();
+		    		int i;
+		    		for (i = 0; i<= numRegCall + regCount; i++){
+						regUpdateL.put(i, "false");
+					}		
+		    		gen.addMain("(rule (=> " + Utils.iPred(
+						"cn", Utils.hexDec64(dc.getType().hashCode(), options.bitvectorSize), "val", "lf", "bf") + ' ' +
+				         		Utils.rPred(Integer.toString(dc.getType().hashCode()), Integer.toString(m.getName().hashCode()), 
+							0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall, gen)
+				         		+ "))");	
+				}
+				
+				if (!isDisabledActivity && isEntryPoint && isLauncherActivity){
+					addToMainHeap(dc, m.getName().hashCode(), m.getNumReg(), m.getNumArg());
+				}
+				
+				if (parentActivity(dc)){
+					addToMainHeap(dc, m.getName().hashCode(), m.getNumReg(), m.getNumArg());
+					instances.add(new DalvikInstance(0, 0, 0, dc, true));
+				}
+				
+				if (isEntryPoint && !isActivity){
+					addToMainHeap(dc, m.getName().hashCode(), m.getNumReg(), m.getNumArg());
+					instances.add(new DalvikInstance(0, 0, 0, dc, true));
+				}
+				
+				if (isCallback){
+					addToMain(dc, m.getName().hashCode(), m.getNumReg(), m.getNumArg());
+				}
+				
+				/*if (isCallbackImplementation || (isActivity && isEntryPoint) || (!isDisabledActivity && isEntryPoint) || isDefinedActivity ||
+						(isEntryPoint && !isActivity) || isCallback){
+					addToMain(dc, m.getName().hashCode(), m.getNumReg(), m.getNumArg());
+				}*/
+
 				int codeAddress = 0;
 		        for (final Instruction instruction: m.getInstructions()){
 		        	InstructionAnalysis ia = new InstructionAnalysis(this, instruction, dc, m, codeAddress);
@@ -285,6 +352,7 @@ public class Analysis {
 				final DalvikClass dc = (DalvikClass) c;
 				final boolean isActivity = isActivity(dc);
 				final boolean isDisabledActivity = disabledActivities.contains(dc.getType().hashCode());
+				final boolean isLauncherActivity = launcherActivities.contains(dc.getType().hashCode());
 				boolean isCallbackImplementation = false;
 				for (final GeneralClass interfaceC: dc.getInterfaces()){
 					if (callbackImplementations.contains(interfaceC.getType().hashCode())){
@@ -298,7 +366,7 @@ public class Analysis {
 		   			 @Override
 		   			 public void run() {
 		   				 try {
-		   					 processClass(dc, isActivity, isDisabledActivity, isci, isDefinedActivity);	
+		   					 processClass(dc, isActivity, isDisabledActivity, isci, isDefinedActivity, isLauncherActivity);	
 		   				 } catch (Exception e1) {
 							e1.printStackTrace();
 		   				 }
