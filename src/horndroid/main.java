@@ -138,14 +138,19 @@ public class main {
             endTime = System.nanoTime();
             System.out.println("...done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
             
-            System.out.print("Collecting data for Horn Clause generation...");
+            System.out.print("Sorting classes...");
+            startTime = System.nanoTime();
             List<? extends ClassDef> classDefs = Ordering.natural().sortedCopy(dexFile.getClasses());
+            endTime = System.nanoTime();
+            System.out.println("done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
+            System.out.print("Collecting data for Horn Clause generation...");
+            startTime = System.nanoTime();
             analysis.collectDataFromApk(classDefs);
             endTime = System.nanoTime();
             System.out.println("done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
             
             startTime = System.nanoTime();
-            System.out.print("Generating Horn Clauses...");
+            System.out.print("Generating Horn Clauses..");
             startTime = System.nanoTime();
             analysis.createHornClauses();
             endTime = System.nanoTime();
