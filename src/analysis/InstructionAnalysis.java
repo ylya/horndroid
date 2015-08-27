@@ -2962,7 +2962,9 @@ public class InstructionAnalysis {
 			return true;
 		}
 		if (shortMethodName.contains((String) "get") && c == ("Landroid/content/Intent;".hashCode())){
-			FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
+			if (this.instruction instanceof FiveRegisterInstruction){
+				FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
+			
 			if (analysis.isSource(c, m)){
 				cl.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 				regUpdate.put(numRegLoc, "val");
@@ -2980,6 +2982,7 @@ public class InstructionAnalysis {
 				regUpdateB.put(numRegLoc, "bf");
 				cl.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 				gen.addClause(cl);
+			}
 			}
 			return true;
 		}

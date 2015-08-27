@@ -71,7 +71,8 @@ public class Analysis {
     final private options options;
     final private Gen gen;
     final ExecutorService instructionExecutorService;
-    private final Map<CMPair, Boolean> refSource;
+    private final Set<CMPair> refSources;
+    private final Set<CMPair> refSinks;
 	public Analysis(final Gen gen, final Set<SourceSinkMethod> sourcesSinks, final options options, final ExecutorService instructionExecutorService){
 		this.classes = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<GeneralClass, Boolean>()));
 		this.instances = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<DalvikInstance, Boolean>()));
@@ -90,7 +91,9 @@ public class Analysis {
 		this.sourcesSinks = sourcesSinks;
 		this.gen = gen;
 		this.options = options;
-		this.refSource = new ConcurrentHashMap <CMPair, Boolean>();
+		
+		this.refSources = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <CMPair, Boolean>()));
+		this.refSinks = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <CMPair, Boolean>()));
 		
 		this.overapprox.add("Landroid/content/ContentProvider;".hashCode());
 		this.overapprox.add("Landroid/app/Service;".hashCode());
@@ -480,14 +483,9 @@ public class Analysis {
 				}
 				for (final DalvikInstance i: instances){
 					final int type = i.getType().getType().hashCode();
-					for (final GeneralClass cs: classes){
-						if (cs instanceof DalvikClass){
-							if (cs.getType().hashCode() == type){
-								i.changeType(cs);
-								break;
-							}
-						}
-					}	
+					if (cd.getType().hashCode() == type){
+								i.changeType(cd);
+					}
 				}
 			}
 		}
@@ -594,31 +592,26 @@ public class Analysis {
 	public void collectDataFromApk(final List<? extends ClassDef> classDefs) {  
 		ExecutorService classCollector = Executors.newCachedThreadPool();
         for (final ClassDef classDef: classDefs) {
-        	//long startTime = System.nanoTime();
         	if (classDef.getType().contains("Landroid")) continue;
-        	classCollector.submit(new Runnable() {
+        	/*classCollector.submit(new Runnable() {
 	   			 @Override
 	   			 public void run() {
-	   				 try {
+	   				 try {*/
 	   					classes.add(collectDataFromClass(classDefs, classDef));	
-	   				 } catch (Exception e1) {
+	   		/*		 } catch (Exception e1) {
 						e1.printStackTrace();
 	   				 }
 	   			 }
-	        });	
-        	//long  endTime = System.nanoTime();
-            //System.out.println(classDef.getType() + "...done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
+	        });	*/
         }
-        classCollector.shutdown();
-        //long startTime = System.nanoTime();
+        /*classCollector.shutdown();
         try {
         	classCollector.awaitTermination(2, TimeUnit.DAYS);
         } catch (InterruptedException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
-        }
-        //long  endTime = System.nanoTime();
-        //System.out.println("Waiting...done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
+			
+        }  */     
         formClassStructure();
         addEntryPointsInstances();
 	}	    
@@ -784,23 +777,11 @@ public class Analysis {
 }
     
     public boolean isSource(final int c, final int m){
-    	for (final Map.Entry<CMPair, Boolean> rs: refSource.entrySet()){
-    		if ((rs.getKey().getC() == c) && (rs.getKey().getM() == m)){
-    			if (rs.getValue())
-    				return true;
-    		}
-    	}
-    	return false;
+    	return refSources.contains(new CMPair(c,m));
     }
     
     public boolean isSink(final int c, final int m){
-    	for (final Map.Entry<CMPair, Boolean> rs: refSource.entrySet()){
-    		if ((rs.getKey().getC() == c) && (rs.getKey().getM() == m)){
-    			if (!rs.getValue())
-    				return true;
-    		}
-    	}
-    	return false;
+    	return refSinks.contains(new CMPair(c,m));
     }
     
     
@@ -958,8 +939,13 @@ public class Analysis {
          	 * */
          	if (referenceStringClass != null){
          		final Boolean isSourceSink = isSourceSink(classDefs, referenceStringClass, referenceString);
-         		if (isSourceSink != null)
-         			refSource.put(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()), isSourceSink(classDefs, referenceStringClass, referenceString));
+         		if (isSourceSink != null){
+         			if (isSourceSink)
+         				refSources.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
+         			else
+         				refSinks.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
+         		}
+         		
          	}
              
              if ((referenceClassIndex == "Landroid/content/Intent;".hashCode())
@@ -1003,8 +989,11 @@ public class Analysis {
          	*/
          	if (referenceStringClass != null){
          		final Boolean isSourceSink = isSourceSink(classDefs, referenceStringClass, referenceString);
-         		if (isSourceSink != null)
-         			refSource.put(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()), isSourceSink(classDefs, referenceStringClass, referenceString));
+         		if (isSourceSink != null){
+         			if (isSourceSink)
+         				refSources.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
+         			else
+         				refSinks.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));         		}
          	}
              if ((referenceClassIndex == "Landroid/content/Intent;".hashCode())
              		&& (referenceIntIndex == "<init>(Landroid/content/Context;Ljava/lang/Class;)V".hashCode())){
