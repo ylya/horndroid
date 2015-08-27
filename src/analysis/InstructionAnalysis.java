@@ -1576,9 +1576,9 @@ public class InstructionAnalysis {
                 		regUpdateB.clear();
                 		cl12.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));  
                 		
-                		regUpdate = updateReg(numRegCall, numArgCall, 'v', false);
-            			regUpdateL = updateReg(numRegCall, numArgCall, 'l', false);
-            			regUpdateB = updateReg(numRegCall, numArgCall, 'b', false);
+                		regUpdate = updateReg(numRegCall, numArgCall, 'v', true);
+            			regUpdateL = updateReg(numRegCall, numArgCall, 'l', true);
+            			regUpdateB = updateReg(numRegCall, numArgCall, 'b', true);
                 		cl12.appendBody(Utils.rInvokePred(referenceStringClassIndex, referenceIndex, 0, regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, gen, size));
                 		regUpdate.clear();
                 		regUpdateL.clear();
@@ -1587,9 +1587,9 @@ public class InstructionAnalysis {
                 		
                 		if (callReturns){
                 			head = "(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen);
-                			regUpdate = updateRes(numRegCall, numArgCall, 'v', false);
-                			regUpdateL = updateRes(numRegCall, numArgCall, 'l', false);
-                			regUpdateB = updateRes(numRegCall, numArgCall, 'b', false);
+                			regUpdate = updateRes(numRegCall, numArgCall, 'v', true);
+                			regUpdateL = updateRes(numRegCall, numArgCall, 'l', true);
+                			regUpdateB = updateRes(numRegCall, numArgCall, 'b', true);
                 			regUpdate.put(numArgCall, "rez");
                 			regUpdateL.put(numArgCall, "lrez");
                 			regUpdateB.put(numArgCall, "brez");
