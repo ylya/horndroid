@@ -92,6 +92,7 @@ public class Analysis {
 		this.gen = gen;
 		this.options = options;
 		
+		
 		this.refSources = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <CMPair, Boolean>()));
 		this.refSinks = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <CMPair, Boolean>()));
 		
@@ -416,6 +417,7 @@ public class Analysis {
 	private boolean testEntryPoint(final GeneralClass c, final int methodIndex){
 		
 		if (c instanceof DalvikClass){
+			try {
 			final DalvikClass dc = (DalvikClass) c;
 			final GeneralClass superClass = dc.getSuperClass();
     		if (gen.isEntryPoint(superClass.getType().hashCode(), methodIndex)){
@@ -424,8 +426,14 @@ public class Analysis {
     		else{	
     			return testEntryPoint(superClass, methodIndex);
     		}
+			}
+			catch (Exception e){
+				System.err.println(((DalvikClass)c).getType() + ' ' + ((DalvikClass)c).getSuperClass().getType());
+			}
 		}
+		
     	return false;
+		
     }
 	private void addEntryPointsInstances(){
         for (final GeneralClass c: classes){
@@ -988,12 +996,14 @@ public class Analysis {
          	/*refClassElement.addCallRef(referenceClassIndex, referenceIntIndex, c, m, nextCode);
          	*/
          	if (referenceStringClass != null){
-         		final Boolean isSourceSink = isSourceSink(classDefs, referenceStringClass, referenceString);
-         		if (isSourceSink != null){
-         			if (isSourceSink)
-         				refSources.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
-         			else
-         				refSinks.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));         		}
+             		final Boolean isSourceSink = isSourceSink(classDefs, referenceStringClass, referenceString);
+             		if (isSourceSink != null){
+             			if (isSourceSink)
+             				refSources.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
+             			else
+             				refSinks.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
+             		}
+             		        		
          	}
              if ((referenceClassIndex == "Landroid/content/Intent;".hashCode())
              		&& (referenceIntIndex == "<init>(Landroid/content/Context;Ljava/lang/Class;)V".hashCode())){
