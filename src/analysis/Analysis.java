@@ -11,8 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+//import java.util.concurrent.Executors;
 
 import org.jf.baksmali.Adaptors.ClassDefinition;
 import org.jf.baksmali.Adaptors.MethodDefinition;
@@ -415,9 +414,7 @@ public class Analysis {
 		}
 	}
 	private boolean testEntryPoint(final GeneralClass c, final int methodIndex){
-		
 		if (c instanceof DalvikClass){
-			try {
 			final DalvikClass dc = (DalvikClass) c;
 			final GeneralClass superClass = dc.getSuperClass();
     		if (gen.isEntryPoint(superClass.getType().hashCode(), methodIndex)){
@@ -426,12 +423,7 @@ public class Analysis {
     		else{	
     			return testEntryPoint(superClass, methodIndex);
     		}
-			}
-			catch (Exception e){
-				System.err.println(((DalvikClass)c).getType() + ' ' + ((DalvikClass)c).getSuperClass().getType());
-			}
 		}
-		
     	return false;
 		
     }
@@ -598,7 +590,7 @@ public class Analysis {
 	    	return false;
     }
 	public void collectDataFromApk(final List<? extends ClassDef> classDefs) {  
-		ExecutorService classCollector = Executors.newCachedThreadPool();
+		//ExecutorService classCollector = Executors.newCachedThreadPool();
         for (final ClassDef classDef: classDefs) {
         	if (classDef.getType().contains("Landroid")) continue;
         	/*classCollector.submit(new Runnable() {
@@ -744,6 +736,12 @@ public class Analysis {
     }
     
     public Boolean isSourceSink(final List<? extends ClassDef> classDefs, final String className, final String methodName){
+    	if (!refSources.isEmpty())
+    		if (refSources.contains(new CMPair(className.hashCode(), methodName.hashCode())))
+    				return true;
+    	if (!refSinks.isEmpty())
+    		if (refSinks.contains(new CMPair(className.hashCode(), methodName.hashCode())))
+    				return false;
     	final int classIndex = className.hashCode();
     	final String classNameFormat = className.substring(1, className.length()-1);
     	final String methodNameFormat = methodName.substring(0, methodName.indexOf('('));
