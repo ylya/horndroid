@@ -88,6 +88,7 @@ public class main {
          	final String fullPath      = '/' + FilenameUtils.getPath(file.getPath());
          	final String inputApkFileName = '/' + FilenameUtils.getPath(file.getPath()) + file.getName();
          	hornDroidOptions.outputDirectory  = fullPath + shortFilename;
+        	clean();
             final Gen gen = new Gen(hornDroidOptions.outputDirectory + '/');
             initGen(gen, hornDroidOptions);
             final ExecutorService executorService = Executors.newCachedThreadPool();
@@ -172,6 +173,8 @@ public class main {
             System.out.print("Writing files for analysis...");
             if (hornDroidOptions.numQueries == 0){	 
 	        	 gen.writeOne(hornDroidOptions.bitvectorSize);
+	        	 endTime = System.nanoTime();
+	        	 System.out.println("...done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
 	        	 String smtFile = hornDroidOptions.outputDirectory + '/' + "clauses.smt2";
 	        	 try {
 	        	 startTime = System.nanoTime();
@@ -182,13 +185,11 @@ public class main {
 	        		 // TODO Auto-generated catch block
 	        		 e.printStackTrace();
 	        	 }
-	        	 endTime = System.nanoTime();
-	        	 System.out.println("...done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
 	        	 System.out.println("----------------------------------------------------------------------------");
 	        }
 	        else{
-	        	 final int numberOfFiles = gen.getNumFileQueries();
 	        	 gen.write(hornDroidOptions.bitvectorSize);
+	        	 final int numberOfFiles = gen.getNumFileQueries();
 	        	 final String outputDirectory = hornDroidOptions.outputDirectory;
 	        	 final String z3f = z3Folder;
 	        	 for (int i = 0; i < numberOfFiles; i++){
@@ -219,6 +220,41 @@ public class main {
             
         }
 	}
+	private static void clean(){
+		if (new File(hornDroidOptions.outputDirectory).exists()){
+			Runtime runtime = Runtime.getRuntime();
+			Process proc;
+			try {
+				proc = runtime.exec(new String[]{"/bin/sh", "-c",
+						"cd " + hornDroidOptions.outputDirectory + ';' + 
+		    " rm *.txt"});
+			
+			BufferedReader stdInput = new BufferedReader(new 
+		             InputStreamReader(proc.getInputStream()));
+
+		    BufferedReader stdError = new BufferedReader(new 
+		             InputStreamReader(proc.getErrorStream()));
+
+		    // read the output from the command
+		    String s = null;
+		    while ((s = stdInput.readLine()) != null) {
+		    	System.out.println(s);
+		    }
+
+		    // read any errors from the attempted command
+		    if (stdError.readLine() != null)
+		    	System.out.println("Here is the standard error of the command (if any):\n");
+		    	while ((s = stdError.readLine()) != null) {
+		    		System.out.println(s);
+		        }
+		    proc.destroy();
+			}
+		    catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			}
+	}
 	private static void printQueries(final Gen gen){
 		Runtime runtime = Runtime.getRuntime();
 		Process proc;
@@ -228,7 +264,7 @@ public class main {
 	        if (files != null) {
 	            for(File file: files) {
 	                if (file.isFile()) {
-	                   if (file.getName().endsWith(".txt") && file.getName().startsWith("solved") && !(file.length() > 0)) {
+	                   if (file.getName().endsWith(".txt") && file.getName().startsWith("solved") && (file.length() > 0)) {
 	                	   
 	                		try {
 	                			proc = runtime.exec(new String[]{"/bin/sh", "-c",

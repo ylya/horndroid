@@ -52,9 +52,7 @@ public class Gen {
 	@Nonnull private final Set<CMPair> methodIsEntryPoint;
 	
 	@Nonnull private final Set<Integer> staticConstructor;
-	@Nonnull private final Set<Integer> varsB;
-	@Nonnull private final Set<Integer> varsV;
-	@Nonnull private final Set<Integer> varsL;
+	@Nonnull private final Set<Integer> vars;
 	//@Nonnull private final Set<String> defs;
 	//@Nonnull private final Set<Clause> clauses;
 	//@Nonnull private final Set<String> mainMethod;
@@ -64,6 +62,7 @@ public class Gen {
 	private int numStringQueries;
 	private int numFileQueries;
 	private final String outputFolder;
+	private int biggestRegisterNumber;
 	public Gen(final String outputFolder){
 		//this.outputDirectory = outputDirectory;
 		/*this.clauses = Collections.synchronizedSet(new HashSet<Clause>());
@@ -79,9 +78,9 @@ public class Gen {
 		this.staticConstructor = Collections.synchronizedSet(new HashSet <Integer>());*/
 		//this.clauses = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<Clause, Boolean>()));
 		//this.defs = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>()));
-		this.varsV = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<Integer, Boolean>()));
-		this.varsB = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<Integer, Boolean>()));
-		this.varsL = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<Integer, Boolean>()));
+		this.vars = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<Integer, Boolean>()));
+		//this.varsB = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<Integer, Boolean>()));
+		//this.varsL = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<Integer, Boolean>()));
 		//this.queries = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>()));
 		//this.queriesV = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>()));
 		//this.mainMethod = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>()));
@@ -94,58 +93,18 @@ public class Gen {
 		this.numStringQueries = 0;
 		this.outputFolder = outputFolder;
 		this.numFileQueries = 0;
-		if (new File(outputFolder).exists()){
-		Runtime runtime = Runtime.getRuntime();
-		Process proc;
-		try {
-			proc = runtime.exec(new String[]{"/bin/sh", "-c",
-					"cd " + outputFolder + ';' + 
-	    " rm *.txt"});
-		
-		BufferedReader stdInput = new BufferedReader(new 
-	             InputStreamReader(proc.getInputStream()));
+		this.biggestRegisterNumber = 0;
+	}
+	public void putVar(final int i){
+		vars.add(i);
+	}
+	public void updateBiggestRegister(final int i){
+		if (i > this.biggestRegisterNumber) biggestRegisterNumber = i;
+	}
+	public boolean containsVar(final int i){
+		return vars.contains(i);
+	}
 
-	    BufferedReader stdError = new BufferedReader(new 
-	             InputStreamReader(proc.getErrorStream()));
-
-	    // read the output from the command
-	    String s = null;
-	    while ((s = stdInput.readLine()) != null) {
-	    	System.out.println(s);
-	    }
-
-	    // read any errors from the attempted command
-	    if (stdError.readLine() != null)
-	    	System.out.println("Here is the standard error of the command (if any):\n");
-	    	while ((s = stdError.readLine()) != null) {
-	    		System.out.println(s);
-	        }
-	    proc.destroy();
-		}
-	    catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		}
-	}
-	public void putB(final int i){
-		varsB.add(i);
-	}
-	public void putL(final int i){
-		varsL.add(i);
-	}
-	public void putV(final int i){
-		varsV.add(i);
-	}
-	public boolean containsB(final int i){
-		return varsB.contains(i);
-	}
-	public boolean containsL(final int i){
-		return varsL.contains(i);
-	}
-	public boolean containsV(final int i){
-		return varsV.contains(i);
-	}
 	public int numberOfQueries(){
 		//return queries.size();
 		return numQueries;
@@ -213,13 +172,16 @@ public class Gen {
 		}catch (IOException e) {
 		}
 	}
-	public void addVar(final String var, final int fileModifier){
+	/*public void addVar(final String var, final int fileModifier){
 		try
 		(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(new File(outputFolder +"var" + Integer.toString(fileModifier) + ".txt"), true)))) {
 			out.println(var);
 		}catch (IOException e) {
+			System.err.println("Error writing " + (new File(outputFolder +"var" + Integer.toString(fileModifier) + ".txt")).getAbsolutePath());
+			
 		}
-	}
+	}*/
+	
 	/*public boolean isDef(String def){
 		if (defs.contains(def)) return true;
 		else return false;
@@ -234,12 +196,10 @@ public class Gen {
 		}catch (IOException e) {
 		}
 	}
-	public void writeOne(final int size){
-		File clausesFile = new File (outputFolder + "clauses.smt2");
-		if (clausesFile.exists()) clausesFile.delete();
+	private void addVars(){
+		final File varsFile = new File(outputFolder + "outvar.txt");
 		try
-		(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(clausesFile, true)))) {
-			out.println(" (set-option :pp.bv-literals false) \n (set-option :fixedpoint.engine pdr) \n (define-sort bv64 () (_ BitVec " + Integer.toString(size) + "))\n");
+		(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(varsFile, true)))) {
 			out.println("(declare-var rez bv64)");
 			out.println("(declare-var rezp bv64)");
 			out.println("(declare-var buf bv64)");
@@ -262,6 +222,21 @@ public class Gen {
 			out.println("(declare-var lval Bool)");
 			out.println("(declare-var bval Bool)");
 			out.println("(declare-var cnum Int)");
+			for (int i =0; i<= biggestRegisterNumber; i++){
+				out.println("(declare-var " + "v" + Integer.toString(i) + " bv64)");
+				out.println("(declare-var " + "l" + Integer.toString(i) + " Bool)");
+				out.println("(declare-var " + "b" + Integer.toString(i) + " Bool)");
+			}
+		}catch (IOException e) {
+		}
+	}
+	public void writeOne(final int size){
+		addVars();
+		File clausesFile = new File (outputFolder + "clauses.smt2");
+		if (clausesFile.exists()) clausesFile.delete();
+		try
+		(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(clausesFile, true)))) {
+			out.println(" (set-option :pp.bv-literals false) \n (set-option :fixedpoint.engine pdr) \n (define-sort bv64 () (_ BitVec " + Integer.toString(size) + "))\n");
 			out.println("(declare-rel H (bv64 bv64 bv64 bv64 Bool Bool) interval_relation bound_relation)");
 			out.println("(declare-rel HI (bv64 bv64 bv64 Bool Bool) interval_relation bound_relation)");
 			out.println("(declare-rel I (bv64 bv64 bv64 Bool Bool) interval_relation bound_relation)");
@@ -273,7 +248,7 @@ public class Gen {
 		try {
 			proc = runtime.exec(new String[]{"/bin/sh", "-c",
 					"cd " + outputFolder + ';' + 
-	" cat main*.txt > outmain.txt; sort var*.txt | uniq > outvar.txt; sort def*.txt | uniq > outdef.txt; cat query*.txt > outquery.txt;"
+	" cat main*.txt > outmain.txt; sort def*.txt | uniq > outdef.txt; cat query*.txt > outquery.txt;"
 	+ " cat clause*.txt > outclause.txt; cat outvar.txt >> clauses.smt2; cat outdef.txt >> clauses.smt2; cat outclause.txt >> clauses.smt2; cat outmain.txt"
 	+ " >> clauses.smt2; cat outquery.txt >> clauses.smt2"});
 		
@@ -303,13 +278,13 @@ public class Gen {
 		}
 	}
 	public void write(final int size){
-		
+		addVars();
 		Runtime runtime = Runtime.getRuntime();
 		Process proc;
 		try {
 			proc = runtime.exec(new String[]{"/bin/sh", "-c",
 					"cd " + outputFolder + ';' + 
-	" cat main*.txt > outmain.txt; sort var*.txt | uniq > outvar.txt; sort def*.txt | uniq > outdef.txt;"
+	" cat main*.txt > outmain.txt; sort def*.txt | uniq > outdef.txt;"
 	+ " cat clause*.txt > outclause.txt"});
 		
 		BufferedReader stdInput = new BufferedReader(new 
@@ -342,37 +317,14 @@ public class Gen {
 	        if (files != null) {
 	            for(File file: files) {
 	                if (file.isFile()) {
-	                   if (file.getName().endsWith(".txt") && file.getName().startsWith("query") && !(file.length() > 0)) {
+	                   if (file.getName().endsWith(".txt") && file.getName().startsWith("query") && (file.length() > 0)) {
 	                	   File clausesFile = new File (outputFolder + "clauses" + Integer.toString(numFileQueries) + ".smt2");
 	               		if (clausesFile.exists()) clausesFile.delete();
 	               		try
 	               		(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(clausesFile, true)))) {
 	               		
 	               			out.println(" (set-option :pp.bv-literals false) \n (set-option :fixedpoint.engine pdr) \n (define-sort bv64 () (_ BitVec " + Integer.toString(size) + "))\n");
-	               			
-	               			out.println("(declare-var rez bv64)");
-	            			out.println("(declare-var rezp bv64)");
-	            			out.println("(declare-var buf bv64)");
-	            			out.println("(declare-var bufp bv64)");
-	            			out.println("(declare-var lrez Bool)");
-	            			out.println("(declare-var brez Bool)");
-	            			out.println("(declare-var lrezp Bool)");
-	            			out.println("(declare-var lbuf Bool)");
-	            			out.println("(declare-var lbufp Bool)");
-	            			out.println("(declare-var fnum Int)");
-	            			out.println("(declare-var f bv64)");
-	            			out.println("(declare-var fpp bv64)");
-	            			out.println("(declare-var vfp bv64)");
-	            			out.println("(declare-var lfp Bool)");
-	            			out.println("(declare-var bfp Bool)");
-	            			out.println("(declare-var cn bv64)");
-	            			out.println("(declare-var lf Bool)");
-	            			out.println("(declare-var bf Bool)");
-	            			out.println("(declare-var val bv64)");
-	            			out.println("(declare-var lval Bool)");
-	            			out.println("(declare-var bval Bool)");
-	            			out.println("(declare-var cnum Int)");
-	            			out.println("(declare-rel H (bv64 bv64 bv64 bv64 Bool Bool) interval_relation bound_relation)");
+	               			out.println("(declare-rel H (bv64 bv64 bv64 bv64 Bool Bool) interval_relation bound_relation)");
 	            			out.println("(declare-rel HI (bv64 bv64 bv64 Bool Bool) interval_relation bound_relation)");
 	            			out.println("(declare-rel I (bv64 bv64 bv64 Bool Bool) interval_relation bound_relation)");
 	            			out.println("(declare-rel S (Int Int bv64 Bool Bool) interval_relation bound_relation)");
@@ -380,10 +332,11 @@ public class Gen {
 	               		}catch (IOException e) {
 	               		}
 	                		try {
+	                			final String path = file.getAbsolutePath() + " >> clauses" + Integer.toString(numFileQueries) + ".smt2";
 	                			proc = runtime.exec(new String[]{"/bin/sh", "-c",
 	                					"cd " + outputFolder + ';' + 
-	                	" cat outvar.txt >> outdef.txt >> outclause.txt >> outmain.txt >> " 
-	                	+ file.getAbsolutePath() + " >> clauses" + Integer.toString(numFileQueries) + ".smt2"});
+	                	" cat outvar.txt >> " + path + "; cat outdef.txt >> " + path + "; cat outclause.txt >> " + path + "; cat outmain.txt >> " 
+	                	+ path + "; cat " + file.getName() + " >> " + path});
 	                		
 	                		BufferedReader stdInput = new BufferedReader(new 
 	                	             InputStreamReader(proc.getInputStream()));

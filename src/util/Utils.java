@@ -144,15 +144,16 @@ public class Utils {
         return null;
     }
     
-	
-	private static void addVar(String var, final Gen gen, final String c){
+    
+    
+	/*private static void addVar(String var, final Gen gen, final String c){
 		if (var.equals((String) "true") || var.equals((String) "false")) return;
 		char firstLetter = var.charAt(0);
 		switch (firstLetter){
 			case 'l': case 'b': gen.addVar("(declare-var " + var + " Bool)", Integer.parseInt(c)); break;
 			case 'v': gen.addVar("(declare-var " + var + " bv64)", Integer.parseInt(c)); break;
 		}		
-	}
+	}*/
 	
 	 private static void rPredDef(final String c, final String m, final int pc, final int size, final Gen gen){
 	    	String v = "", l = "", b = "";
@@ -172,31 +173,31 @@ public class Utils {
 	    	String ret = "(R" + '_' + c + '_' + m + '_' + Integer.toString(pc) + ' ';
 	    	String v = "", l = "", b = "", var;
 	    	for (int i = 0; i <= (numArg + numReg); i++){
+	    		//boolean contains = gen.containsVar(i); 
+	    		gen.updateBiggestRegister(i);
 	    		var = rUp.get(i);
-				if (var == null) var = 'v' + Integer.toString(i);	
-				if (!v.isEmpty()) v = v + ' ' + var;
-				else v = var;
-				if (!gen.containsV(i)){
-					addVar(var, gen, c);
-					gen.putV(i);
-				}
+				if (var == null) {var = 'v' + Integer.toString(i);}
+				if (!v.isEmpty()) {v = v + ' ' + var;}
+				else {v = var;}	
+				//if (!contains){
+				//addVar(var, gen, c);
+				//gen.putVar(i);
+				//}
 				var = rUpL.get(i);
 				if (var == null) var = 'l' + Integer.toString(i);	
 				if (!l.isEmpty()) l = l + ' ' + var;
 				else l = var;
-				if (!gen.containsL(i)){
-					addVar(var, gen, c);
-					gen.putL(i);
-				}
+				//if (!contains){
+				//addVar(var, gen, c);
+				//}
 				var = rUpB.get(i);
 				if (var == null) var = 'b' + Integer.toString(i);	
 				if (!l.isEmpty()) b = b + ' ' + var;
 				else b = var;
-				if (!gen.containsB(i)){
-					addVar(var, gen, c);
-					gen.putB(i);
-				}
-	    	}
+				//if (!contains){
+				//addVar(var, gen, c);
+				//}
+				}	
 	    	return ret + v + ' ' + l + ' ' + b + ')';
 	    }
 	    
@@ -243,31 +244,30 @@ public class Utils {
 	    	String ret = "(RES" + '_' + c + '_' + m + ' ';
 	    	String v = "", l = "", b = "", var;
 	    	for (int i = 0; i <= numArg; i++){
+	    		//boolean contains = gen.containsVar(i);
 	    		var = rUp.get(i);
 				if (var == null) var = 'v' + Integer.toString(i);	
 				if (!v.isEmpty()) v = v + ' ' + var;
 				else v = var;
-				if (!gen.containsV(i)){
-					addVar(var, gen, c);
-					gen.putV(i);
-				}
+				//if (!contains){
+				//addVar(var, gen, c);
+				//gen.putVar(i);
+				//}
 				var = rUpL.get(i);
 				if (var == null) var = 'l' + Integer.toString(i);	
 				if (!l.isEmpty()) l = l + ' ' + var;
 				else l = var;
-				if (!gen.containsL(i)){
-					addVar(var, gen, c);
-					gen.putL(i);
-				}
+				//if (!contains){
+				//addVar(var, gen, c);
+				//}
 				var = rUpB.get(i);
 				if (var == null) var = 'b' + Integer.toString(i);	
 				if (!b.isEmpty()) b = b + ' ' + var;
 				else b = var;
-				if (!gen.containsB(i)){
-					addVar(var, gen, c);
-					gen.putB(i);
+				//if (!contains){
+				//addVar(var, gen, c);
+				//}
 				}
-	    	}
 	    	return ret + v + ' ' + l + ' ' + b + ')';
 	    }
 	    
