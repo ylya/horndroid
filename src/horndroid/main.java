@@ -7,7 +7,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -85,17 +84,18 @@ public class main {
         //collect all apk files to process
         
         for (final File file: filesToProcess) {
-            final Gen gen = new Gen();
+        	final String shortFilename = FilenameUtils.removeExtension(file.getName());
+         	final String fullPath      = '/' + FilenameUtils.getPath(file.getPath());
+         	final String inputApkFileName = '/' + FilenameUtils.getPath(file.getPath()) + file.getName();
+         	hornDroidOptions.outputDirectory  = fullPath + shortFilename;
+            final Gen gen = new Gen(hornDroidOptions.outputDirectory + '/');
             initGen(gen, hornDroidOptions);
             final ExecutorService executorService = Executors.newCachedThreadPool();
          	final ExecutorService instructionExecutorService = Executors.newCachedThreadPool();
     		Analysis analysis = new Analysis(gen, sourcesSinks, hornDroidOptions, instructionExecutorService);
          	System.out.println("Analysing " + file.getName());
          	startTime = System.nanoTime();
-         	final String shortFilename = FilenameUtils.removeExtension(file.getName());
-         	final String fullPath      = '/' + FilenameUtils.getPath(file.getPath());
-         	final String inputApkFileName = '/' + FilenameUtils.getPath(file.getPath()) + file.getName();
-         	hornDroidOptions.outputDirectory  = fullPath + shortFilename;
+         	
          	File apkFile = new File(inputApkFileName);
          	if (!apkFile.exists()) {
          		System.err.println("Can't find the file " + inputApkFileName);
@@ -171,7 +171,7 @@ public class main {
             
             System.out.print("Writing files for analysis...");
             if (hornDroidOptions.numQueries == 0){	 
-	        	 gen.writeOne(hornDroidOptions);
+	        	 gen.writeOne(hornDroidOptions.bitvectorSize);
 	        	 String smtFile = hornDroidOptions.outputDirectory + '/' + "clauses.smt2";
 	        	 try {
 	        	 startTime = System.nanoTime();
@@ -187,8 +187,8 @@ public class main {
 	        	 System.out.println("----------------------------------------------------------------------------");
 	        }
 	        else{
-	        	 final int numberOfFiles = (int) gen.getQueriesV().size() / hornDroidOptions.numQueries;
-	        	 gen.write(hornDroidOptions);
+	        	 final int numberOfFiles = gen.getNumFileQueries();
+	        	 gen.write(hornDroidOptions.bitvectorSize);
 	        	 final String outputDirectory = hornDroidOptions.outputDirectory;
 	        	 final String z3f = z3Folder;
 	        	 for (int i = 0; i < numberOfFiles; i++){
@@ -220,14 +220,49 @@ public class main {
         }
 	}
 	private static void printQueries(final Gen gen){
-        Set<String> queriesV = Collections.synchronizedSet(new HashSet<String>());
-        queriesV = gen.getQueriesV();
+		Runtime runtime = Runtime.getRuntime();
+		Process proc;
         System.out.println("Solved queries:");
-        int i = 1;
-        for (String queryV: queriesV){
-        	System.out.println(Integer.toString(i) + " " + queryV);
-        	i++;
-        }
+        File dir = new File (hornDroidOptions.outputDirectory);
+		 File[] files = dir.listFiles();
+	        if (files != null) {
+	            for(File file: files) {
+	                if (file.isFile()) {
+	                   if (file.getName().endsWith(".txt") && file.getName().startsWith("solved") && !(file.length() > 0)) {
+	                	   
+	                		try {
+	                			proc = runtime.exec(new String[]{"/bin/sh", "-c",
+	                					"cd " + hornDroidOptions.outputDirectory + ';' + 
+	                	" cat "  + file.getAbsolutePath()});
+	                		
+	                		BufferedReader stdInput = new BufferedReader(new 
+	                	             InputStreamReader(proc.getInputStream()));
+
+	                	    BufferedReader stdError = new BufferedReader(new 
+	                	             InputStreamReader(proc.getErrorStream()));
+
+	                	    // read the output from the command
+	                	    String s = null;
+	                	    while ((s = stdInput.readLine()) != null) {
+	                	    	System.out.println(s);
+	                	    }
+
+	                	    // read any errors from the attempted command
+	                	    if (stdError.readLine() != null)
+	                	    	System.out.println("Here is the standard error of the command (if any):\n");
+	                	    	while ((s = stdError.readLine()) != null) {
+	                	    		System.out.println(s);
+	                	        }
+	                	    proc.destroy();
+	                		}
+	                	    catch (IOException e) {
+	                			// TODO Auto-generated catch block
+	                			e.printStackTrace();
+	                		}
+	                   }
+	                }
+	            }
+	        }
     } 
     private static void runZ3(final String z3Folder, final String smtFile, final Gen gen) throws IOException, InterruptedException{
 		System.out.println("Run Z3...");
@@ -319,37 +354,12 @@ public class main {
         }
     }
 	private static void initGen(final Gen gen, final options options){
-   	 	gen.addVar("(declare-var rez bv64)");
-        gen.addVar("(declare-var rezp bv64)");
-        gen.addVar("(declare-var buf bv64)");
-        gen.addVar("(declare-var bufp bv64)");
-        gen.addVar("(declare-var lrez Bool)");
-        gen.addVar("(declare-var brez Bool)");
-        gen.addVar("(declare-var lrezp Bool)");
-        gen.addVar("(declare-var lbuf Bool)");
-        gen.addVar("(declare-var lbufp Bool)");
-        gen.addVar("(declare-var fnum Int)");
-        gen.addVar("(declare-var f bv64)");
-        gen.addVar("(declare-var fpp bv64)");
-        gen.addVar("(declare-var vfp bv64)");
-        gen.addVar("(declare-var lfp Bool)");
-        gen.addVar("(declare-var bfp Bool)");
-        gen.addVar("(declare-var cn bv64)");
-        gen.addVar("(declare-var lf Bool)");
-        gen.addVar("(declare-var bf Bool)");
-        gen.addVar("(declare-var val bv64)");
-        gen.addVar("(declare-var lval Bool)");
-        gen.addVar("(declare-var bval Bool)");
-        gen.addVar("(declare-var cnum Int)");
-        gen.addDef("(declare-rel H (bv64 bv64 bv64 bv64 Bool Bool) interval_relation bound_relation)");
-        gen.addDef("(declare-rel HI (bv64 bv64 bv64 Bool Bool) interval_relation bound_relation)");
-        gen.addDef("(declare-rel I (bv64 bv64 bv64 Bool Bool) interval_relation bound_relation)");
-        gen.addDef("(declare-rel S (Int Int bv64 Bool Bool) interval_relation bound_relation)");         
+   	 	        
         gen.addMain("(rule (=> (and " + Utils.hPred("cn", "cn", Utils.hexDec64("parent".hashCode(), options.bitvectorSize), "f", "lf", "bf") + ' ' +
         		Utils.hPred("cn", "cn", Utils.hexDec64("result".hashCode(), options.bitvectorSize), "val", "lval", "bval") + ' ' +
         		Utils.hPred("f", "f", "fpp", "vfp", "lfp", "bfp") + ')' + ' ' +
         		Utils.hPred("f", "f", Utils.hexDec64("result".hashCode(), options.bitvectorSize), "val", "lval", "bval")
-        		+ "))");
+        		+ "))", 0);
    }
 	private static void usage() {
    	 SmaliHelpFormatter formatter = new SmaliHelpFormatter();

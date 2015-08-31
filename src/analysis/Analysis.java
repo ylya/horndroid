@@ -234,7 +234,7 @@ public class Analysis {
 			regUpdateL.put(i, "false");
 		}            		
 		gen.addMain("(rule " + Utils.rPred(Integer.toString(classIndex), Integer.toString(methodIndex), 
-				0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall, gen) + ")");
+				0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall, gen) + ")", classIndex);
 		
 	}
 	private void addToMainHeap(final DalvikClass dc, final int methodIndex, final int numRegCall, final int regCount){
@@ -246,8 +246,9 @@ public class Analysis {
 			regUpdateL.put(i, "false");
 		}            		
 		gen.addMain("(rule " + Utils.rPred(Integer.toString(classIndex), Integer.toString(methodIndex), 
-				0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall, gen) + ")");
-		gen.addMain("(rule " + Utils.hPred(Utils.hexDec64(classIndex, options.bitvectorSize), "fpp", "f", "val", "false", "true") + ")");
+				0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall, gen) + ")", classIndex);
+		gen.addMain("(rule " + Utils.hPred(Utils.hexDec64(classIndex, options.bitvectorSize), "fpp", "f", "val", "false", "true") + ")",
+				classIndex);
 	}
 	
 
@@ -278,7 +279,7 @@ public class Analysis {
 						"cn", Utils.hexDec64(dc.getType().hashCode(), options.bitvectorSize), "val", "lf", "bf") + ' ' +
 				         		Utils.rPred(Integer.toString(dc.getType().hashCode()), Integer.toString(m.getName().hashCode()), 
 							0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall, gen)
-				         		+ "))");	
+				         		+ "))", dc.getType().hashCode());	
 				}
 				
 				if (!isDisabledActivity && isEntryPoint && (isLauncherActivity || isApplication || isOverApprox)){
@@ -345,20 +346,6 @@ public class Analysis {
 		if (disabledActivities.contains(makeName(c).hashCode())){
 			return true;
 		}
-		/*else{
-			if (c instanceof DalvikClass){
-				final DalvikClass dc = (DalvikClass) c;
-				boolean launcherChild = false;
-				for (final DalvikClass childClass: dc.getChildClasses()){
-					if (disabledActivities.contains(makeName(childClass).hashCode())){
-						launcherChild = true;
-					}
-				}
-				if (launcherChild) return true;
-				else 
-					return testDisabledActivity(dc.getSuperClass());
-			}
-		}*/
 		return false;
 	}
 	private boolean testApplication(final GeneralClass c){
@@ -655,7 +642,9 @@ public class Analysis {
         	EncodedValue initialValue = field.getInitialValue();
             if (initialValue != null) {
             	final String fieldName = ReferenceUtil.getShortFieldDescriptor(field);
-        		gen.addMain("(rule (S " + Utils.Dec(classDef.getType().hashCode()) + ' ' + Utils.Dec(fieldName.hashCode())+ " " + FormatEncodedValue.toString(initialValue, options.bitvectorSize) + " false bf))"); 
+            	final int classIndex = classDef.getType().hashCode();
+        		gen.addMain("(rule (S " + Utils.Dec(classIndex) + ' ' + Utils.Dec(fieldName.hashCode())+ " " + FormatEncodedValue.toString(initialValue, options.bitvectorSize) + " false bf))",
+        				classIndex); 
         		
             	DalvikStaticField dsf = new DalvikStaticField(ReferenceUtil.getShortFieldDescriptor(field), FormatEncodedValue.toString(initialValue, options.bitvectorSize));
             		dalvikFields.add(dsf);

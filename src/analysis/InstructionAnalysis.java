@@ -121,7 +121,7 @@ public class InstructionAnalysis {
         	case MONITOR_EXIT://((short)0x1e, "monitor-exit", ReferenceType.NONE, Format.Format11x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
         		cl.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		break;//((short)0x00, "nop", ReferenceType.NONE, Format.Format10x, Opcode.CAN_CONTINUE),
         	case MOVE://((short)0x01, "move", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case MOVE_FROM16://((short)0x02, "move/from16", ReferenceType.NONE, Format.Format22x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
@@ -137,7 +137,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()));
         		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), "b" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()));
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		break;//((short)0x09, "move-object/16", ReferenceType.NONE, Format.Format32x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case MOVE_RESULT://((short)0x0a, "move-result", ReferenceType.NONE, Format.Format11x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case MOVE_RESULT_WIDE://((short)0x0b, "move-result-wide", ReferenceType.NONE, Format.Format11x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
@@ -147,7 +147,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), 'l' + Integer.toString(numRegLoc));
         		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), 'b' + Integer.toString(numRegLoc));
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		break;//((short)0x0c, "move-result-object", ReferenceType.NONE, Format.Format11x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case MOVE_EXCEPTION:
         		int previousCode = 0;
@@ -155,13 +155,13 @@ public class InstructionAnalysis {
         			if ((previousCode + ins.getCodeUnits()) == codeAddress){
         				cl2.appendHead(Utils.rPred(classIndex, methodIndex, previousCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
                 		cl2.appendBody(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-                		gen.addClause(cl2);
+                		gen.addClause(cl2, c);
         			}
         			previousCode += ins.getCodeUnits();
         		}
         		cl.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
                 
         		//System.out.println("Unsupported Intsruction! MOVE_EXCEPTION");
         		break;//((short)0x0d, "move-exception", ReferenceType.NONE, Format.Format11x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
@@ -183,7 +183,7 @@ public class InstructionAnalysis {
         			count ++;
         		}
         		cl.appendBody(Utils.resPred(classIndex, methodIndex, regUpdate, regUpdateL, regUpdateB, numParLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		break;//((short)0x11, "return-object", ReferenceType.NONE, Format.Format11x),
         	case CONST_4://((short)0x12, "const/4", ReferenceType.NONE, Format.Format11n, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case CONST_16://((short)0x13, "const/16", ReferenceType.NONE, Format.Format21s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
@@ -198,7 +198,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "false");
         		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), "false");
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		break;//((short)0x19, "const-wide/high16", ReferenceType.NONE, Format.Format21lh, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
         	case CONST_STRING://((short)0x1a, "const-string", ReferenceType.STRING, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER, (short)0x1b),
         	case CONST_STRING_JUMBO:
@@ -208,13 +208,13 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "false");
         		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), "false");
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		break;//((short)0x1b, "const-string/jumbo", ReferenceType.STRING, Format.Format31c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),	
         	case CHECK_CAST:
         		cl.appendHead("(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen) + 
         				" (= b" + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + " true) " + "(bvugt v" + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + " " + Utils.hexDec64(0, size) + "))");
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		break;//((short)0x1f, "check-cast", ReferenceType.TYPE, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case INSTANCE_OF:
         		cl.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
@@ -222,7 +222,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "false");
         		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), "false");
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		regUpdate.clear();
         		regUpdateL.clear();
         		regUpdateB.clear();
@@ -231,7 +231,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "false");
         		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), "false");
         		cl3.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl3);
+        		gen.addClause(cl3, c);
         		break;//((short)0x20, "instance-of", ReferenceType.TYPE, Format.Format22c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case ARRAY_LENGTH:
         		//cl.appendHead("(and (P_" + classIndex + '_' + methodIndex + '_' + Integer.toString(codeAddress) + getRegsDefs(ci, mi, codeAddress, gen, regUpdate, regUpdateL, returns, numRegLoc)
@@ -241,13 +241,13 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "lf");
         		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), "false");
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		break;//((short)0x21, "array-length", ReferenceType.NONE, Format.Format12x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case NEW_INSTANCE:
         		if (referenceIntIndex == "Landroid/content/Intent;".hashCode()){
         			cl.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
             		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-            		gen.addClause(cl);
+            		gen.addClause(cl, c);
         			break;
         		}
         		instanceNum = analysis.getInstNum(ci, mi, codeAddress);
@@ -256,7 +256,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "false");
         		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), "true");
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		regUpdate.clear();
         		regUpdateL.clear();
         		regUpdateB.clear();
@@ -267,13 +267,13 @@ public class InstructionAnalysis {
         			cl12.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         			cl12.appendBody(Utils.hPred(
         					Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size), Utils.hexDec64(fieldN.getKey(), size), Utils.hexDec64(0, size), "false", Boolean.toString(fieldN.getValue())));
-        			gen.addClause(cl12);
+        			gen.addClause(cl12, c);
         		}
 				else{
 					Clause cl12 = new Clause();
         			cl12.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         			cl12.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size), "f", Utils.hexDec64(0, size), "false", "bf"));
-        			gen.addClause(cl12);
+        			gen.addClause(cl12, c);
 				}
         		
         		regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
@@ -286,7 +286,7 @@ public class InstructionAnalysis {
         			
         			cl3.appendBody(Utils.rPred(Integer.toString(referenceIntIndex), Integer.toString(staticConstNum), 0, regUpdate, regUpdateL, regUpdateB,
         					dmc.getNumArg(), dmc.getNumReg(), gen));
-        			gen.addClause(cl3);
+        			gen.addClause(cl3, c);
         		}
         		break;//((short)0x22, "new-instance", ReferenceType.TYPE, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case NEW_ARRAY:
@@ -296,18 +296,18 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "false");
         		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), "true");
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
         		if (analysis.optionArrays()){
         		cl2.appendHead("(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ " (bvuge " + Utils.hexDec64(0, size) + " f) " + "(bvult f " + 'v' + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) +"))");
         		cl2.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size), "f", Utils.hexDec64(0, size), "false", "false"));
-        		gen.addClause(cl2);
+        		gen.addClause(cl2, c);
         		}
         		else{
         		cl2.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		cl2.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size), Utils.hexDec64(0, size), Utils.hexDec64(0, size), "false", "false"));
-        		gen.addClause(cl2);
+        		gen.addClause(cl2, c);
         		}
         		break;//((short)0x23, "new-array", ReferenceType.TYPE, Format.Format22c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case FILLED_NEW_ARRAY:
@@ -324,7 +324,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(numRegLoc, "false");
         		regUpdateB.put(numRegLoc, "true");
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
         		if (analysis.optionArrays()){
         			switch(regCount){
@@ -332,71 +332,71 @@ public class InstructionAnalysis {
         				clf1.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf1.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(0, size), "v" + instructionA.getRegisterC(), "l" + instructionA.getRegisterC(), "b" + instructionA.getRegisterC()));
-        				gen.addClause(clf1);
+        				gen.addClause(clf1, c);
         				break;
         			case 2:
         				clf1.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf1.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(0, size), "v" + instructionA.getRegisterC(), "l" + instructionA.getRegisterC(), "b" + instructionA.getRegisterC()));
-        				gen.addClause(clf1);
+        				gen.addClause(clf1, c);
         				clf2.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf2.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(1, size), "v" + instructionA.getRegisterD(), "l" + instructionA.getRegisterD(), "b" + instructionA.getRegisterD()));
-        				gen.addClause(clf2);
+        				gen.addClause(clf2, c);
         				break;
         			case 3:
         				clf1.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf1.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(0, size), "v" + instructionA.getRegisterC(), "l" + instructionA.getRegisterC(), "b" + instructionA.getRegisterC()));
-        				gen.addClause(clf1);
+        				gen.addClause(clf1, c);
         				clf2.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf2.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(1, size), "v" + instructionA.getRegisterD(), "l" + instructionA.getRegisterD(), "b" + instructionA.getRegisterD()));
-        				gen.addClause(clf2);
+        				gen.addClause(clf2, c);
         				clf3.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf3.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(2, size), "v" + instructionA.getRegisterE(), "l" + instructionA.getRegisterE(), "b" + instructionA.getRegisterE()));
-        				gen.addClause(clf3);
+        				gen.addClause(clf3, c);
         				break;
         			case 4:
         				clf1.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf1.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(0, size), "v" + instructionA.getRegisterC(), "l" + instructionA.getRegisterC(), "b" + instructionA.getRegisterC()));
-        				gen.addClause(clf1);
+        				gen.addClause(clf1, c);
         				clf2.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf2.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(1, size), "v" + instructionA.getRegisterD(), "l" + instructionA.getRegisterD(), "b" + instructionA.getRegisterD()));
-        				gen.addClause(clf2);
+        				gen.addClause(clf2, c);
         				clf3.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf3.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(2, size), "v" + instructionA.getRegisterE(), "l" + instructionA.getRegisterE(), "b" + instructionA.getRegisterE()));
-        				gen.addClause(clf3);
+        				gen.addClause(clf3, c);
         				clf4.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf4.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(3, size), "v" + instructionA.getRegisterF(), "l" + instructionA.getRegisterF(), "b" + instructionA.getRegisterF()));
-        				gen.addClause(clf4);
+        				gen.addClause(clf4, c);
         				break;
         			case 5:
         				clf1.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf1.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(0, size), "v" + instructionA.getRegisterC(), "l" + instructionA.getRegisterC(), "b" + instructionA.getRegisterC()));
-        				gen.addClause(clf1);
+        				gen.addClause(clf1, c);
         				clf2.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf2.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(1, size), "v" + instructionA.getRegisterD(), "l" + instructionA.getRegisterD(), "b" + instructionA.getRegisterD()));
-        				gen.addClause(clf2);
+        				gen.addClause(clf2, c);
         				clf3.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf3.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(2, size), "v" + instructionA.getRegisterE(), "l" + instructionA.getRegisterE(), "b" + instructionA.getRegisterE()));
-        				gen.addClause(clf3);
+        				gen.addClause(clf3, c);
         				clf4.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf4.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(3, size), "v" + instructionA.getRegisterF(), "l" + instructionA.getRegisterF(), "b" + instructionA.getRegisterF()));
-        				gen.addClause(clf4);
+        				gen.addClause(clf4, c);
         				clf5.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf5.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(4, size), "v" + instructionA.getRegisterG(), "l" + instructionA.getRegisterG(), "b" + instructionA.getRegisterG()));
-        				gen.addClause(clf5);
+        				gen.addClause(clf5, c);
         				break;
         			}
         		}
@@ -406,71 +406,71 @@ public class InstructionAnalysis {
         				clf1.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf1.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(0, size), "v" + instructionA.getRegisterC(), "l" + instructionA.getRegisterC(), "b" + instructionA.getRegisterC()));
-        				gen.addClause(clf1);
+        				gen.addClause(clf1, c);
         				break;
         			case 2:
         				clf1.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf1.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(0, size), "v" + instructionA.getRegisterC(), "l" + instructionA.getRegisterC(), "b" + instructionA.getRegisterC()));
-        				gen.addClause(clf1);
+        				gen.addClause(clf1, c);
         				clf2.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf2.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(0, size), "v" + instructionA.getRegisterD(), "l" + instructionA.getRegisterD(), "b" + instructionA.getRegisterD()));
-        				gen.addClause(clf2);
+        				gen.addClause(clf2, c);
         				break;
         			case 3:
         				clf1.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf1.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(0, size), "v" + instructionA.getRegisterC(), "l" + instructionA.getRegisterC(), "b" + instructionA.getRegisterC()));
-        				gen.addClause(clf1);
+        				gen.addClause(clf1, c);
         				clf2.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf2.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(0, size), "v" + instructionA.getRegisterD(), "l" + instructionA.getRegisterD(), "b" + instructionA.getRegisterD()));
-        				gen.addClause(clf2);
+        				gen.addClause(clf2, c);
         				clf3.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf3.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(0, size), "v" + instructionA.getRegisterE(), "l" + instructionA.getRegisterE(), "b" + instructionA.getRegisterE()));
-        				gen.addClause(clf3);
+        				gen.addClause(clf3, c);
         				break;
         			case 4:
         				clf1.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf1.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(0, size), "v" + instructionA.getRegisterC(), "l" + instructionA.getRegisterC(), "b" + instructionA.getRegisterC()));
-        				gen.addClause(clf1);
+        				gen.addClause(clf1, c);
         				clf2.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf2.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(0, size), "v" + instructionA.getRegisterD(), "l" + instructionA.getRegisterD(), "b" + instructionA.getRegisterD()));
-        				gen.addClause(clf2);
+        				gen.addClause(clf2, c);
         				clf3.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf3.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(0, size), "v" + instructionA.getRegisterE(), "l" + instructionA.getRegisterE(), "b" + instructionA.getRegisterE()));
-        				gen.addClause(clf3);
+        				gen.addClause(clf3, c);
         				clf4.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf4.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(0, size), "v" + instructionA.getRegisterF(), "l" + instructionA.getRegisterF(), "b" + instructionA.getRegisterF()));
-        				gen.addClause(clf4);
+        				gen.addClause(clf4, c);
         				break;
         			case 5:
         				clf1.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf1.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(0, size), "v" + instructionA.getRegisterC(), "l" + instructionA.getRegisterC(), "b" + instructionA.getRegisterC()));
-        				gen.addClause(clf1);
+        				gen.addClause(clf1, c);
         				clf2.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf2.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(0, size), "v" + instructionA.getRegisterD(), "l" + instructionA.getRegisterD(), "b" + instructionA.getRegisterD()));
-        				gen.addClause(clf2);
+        				gen.addClause(clf2, c);
         				clf3.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf3.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(0, size), "v" + instructionA.getRegisterE(), "l" + instructionA.getRegisterE(), "b" + instructionA.getRegisterE()));
-        				gen.addClause(clf3);
+        				gen.addClause(clf3, c);
         				clf4.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf4.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(0, size), "v" + instructionA.getRegisterF(), "l" + instructionA.getRegisterF(), "b" + instructionA.getRegisterF()));
-        				gen.addClause(clf4);
+        				gen.addClause(clf4, c);
         				clf5.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clf5.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(0, size), "v" + instructionA.getRegisterG(), "l" + instructionA.getRegisterG(), "b" + instructionA.getRegisterG()));
-        				gen.addClause(clf5);
+        				gen.addClause(clf5, c);
         				break;
         			}
         		}
@@ -483,7 +483,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(numRegLoc, "false");
         		regUpdateB.put(numRegLoc, "true");
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
         		
         		RegisterRangeInstruction instructionAr = (RegisterRangeInstruction)this.instruction;
@@ -498,7 +498,7 @@ public class InstructionAnalysis {
             			clR.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clR.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(cr, size), "v" + reg, "l" + reg, "b" + reg));
-        				gen.addClause(clR);
+        				gen.addClause(clR, c);
             			cr++;
             		}
             	}
@@ -508,7 +508,7 @@ public class InstructionAnalysis {
             			clR.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         				clR.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size),
         						Utils.hexDec64(0, size), "v" + reg, "l" + reg, "b" + reg));
-        				gen.addClause(clR);
+        				gen.addClause(clR, c);
             		}
                 }
         		//System.out.println("Unsupported Intsruction! FILLED_NEW_ARRAY_RANGE");
@@ -524,14 +524,14 @@ public class InstructionAnalysis {
         				for (final Number element: elements){
         					Clause cl17 = new Clause();      					
         					if (analysis.optionArrays()){     		
-        		        		gen.addClause(cl16);
+        		        		gen.addClause(cl16, c);
         		        		cl17.appendHead("(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         		        				+ ' ' + Utils.hPred("cn", "v" + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()), Utils.hexDec64(0, size), Utils.hexDec64(0, size), "lf", "bf") +')');
         		        		cl17.appendBody(Utils.hPred("cn", "v" + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()), 
         		        				Utils.hexDec64(elNum, size), 
         		        				Utils.hexDec64(element.intValue(), size), "false",
         		        				"false"));
-        		        		gen.addClause(cl17);
+        		        		gen.addClause(cl17, c);
         		        		}
         		        		else{
         		        		cl17.appendHead("(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
@@ -541,7 +541,7 @@ public class InstructionAnalysis {
         		        				Utils.hexDec64(element.intValue(), size), 
         		        				"false",
         		        				"false"));
-        		        		gen.addClause(cl17);
+        		        		gen.addClause(cl17, c);
         		        		}
         					
         					
@@ -555,7 +555,7 @@ public class InstructionAnalysis {
         	case THROW:
         		cl.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		//System.out.println("Unsupported Intsruction! THROW");
         		break;//((short)0x27, "throw", ReferenceType.NONE, Format.Format11x, Opcode.CAN_THROW),
         	case GOTO://((short)0x28, "goto", ReferenceType.NONE, Format.Format10t),
@@ -564,7 +564,7 @@ public class InstructionAnalysis {
         		jump = codeAddress + ((OffsetInstruction)instruction).getCodeOffset();
         		cl3.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		cl3.appendBody(Utils.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl3);
+        		gen.addClause(cl3, c);
         		break;//((short)0x2a, "goto/32", ReferenceType.NONE, Format.Format30t),
         	case PACKED_SWITCH:
         		for (final PackedSwitch ps: analysis.getPackedSwitch()){
@@ -591,7 +591,7 @@ public class InstructionAnalysis {
 							}
         					cl16.appendBody(Utils.rPred(classIndex, methodIndex, target.intValue(), 
         					regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        					gen.addClause(cl16);
+        					gen.addClause(cl16, c);
         					
         					try {
 								negationString = negationString +  " (= " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
@@ -611,7 +611,7 @@ public class InstructionAnalysis {
         				+ " (not" + negationString + ")"
         				+ ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		//System.out.println("Unsupported Intsruction! PACKED_SWITCH");
         		break;//((short)0x2b, "packed-switch", ReferenceType.NONE, Format.Format31t, Opcode.CAN_CONTINUE),
         	case SPARSE_SWITCH:
@@ -632,7 +632,7 @@ public class InstructionAnalysis {
         				           + ")");
         					cl16.appendBody(Utils.rPred(classIndex, methodIndex, target.getValue(), 
         					regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        					gen.addClause(cl16);
+        					gen.addClause(cl16, c);
         					
         					negationString = negationString +  " (= " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
          				           Utils.hexDec64(target.getKey(), size) + ")";
@@ -646,7 +646,7 @@ public class InstructionAnalysis {
         				+ " (not" + negationString + ")"
         				+ ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		//System.out.println("Unsupported Intsruction! SPARSE_SWITCH");
         		break;//((short)0x2c, "sparse-switch", ReferenceType.NONE, Format.Format31t, Opcode.CAN_CONTINUE),
         	case CMPL_FLOAT://((short)0x2d, "cmpl-float", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
@@ -665,7 +665,7 @@ public class InstructionAnalysis {
         				"(or l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + 
         				" l" + Integer.toString(((ThreeRegisterInstruction) instruction).getRegisterC()) + ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         	
         		break;//((short)0x31, "cmp-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case IF_EQ:
@@ -675,14 +675,14 @@ public class InstructionAnalysis {
         				           'v' + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + "))"
         				+ ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		cl3.appendHead("(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ " (= " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
         				           'v' + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ")"
         				+ ")");
         		cl3.appendBody(Utils.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl3);
+        		gen.addClause(cl3, c);
         		
         		break;//((short)0x32, "if-eq", ReferenceType.NONE, Format.Format22t, Opcode.CAN_CONTINUE),
         	case IF_NE:
@@ -692,14 +692,14 @@ public class InstructionAnalysis {
         				           'v' + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ')'
         				+ ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		cl3.appendHead("(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ " (not (= " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
         				           'v' + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + "))"
         				+ ")");
         		cl3.appendBody(Utils.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl3);
+        		gen.addClause(cl3, c);
         		
         		break;//((short)0x33, "if-ne", ReferenceType.NONE, Format.Format22t, Opcode.CAN_CONTINUE),
         	case IF_LT:
@@ -709,14 +709,14 @@ public class InstructionAnalysis {
         				           'v' + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + "))"
         				+ ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		cl3.appendHead("(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ " (bvult " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
         				           'v' + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ")"
         				+ ")");
         		cl3.appendBody(Utils.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl3);
+        		gen.addClause(cl3, c);
         		
         		break;//((short)0x34, "if-lt", ReferenceType.NONE, Format.Format22t, Opcode.CAN_CONTINUE),
         	case IF_GE:
@@ -726,14 +726,14 @@ public class InstructionAnalysis {
         				           'v' + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + "))"
         				+ ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		cl3.appendHead("(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ " (bvuge " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
         				           'v' + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ")"
         				+ ")");
         		cl3.appendBody(Utils.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl3);
+        		gen.addClause(cl3, c);
         		
         		break;//((short)0x35, "if-ge", ReferenceType.NONE, Format.Format22t, Opcode.CAN_CONTINUE),
         	case IF_GT:
@@ -743,14 +743,14 @@ public class InstructionAnalysis {
         				           'v' + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + "))"
         				+ ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		cl3.appendHead("(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ " (bvugt " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
         				           'v' + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ")"
         				+ ")");
         		cl3.appendBody(Utils.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl3);
+        		gen.addClause(cl3, c);
         		
         		break;//((short)0x36, "if-gt", ReferenceType.NONE, Format.Format22t, Opcode.CAN_CONTINUE),
         	case IF_LE:
@@ -760,14 +760,14 @@ public class InstructionAnalysis {
         				           'v' + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + "))"
         				+ ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		cl3.appendHead("(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ " (bvule " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
         				           'v' + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ")"
         				+ ")");
         		cl3.appendBody(Utils.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl3);
+        		gen.addClause(cl3, c);
         		
         		break;//((short)0x37, "if-le", ReferenceType.NONE, Format.Format22t, Opcode.CAN_CONTINUE),
         	case IF_EQZ:
@@ -777,14 +777,14 @@ public class InstructionAnalysis {
         				           Utils.hexDec64(0, size) + "))"
         				+ ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		cl3.appendHead("(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ " (= " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
         				          Utils.hexDec64(0, size) + ")"
         				+ ")");
         		cl3.appendBody(Utils.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl3);
+        		gen.addClause(cl3, c);
         		
         		break;//((short)0x38, "if-eqz", ReferenceType.NONE, Format.Format21t, Opcode.CAN_CONTINUE),
         	case IF_NEZ:
@@ -794,14 +794,14 @@ public class InstructionAnalysis {
         				          Utils.hexDec64(0, size) + ')'
         				+ ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		cl3.appendHead("(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ " (not (= " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
         				           Utils.hexDec64(0, size) + "))"
         				+ ")");
         		cl3.appendBody(Utils.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl3);
+        		gen.addClause(cl3, c);
         		
         		break;//((short)0x39, "if-nez", ReferenceType.NONE, Format.Format21t, Opcode.CAN_CONTINUE),
         	case IF_LTZ:
@@ -811,14 +811,14 @@ public class InstructionAnalysis {
         				           Utils.hexDec64(0, size) + "))"
         				+ ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		cl3.appendHead("(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ " (bvult " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
         				           Utils.hexDec64(0, size) + ")"
         				+ ")");
         		cl3.appendBody(Utils.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl3);
+        		gen.addClause(cl3, c);
         		
         		break;//((short)0x3a, "if-ltz", ReferenceType.NONE, Format.Format21t, Opcode.CAN_CONTINUE),
         	case IF_GEZ:
@@ -828,14 +828,14 @@ public class InstructionAnalysis {
         				          Utils.hexDec64(0, size) + "))"
         				+ ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		cl3.appendHead("(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ " (bvuge " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
         				          Utils.hexDec64(0, size) + ")"
         				+ ")");
         		cl3.appendBody(Utils.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl3);
+        		gen.addClause(cl3, c);
         		
         		break;//((short)0x3b, "if-gez", ReferenceType.NONE, Format.Format21t, Opcode.CAN_CONTINUE),
         	case IF_GTZ:
@@ -845,14 +845,14 @@ public class InstructionAnalysis {
         				           Utils.hexDec64(0, size) + "))"
         				+ ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		cl3.appendHead("(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ " (bvugt " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
         				           Utils.hexDec64(0, size) + ")"
         				+ ")");
         		cl3.appendBody(Utils.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl3);
+        		gen.addClause(cl3, c);
         		
         		break;//((short)0x3c, "if-gtz", ReferenceType.NONE, Format.Format21t, Opcode.CAN_CONTINUE),
         	case IF_LEZ:
@@ -862,14 +862,14 @@ public class InstructionAnalysis {
         				           Utils.hexDec64(0, size) + "))"
         				+ ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		cl3.appendHead("(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ " (bvule " + 'v' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ' ' + 
         				          Utils.hexDec64(0, size) + ")"
         				+ ")");
         		cl3.appendBody(Utils.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl3);
+        		gen.addClause(cl3, c);
         		
         		break;//((short)0x3d, "if-lez", ReferenceType.NONE, Format.Format21t, Opcode.CAN_CONTINUE),
         	case AGET://((short)0x44, "aget", ReferenceType.NONE, Format.Format23x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
@@ -890,7 +890,7 @@ public class InstructionAnalysis {
         				regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "lval");
         				regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), "bval");
                 		cl6.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        				gen.addClause(cl6);
+        				gen.addClause(cl6, c);
         		}
         		else{
         		Clause cl6 = new Clause();
@@ -903,7 +903,7 @@ public class InstructionAnalysis {
 				regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "lval");
 				regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), "bval");
         		cl6.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-				gen.addClause(cl6);
+				gen.addClause(cl6, c);
         		}
         		break;//((short)0x4a, "aget-short", ReferenceType.NONE, Format.Format23x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case APUT://((short)0x4b, "aput", ReferenceType.NONE, Format.Format23x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
@@ -918,7 +918,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((TwoRegisterInstruction)instruction).getRegisterB(), "(or " + 'l' + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB())
         				+ ' ' +  'l' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ")");
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		regUpdateL.clear();
         		cl2.appendHead("(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ ' ' + Utils.hPred("cn", "v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()), Utils.hexDec64(0, size), Utils.hexDec64(0, size), "lf", "bf") +')');
@@ -926,14 +926,14 @@ public class InstructionAnalysis {
         				"v" + Integer.toString(((ThreeRegisterInstruction) instruction).getRegisterC()), 
         				'v'+ Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()), 'l'+Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()),
         				'b'+Integer.toString(((OneRegisterInstruction)instruction).getRegisterA())));
-        		gen.addClause(cl2);
+        		gen.addClause(cl2, c);
         		}
         		else{
         		cl.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		regUpdateL.put(((TwoRegisterInstruction)instruction).getRegisterB(), "(or " + 'l' + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB())
         				+ ' ' +  'l' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ")");
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		regUpdateL.clear();
         		cl2.appendHead("(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ ' ' + Utils.hPred("cn", "v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()), Utils.hexDec64(0, size), Utils.hexDec64(0, size), "lf", "bf") +')');
@@ -941,7 +941,7 @@ public class InstructionAnalysis {
         				Utils.hexDec64(0, size), 
         				'v'+ Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()), 'l'+Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()),
         				'b'+Integer.toString(((OneRegisterInstruction)instruction).getRegisterA())));
-        		gen.addClause(cl2);
+        		gen.addClause(cl2, c);
         		}
         		break;
         		//((short)0x51, "aput-short", ReferenceType.NONE, Format.Format23x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
@@ -962,7 +962,7 @@ public class InstructionAnalysis {
 				regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "lval");
 				regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), "bval");
         		cl7.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-				gen.addClause(cl7);
+				gen.addClause(cl7, c);
         		
         		break;//((short)0x58, "iget-short", ReferenceType.FIELD, Format.Format22c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case IPUT://((short)0x59, "iput", ReferenceType.FIELD, Format.Format22c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
@@ -976,7 +976,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((TwoRegisterInstruction)instruction).getRegisterB(), "(or " + 'l' + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB())
         				+ ' ' +  'l' + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ")");
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		regUpdateL.clear();
         		cl2.appendHead("(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
         				+ ' ' + Utils.hPred("cn", "v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()), "f", Utils.hexDec64(0, size), "lf", "bf") +')');
@@ -984,7 +984,7 @@ public class InstructionAnalysis {
         				Utils.hexDec64(referenceIntIndex, size), 
         				'v'+ Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()), 'l'+Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()),
         				'b'+Integer.toString(((OneRegisterInstruction)instruction).getRegisterA())));
-        		gen.addClause(cl2);
+        		gen.addClause(cl2, c);
         		
         		break;//((short)0x5f, "iput-short", ReferenceType.FIELD, Format.Format22c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
         	case SGET://((short)0x60, "sget", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
@@ -1004,7 +1004,7 @@ public class InstructionAnalysis {
             		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "false");
             		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), "bf");
             		cl2.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-            		gen.addClause(cl2);
+            		gen.addClause(cl2, c);
             	
         		regUpdate.clear();
         		regUpdateL.clear();
@@ -1015,7 +1015,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "lf");
         		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), "bf");
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0x66, "sget-short", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case SPUT://((short)0x67, "sput", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
@@ -1031,13 +1031,13 @@ public class InstructionAnalysis {
         		}
         		cl.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		cl3.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		cl3.appendBody("(S " + Integer.toString(staticFieldClassName) + ' ' + Integer.toString(referenceIntIndex) + " v" + 
         				Integer.toString(((OneRegisterInstruction)instruction).getRegisterA())
         				+ " l" + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) +  " b" + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ')');
-        		gen.addClause(cl3);
+        		gen.addClause(cl3, c);
         		break;//((short)0x6d, "sput-short", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
         	case INVOKE_VIRTUAL:
         	case INVOKE_SUPER:
@@ -1088,7 +1088,7 @@ public class InstructionAnalysis {
             			
         					cl10.appendBody(Utils.rInvokePred(Integer.toString(di.getDalvikClass().getType().hashCode()), Integer.toString(di.getMethod().getName().hashCode()), 0,  
                 				regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, gen, size));
-        					gen.addClause(cl10);
+        					gen.addClause(cl10, c);
         					regUpdate.clear();
         					regUpdateL.clear();
         					regUpdateB.clear();
@@ -1117,7 +1117,7 @@ public class InstructionAnalysis {
                 				regUpdateL.put(numRegLoc, returnLabel);
                 			}
                 			cl12.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-                			gen.addClause(cl12);
+                			gen.addClause(cl12, c);
                 			regUpdate.clear();
                     		regUpdateL.clear();
                     		regUpdateB.clear();
@@ -1136,7 +1136,7 @@ public class InstructionAnalysis {
                 				regUpdateL.put(numRegLoc, returnLabel);
                 			}
                 			cl12.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-                			gen.addClause(cl12);
+                			gen.addClause(cl12, c);
                 			regUpdate.clear();
                     		regUpdateL.clear();
                     		regUpdateB.clear();
@@ -1175,14 +1175,14 @@ public class InstructionAnalysis {
                 			cl12.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
                 			cl12.appendBody(Utils.hPred(Utils.hexDec64(returnTypeInt, size), "fpp", Utils.hexDec64(fieldN.getKey(), size), "vfp", returnLabel, 
                 					Boolean.toString(fieldN.getValue())));
-                			gen.addClause(cl12);
+                			gen.addClause(cl12, c);
                 		}
 					    else{
 					    	Clause cl12 = new Clause();
                 			cl12.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
                 			cl12.appendBody(Utils.hPred(Utils.hexDec64(returnTypeInt, size), "fpp", "f", "vfp", returnLabel, 
                 					"bf"));
-                			gen.addClause(cl12);
+                			gen.addClause(cl12, c);
 					    }
                 		regUpdate.put(numRegLoc, "fpp");
             			regUpdateL.put(numRegLoc, returnLabel);
@@ -1201,7 +1201,7 @@ public class InstructionAnalysis {
         						Clause cl12 = new Clause();
                     			cl12.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
                     			cl12.appendBody(Utils.hPred(Utils.hexDec64(returnTypeInt, size), Utils.hexDec64(instanceNum, size), "f", "buf", returnLabel, "bf"));
-                    			gen.addClause(cl12);
+                    			gen.addClause(cl12, c);
                         		regUpdate.put(numRegLoc, Utils.hexDec64(instanceNum, size));
                     			regUpdateL.put(numRegLoc, returnLabel);
                     			regUpdateB.put(numRegLoc, "true");
@@ -1211,7 +1211,7 @@ public class InstructionAnalysis {
         			}
         			regUpdateL = highReg(false, regUpdateL);
         			cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        			gen.addClause(cl);
+        			gen.addClause(cl, c);
         		}
         		break;
         	case INVOKE_DIRECT:
@@ -1244,7 +1244,7 @@ public class InstructionAnalysis {
                         	regUpdateB.put(numRegCall + 1 + 0, 'b' + Integer.toString(instr2.getRegisterD()));
                         	cl10.appendBody(Utils.rInvokePred(Integer.toString(di.getDalvikClass().getType().hashCode()), Integer.toString("run()V".hashCode()), 0,  
                     				regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, gen, size));
-                			gen.addClause(cl10);
+                			gen.addClause(cl10, c);
                 			
                 			regUpdate.clear();
                 			regUpdateL.clear();
@@ -1289,7 +1289,7 @@ public class InstructionAnalysis {
                 		regUpdate.clear();
                 		regUpdateL.clear();
                 		regUpdateB.clear();
-                		gen.addClause(cl12);
+                		gen.addClause(cl12, c);
                 		
                 		if (callReturns){
                 			head = "(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen);
@@ -1316,7 +1316,7 @@ public class InstructionAnalysis {
             				regUpdateL.put(numRegLoc, returnLabel);
             			}
             			cl10.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        				gen.addClause(cl10);
+        				gen.addClause(cl10, c);
         				}
         		}
         		else{
@@ -1350,14 +1350,14 @@ public class InstructionAnalysis {
                 			Clause cl12 = new Clause();
                 			cl12.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
                 			cl12.appendBody(Utils.hPred(Utils.hexDec64(returnTypeInt, size), "fpp", Utils.hexDec64(fieldN.getKey(), size), "vfp", returnLabel, Boolean.toString(fieldN.getValue())));
-                			gen.addClause(cl12);
+                			gen.addClause(cl12, c);
                 			
                 		}
 						else{
 							Clause cl12 = new Clause();
                 			cl12.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
                 			cl12.appendBody(Utils.hPred(Utils.hexDec64(returnTypeInt, size), "fpp", "f", "vfp", returnLabel, "bf"));
-                			gen.addClause(cl12);
+                			gen.addClause(cl12, c);
 						}
                 		regUpdate.put(numRegLoc, "fpp");
             			regUpdateL.put(numRegLoc, returnLabel);
@@ -1377,7 +1377,7 @@ public class InstructionAnalysis {
                     			Clause cl12 = new Clause();
                     			cl12.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
                     			cl12.appendBody(Utils.hPred(Utils.hexDec64(returnTypeInt, size), Utils.hexDec64(instanceNum, size), "f", "buf", returnLabel, "bf"));
-                    			gen.addClause(cl12);
+                    			gen.addClause(cl12, c);
                     			regUpdate.put(numRegLoc, Utils.hexDec64(instanceNum, size));
                     			regUpdateL.put(numRegLoc, returnLabel);
                     			regUpdateB.put(numRegLoc, "true");
@@ -1387,7 +1387,7 @@ public class InstructionAnalysis {
         			}
         			regUpdateL = highReg(false, regUpdateL);
         			cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        			gen.addClause(cl);
+        			gen.addClause(cl, c);
         		}
         		break;
         		//((short)0x6e, "invoke-virtual", ReferenceType.METHOD, Format.Format35c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_RESULT),
@@ -1423,7 +1423,7 @@ public class InstructionAnalysis {
             			
             			cl10.appendBody(Utils.rInvokePred(Integer.toString(di.getDalvikClass().getType().hashCode()), Integer.toString(di.getMethod().getName().hashCode()), 0,  
                 				regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, gen, size));
-            			gen.addClause(cl10);
+            			gen.addClause(cl10, c);
             			regUpdate.clear();
                 		regUpdateL.clear();
                 		regUpdateB.clear();
@@ -1452,7 +1452,7 @@ public class InstructionAnalysis {
                 				regUpdateL.put(numRegLoc, returnLabel);
                 			}
                 			cl12.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-                			gen.addClause(cl12);
+                			gen.addClause(cl12, c);
                 			regUpdate.clear();
                     		regUpdateL.clear();
                     		regUpdateB.clear();
@@ -1471,7 +1471,7 @@ public class InstructionAnalysis {
                 				regUpdateL.put(numRegLoc, returnLabel);
                 			}
                 			cl12.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-                			gen.addClause(cl12);
+                			gen.addClause(cl12, c);
                 			regUpdate.clear();
                     		regUpdateL.clear();
                     		regUpdateB.clear();
@@ -1510,14 +1510,14 @@ public class InstructionAnalysis {
                 			cl12.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
                 			cl12.appendBody(Utils.hPred(Utils.hexDec64(returnTypeInt, size), "fpp", Utils.hexDec64(fieldN.getKey(), size), "vfp", returnLabel, 
                 					Boolean.toString(fieldN.getValue())));
-                			gen.addClause(cl12);
+                			gen.addClause(cl12, c);
                 		}
 					    else{
 					    	Clause cl12 = new Clause();
                 			cl12.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
                 			cl12.appendBody(Utils.hPred(Utils.hexDec64(returnTypeInt, size), "fpp", "f", "vfp", returnLabel, 
                 					"bf"));
-                			gen.addClause(cl12);
+                			gen.addClause(cl12, c);
 					    }
                 		regUpdate.put(numRegLoc, "fpp");
             			regUpdateL.put(numRegLoc, returnLabel);
@@ -1536,7 +1536,7 @@ public class InstructionAnalysis {
         						Clause cl12 = new Clause();
                     			cl12.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
                     			cl12.appendBody(Utils.hPred(Utils.hexDec64(returnTypeInt, size), Utils.hexDec64(instanceNum, size), "f", "buf", returnLabel, "bf"));
-                    			gen.addClause(cl12);
+                    			gen.addClause(cl12, c);
                         		regUpdate.put(numRegLoc, Utils.hexDec64(instanceNum, size));
                     			regUpdateL.put(numRegLoc, returnLabel);
                     			regUpdateB.put(numRegLoc, "true");
@@ -1546,7 +1546,7 @@ public class InstructionAnalysis {
         			}
         			regUpdateL = highReg(true, regUpdateL);
         			cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        			gen.addClause(cl);
+        			gen.addClause(cl, c);
         		}
             	break;
         	case INVOKE_DIRECT_RANGE:
@@ -1583,7 +1583,7 @@ public class InstructionAnalysis {
                 		regUpdate.clear();
                 		regUpdateL.clear();
                 		regUpdateB.clear();
-                		gen.addClause(cl12);
+                		gen.addClause(cl12, c);
                 		
                 		if (callReturns){
                 			head = "(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen);
@@ -1644,14 +1644,14 @@ public class InstructionAnalysis {
                 			Clause cl12 = new Clause();
                 			cl12.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
                 			cl12.appendBody(Utils.hPred(Utils.hexDec64(returnTypeInt, size), "fpp", Utils.hexDec64(fieldN.getKey(), size), "vfp", returnLabel, Boolean.toString(fieldN.getValue())));
-                			gen.addClause(cl12);
+                			gen.addClause(cl12, c);
                 			
                 		}
 						else{
 							Clause cl12 = new Clause();
                 			cl12.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
                 			cl12.appendBody(Utils.hPred(Utils.hexDec64(returnTypeInt, size), "fpp", "f", "vfp", returnLabel, "bf"));
-                			gen.addClause(cl12);
+                			gen.addClause(cl12, c);
 						}
                 		regUpdate.put(numRegLoc, "fpp");
             			regUpdateL.put(numRegLoc, returnLabel);
@@ -1671,7 +1671,7 @@ public class InstructionAnalysis {
                     			Clause cl12 = new Clause();
                     			cl12.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
                     			cl12.appendBody(Utils.hPred(Utils.hexDec64(returnTypeInt, size), Utils.hexDec64(instanceNum, size), "f", "buf", returnLabel, "bf"));
-                    			gen.addClause(cl12);
+                    			gen.addClause(cl12, c);
                     			regUpdate.put(numRegLoc, Utils.hexDec64(instanceNum, size));
                     			regUpdateL.put(numRegLoc, returnLabel);
                     			regUpdateB.put(numRegLoc, "true");
@@ -1681,7 +1681,7 @@ public class InstructionAnalysis {
         			}
         			regUpdateL = highReg(true, regUpdateL);
         			cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        			gen.addClause(cl);
+        			gen.addClause(cl, c);
         		}
         		break;//((short)0x74, "invoke-virtual/range", ReferenceType.METHOD, Format.Format3rc, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_RESULT),
         	case NEG_INT://((short)0x7b, "neg-int", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
@@ -1693,7 +1693,7 @@ public class InstructionAnalysis {
         				Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()));
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		break;//((short)0x80, "neg-double", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
         	case NOT_INT://((short)0x7c, "not-int", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case NOT_LONG:
@@ -1702,7 +1702,7 @@ public class InstructionAnalysis {
         				Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()));
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		break;//((short)0x7e, "not-long", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
         	case INT_TO_LONG://((short)0x81, "int-to-long", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
         	case INT_TO_FLOAT://((short)0x82, "int-to-float", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
@@ -1721,7 +1721,7 @@ public class InstructionAnalysis {
         	case INT_TO_SHORT:
         		cl.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		break;//((short)0x8f, "int-to-short", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case ADD_INT://((short)0x90, "add-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case ADD_LONG://((short)0x9b, "add-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
@@ -1735,7 +1735,7 @@ public class InstructionAnalysis {
         				"(or l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + 
         				" l" + Integer.toString(((ThreeRegisterInstruction) instruction).getRegisterC()) + ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		break;//((short)0xab, "add-double", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
         	case SUB_INT://((short)0x91, "sub-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
@@ -1750,7 +1750,7 @@ public class InstructionAnalysis {
         				"(or l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + 
         				" l" + Integer.toString(((ThreeRegisterInstruction) instruction).getRegisterC()) + ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		break;//((short)0xac, "sub-double", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
         	case MUL_INT://((short)0x92, "mul-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
@@ -1764,7 +1764,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "(or l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + 
         				" l" + Integer.toString(((ThreeRegisterInstruction) instruction).getRegisterC()) + ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xad, "mul-double", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
@@ -1779,7 +1779,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "(or l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + 
         				" l" + Integer.toString(((ThreeRegisterInstruction) instruction).getRegisterC()) + ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xae, "div-double", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
@@ -1794,7 +1794,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "(or l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + 
         				" l" + Integer.toString(((ThreeRegisterInstruction) instruction).getRegisterC()) + ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xaf, "rem-double", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
@@ -1807,7 +1807,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "(or l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + 
         				" l" + Integer.toString(((ThreeRegisterInstruction) instruction).getRegisterC()) + ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xa0, "and-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
@@ -1820,7 +1820,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "(or l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + 
         				" l" + Integer.toString(((ThreeRegisterInstruction) instruction).getRegisterC()) + ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xa1, "or-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
@@ -1833,7 +1833,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "(or l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + 
         				" l" + Integer.toString(((ThreeRegisterInstruction) instruction).getRegisterC()) + ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xa2, "xor-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
@@ -1846,7 +1846,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "(or l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + 
         				" l" + Integer.toString(((ThreeRegisterInstruction) instruction).getRegisterC()) + ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xa3, "shl-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
@@ -1859,7 +1859,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "(or l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + 
         				" l" + Integer.toString(((ThreeRegisterInstruction) instruction).getRegisterC()) + ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0x99, "shr-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	
@@ -1872,7 +1872,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "(or l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + 
         				" l" + Integer.toString(((ThreeRegisterInstruction) instruction).getRegisterC()) + ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xa5, "ushr-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
         	case ADD_INT_2ADDR://((short)0xb0, "add-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
@@ -1887,7 +1887,7 @@ public class InstructionAnalysis {
         				"(or l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + 
         				" l" + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xcb, "add-double/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
@@ -1902,7 +1902,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "(or l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + 
         				" l" + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xcc, "sub-double/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
@@ -1917,7 +1917,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "(or l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + 
         				" l" + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xcd, "mul-double/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
@@ -1932,7 +1932,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "(or l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + 
         				" l" + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xce, "div-double/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
@@ -1947,7 +1947,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "(or l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + 
         				" l" + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xcf, "rem-double/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
@@ -1960,7 +1960,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "(or l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + 
         				" l" + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xbb, "add-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
@@ -1973,7 +1973,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "(or l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + 
         				" l" + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xc1, "or-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
@@ -1986,7 +1986,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "(or l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + 
         				" l" + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xc2, "xor-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
@@ -1999,7 +1999,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "(or l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + 
         				" l" + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xc3, "shl-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
@@ -2012,7 +2012,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "(or l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + 
         				" l" + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xc4, "shr-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
@@ -2025,7 +2025,7 @@ public class InstructionAnalysis {
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "(or l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + 
         				" l" + Integer.toString(((OneRegisterInstruction)instruction).getRegisterA()) + ')');
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xc5, "ushr-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
         	case ADD_INT_LIT16://((short)0xd0, "add-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
@@ -2035,7 +2035,7 @@ public class InstructionAnalysis {
         				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()));
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         	
         		break;//((short)0xd8, "add-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
 
@@ -2049,7 +2049,7 @@ public class InstructionAnalysis {
         				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()));
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xda, "mul-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case DIV_INT_LIT16://((short)0xd3, "div-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
@@ -2059,7 +2059,7 @@ public class InstructionAnalysis {
         				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()));
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xdb, "div-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
 
@@ -2070,7 +2070,7 @@ public class InstructionAnalysis {
         				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()));
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xdc, "rem-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
 
@@ -2081,7 +2081,7 @@ public class InstructionAnalysis {
         				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()));
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xdd, "and-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
 
@@ -2092,7 +2092,7 @@ public class InstructionAnalysis {
         				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()));
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xde, "or-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
 
@@ -2103,7 +2103,7 @@ public class InstructionAnalysis {
         				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()));
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         	
         		break;//((short)0xdf, "xor-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case RSUB_INT://break;//((short)0xd1, "rsub-int", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
@@ -2115,7 +2115,7 @@ public class InstructionAnalysis {
         				 + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()));
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xd9, "rsub-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case SHL_INT_LIT8:
@@ -2124,7 +2124,7 @@ public class InstructionAnalysis {
         				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()));
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xe0, "shl-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case SHR_INT_LIT8:
@@ -2133,7 +2133,7 @@ public class InstructionAnalysis {
         				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()));
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xe1, "shr-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case USHR_INT_LIT8:
@@ -2142,7 +2142,7 @@ public class InstructionAnalysis {
         				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), "l" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()));
         		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-        		gen.addClause(cl);
+        		gen.addClause(cl, c);
         		
         		break;//((short)0xe2, "ushr-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
 
@@ -2241,8 +2241,8 @@ public class InstructionAnalysis {
     	};
         for (int reg = startRegister; reg <= endRegister; reg++ ){
         	gen.addQuery("(query (and " + p + ' ' +
-        			"(= " + 'l' + Integer.toString(reg) +  " true))\n " + verbose + ":unbound-compressor false \n)");
-        	gen.addQueryV("Test if register " + Integer.toString(reg) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName);
+        			"(= " + 'l' + Integer.toString(reg) +  " true))\n " + verbose + ":unbound-compressor false \n)", c);
+        	gen.addQueryV("Test if register " + Integer.toString(reg) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName, c);
         }
     }
     
@@ -2257,44 +2257,44 @@ public class InstructionAnalysis {
         String qe = ")\n " + verbose + " :unbound-compressor false \n)";
         switch (regCount) {
             case 1:
-            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterC()) + " true)" + qe); 
-            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName);
+            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterC()) + " true)" + qe, c); 
+            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName, c);
             	break;
             case 2:
-            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterC()) + " true)" + qe);
-            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName);
-            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterD()) + " true)" + qe); 
-            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName);
+            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterC()) + " true)" + qe, c);
+            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName, c);
+            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterD()) + " true)" + qe, c); 
+            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName, c);
             	break;
             case 3:
-            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterC()) + " true)" + qe);
-            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName);
-            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterD()) + " true)" + qe);
-            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName);
-            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterE()) + " true)" + qe); 
-            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName);
+            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterC()) + " true)" + qe, c);
+            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName, c);
+            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterD()) + " true)" + qe, c);
+            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName, c);
+            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterE()) + " true)" + qe, c); 
+            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName, c);
             	break;
             case 4:
-            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterC()) + " true)" + qe);
-            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName);
-            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterD()) + " true)" + qe);
-            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName);
-            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterE()) + " true)" + qe);
-            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName);
-            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterF()) + " true)" + qe); 
-            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName);
+            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterC()) + " true)" + qe, c);
+            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName, c);
+            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterD()) + " true)" + qe, c);
+            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName, c);
+            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterE()) + " true)" + qe, c);
+            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName, c);
+            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterF()) + " true)" + qe, c); 
+            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName, c);
             	break;
             case 5:
-            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterC()) + " true)" + qe);
-            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName);
-            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterD()) + " true)" + qe);
-            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName);
-            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterE()) + " true)" + qe);
-            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName);
-            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterF()) + " true)" + qe);
-            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName);
-            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterG()) + " true)" + qe);
-            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterG()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName);
+            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterC()) + " true)" + qe, c);
+            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName, c);
+            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterD()) + " true)" + qe, c);
+            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName, c);
+            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterE()) + " true)" + qe, c);
+            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName, c);
+            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterF()) + " true)" + qe, c);
+            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName, c);
+            	gen.addQuery(qb + "(= " + 'l' + Integer.toString(instruction.getRegisterG()) + " true)" + qe, c);
+            	gen.addQueryV("Test if register " + Integer.toString(instruction.getRegisterG()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName, c);
             	break;
         }
     }
@@ -2525,10 +2525,10 @@ public class InstructionAnalysis {
     		cl2.appendBody(Utils.hPred(Utils.hexDec64("Landroid/os/Parcel;".hashCode(), size), 
     				'v' + Integer.toString(instruction.getRegisterC()), Utils.hexDec64(0, size), 
     				'v' + Integer.toString(instruction.getRegisterD()), 'l' + Integer.toString(instruction.getRegisterD()), 'b' + Integer.toString(instruction.getRegisterD())));
-    		gen.addClause(cl2);
+    		gen.addClause(cl2, c);
 			cl.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			cl.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			gen.addClause(cl);
+			gen.addClause(cl, c);
 			return true;
         }
         if  (c == ("Landroid/os/Parcel;".hashCode()) && 
@@ -2539,7 +2539,7 @@ public class InstructionAnalysis {
 			regUpdateL.put(numRegLoc, "l" + Integer.toString(instruction.getRegisterC()));
 			regUpdateB.put(numRegLoc, "b" + Integer.toString(instruction.getRegisterC()));
 			cl.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			gen.addClause(cl);
+			gen.addClause(cl, c);
 			return true;
         }
         if  (c == ("Landroid/os/Parcel;".hashCode()) && 
@@ -2550,7 +2550,7 @@ public class InstructionAnalysis {
 			regUpdateL.put(instruction.getRegisterC(), "l" + Integer.toString(instruction.getRegisterD()));
 			regUpdateB.put(instruction.getRegisterC(), "b" + Integer.toString(instruction.getRegisterD()));
 			cl.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			gen.addClause(cl);
+			gen.addClause(cl, c);
 			return true;
         }
         if  (c == ("Landroid/os/Parcel;".hashCode()) && 
@@ -2565,7 +2565,7 @@ public class InstructionAnalysis {
 			regUpdateL.put(numRegLoc, "lf");
 			regUpdateB.put(numRegLoc, "bf");
 			cl.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			gen.addClause(cl);
+			gen.addClause(cl, c);
 			return true;
         }
         if  (c == ("Ljava/lang/RuntimeException;".hashCode()) && 
@@ -2575,10 +2575,10 @@ public class InstructionAnalysis {
     		cl2.appendBody(Utils.hPred(Utils.hexDec64("Ljava/lang/RuntimeException;".hashCode(), size), 
     				'v' + Integer.toString(instruction.getRegisterC()), Utils.hexDec64("message".hashCode(), size), 
     				'v' + Integer.toString(instruction.getRegisterD()), 'l' + Integer.toString(instruction.getRegisterD()), 'b' + Integer.toString(instruction.getRegisterD())));
-    		gen.addClause(cl2);
+    		gen.addClause(cl2, c);
 			cl.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			cl.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			gen.addClause(cl);
+			gen.addClause(cl, c);
 			return true;
         }
         if  (c == ("Ljava/lang/RuntimeException;".hashCode()) && 
@@ -2593,7 +2593,7 @@ public class InstructionAnalysis {
 			regUpdateL.put(numRegLoc, "lf");
 			regUpdateB.put(numRegLoc, "bf");
 			cl.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			gen.addClause(cl);
+			gen.addClause(cl, c);
 			return true;
         }
         if  (c == ("Landroid/telephony/SmsManager;".hashCode()) && 
@@ -2602,13 +2602,13 @@ public class InstructionAnalysis {
     		cl2.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
     		cl2.appendBody(Utils.hPred(Utils.hexDec64("Landroid/telephony/SmsManager;".hashCode(), size), 
     				Utils.hexDec64(instanceNum, size), "f", "vfp", "false", "bf"));
-    		gen.addClause(cl2);
+    		gen.addClause(cl2, c);
 			cl.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
     		regUpdate.put(numRegLoc, Utils.hexDec64(instanceNum, size));
 			regUpdateL.put(numRegLoc, "false");
 			regUpdateB.put(numRegLoc, "true");
 			cl.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			gen.addClause(cl);
+			gen.addClause(cl, c);
 			return true;
         }
         if  (c == ("Landroid/graphics/PointF;".hashCode()) && 
@@ -2618,15 +2618,15 @@ public class InstructionAnalysis {
     		cl2.appendBody(Utils.hPred(Utils.hexDec64("Landroid/graphics/PointF;".hashCode(), size), 
     				'v' + Integer.toString(instruction.getRegisterC()), Utils.hexDec64("x:F".hashCode(), size), 
     				'v' + Integer.toString(instruction.getRegisterD()), 'l' + Integer.toString(instruction.getRegisterD()), 'b' + Integer.toString(instruction.getRegisterD())));
-    		gen.addClause(cl2);
+    		gen.addClause(cl2, c);
     		cl6.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
     		cl6.appendBody(Utils.hPred(Utils.hexDec64("Landroid/graphics/PointF;".hashCode(), size), 
     				'v' + Integer.toString(instruction.getRegisterC()), Utils.hexDec64("y:F".hashCode(), size), 
     				'v' + Integer.toString(instruction.getRegisterE()), 'l' + Integer.toString(instruction.getRegisterE()), 'b' + Integer.toString(instruction.getRegisterE())));
-    		gen.addClause(cl6);
+    		gen.addClause(cl6, c);
 			cl.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			cl.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			gen.addClause(cl);
+			gen.addClause(cl, c);
 			return true;
         }
         if  (c == ("Ljava/util/Map;".hashCode()) && 
@@ -2636,10 +2636,10 @@ public class InstructionAnalysis {
     		cl2.appendBody(Utils.hPred(Utils.hexDec64("Ljava/util/Map;".hashCode(), size), 
     				'v' + Integer.toString(instruction.getRegisterC()), 'v' + Integer.toString(instruction.getRegisterD()), 
     				'v' + Integer.toString(instruction.getRegisterE()), 'l' + Integer.toString(instruction.getRegisterE()), 'b' + Integer.toString(instruction.getRegisterE())));
-    		gen.addClause(cl2);
+    		gen.addClause(cl2, c);
 			cl.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			cl.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			gen.addClause(cl);
+			gen.addClause(cl, c);
 			return true;
         }
         if  (c == ("Ljava/util/Map;".hashCode()) && 
@@ -2654,7 +2654,7 @@ public class InstructionAnalysis {
 			regUpdateL.put(numRegLoc, "lf");
 			regUpdateB.put(numRegLoc, "bf");
 			cl.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			gen.addClause(cl);
+			gen.addClause(cl, c);
 			return true;
         }
         if  (c == ("Ljava/lang/String;".hashCode()) && 
@@ -2667,10 +2667,10 @@ public class InstructionAnalysis {
 			cl.appendBody(Utils.hPred(
 					Utils.hexDec64("[C".hashCode(), size), 'v' + Integer.toString(instruction.getRegisterF()),
 					Utils.hexDec64(0, size), "fpp", 'l' + Integer.toString(instruction.getRegisterC()), 'b' + Integer.toString(instruction.getRegisterC())));
-			gen.addClause(cl);
+			gen.addClause(cl, c);
 			cl2.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			cl2.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			gen.addClause(cl2);
+			gen.addClause(cl2, c);
 			return true;
         }
         if  (c == ("Ljava/util/Formatter;".hashCode()) && 
@@ -2680,10 +2680,10 @@ public class InstructionAnalysis {
 			cl.appendBody(Utils.hPred(
 					Utils.hexDec64("Ljava/lang/StringBuffer;".hashCode(), size), 'v' + Utils.Dec(instruction.getRegisterD()),
 					Utils.hexDec64(0, size), 'v' + Utils.Dec(instruction.getRegisterC()), "false", "true"));
-			gen.addClause(cl);
+			gen.addClause(cl, c);
 			cl2.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			cl2.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			gen.addClause(cl2);
+			gen.addClause(cl2, c);
 			return true;
         }
         if  (c == ("Ljava/util/Formatter;".hashCode()) && 
@@ -2696,10 +2696,10 @@ public class InstructionAnalysis {
 			cl.appendBody(Utils.hPred(
 					Utils.hexDec64("Ljava/lang/StringBuffer;".hashCode(), size), "f",
 					Utils.hexDec64(0, size), 'v' + Utils.Dec(instruction.getRegisterC()), "(or l" + Utils.Dec(instruction.getRegisterD()) + " l" + Utils.Dec(instruction.getRegisterE()) + ')', "true"));
-			gen.addClause(cl);
+			gen.addClause(cl, c);
 			cl2.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			cl2.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			gen.addClause(cl2);
+			gen.addClause(cl2, c);
 			return true;
         }
         if  (c == ("Ljava/lang/StringBuffer;".hashCode()) && 
@@ -2713,7 +2713,7 @@ public class InstructionAnalysis {
 			regUpdateL.put(numRegLoc, "lf");
 			regUpdateB.put(numRegLoc, "bf");
 			cl.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			gen.addClause(cl);
+			gen.addClause(cl, c);
 			return true;
         }
         if  (c == ("Ljava/lang/System;".hashCode()) && 
@@ -2726,10 +2726,10 @@ public class InstructionAnalysis {
 			cl.appendBody(Utils.hPred(
 					"cn", 'v' + Utils.Dec(instruction.getRegisterE()),
 					Utils.hexDec64(0, size), "val", "lf", "bf"));
-			gen.addClause(cl);
+			gen.addClause(cl, c);
 			cl2.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			cl2.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			gen.addClause(cl2);
+			gen.addClause(cl2, c);
 			return true;
         }
         if  (c == ("Landroid/widget/Button;".hashCode()) && 
@@ -2743,7 +2743,7 @@ public class InstructionAnalysis {
 			regUpdateL.put(numRegLoc, "lf");
 			regUpdateB.put(numRegLoc, "bf");
 			cl.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			gen.addClause(cl);
+			gen.addClause(cl, c);
 			regUpdate.clear();
 			regUpdateL.clear();
 			regUpdateB.clear();
@@ -2752,7 +2752,7 @@ public class InstructionAnalysis {
 			regUpdateL.put(numRegLoc, "false");
 			regUpdateB.put(numRegLoc, "true");
 			cl2.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			gen.addClause(cl2);
+			gen.addClause(cl2, c);
 			return true;
         }
         if  (c == ("Landroid/widget/Button;".hashCode()) && 
@@ -2764,10 +2764,10 @@ public class InstructionAnalysis {
 					Utils.hexDec64("Landroid/widget/Button;".hashCode(), size), 'v' + Utils.Dec(instruction.getRegisterC()),
 					Utils.hexDec64("hint".hashCode(), size), 'v' + Integer.toString(instruction.getRegisterD()), 'l' + Integer.toString(instruction.getRegisterD())
 					, 'b' + Integer.toString(instruction.getRegisterD())));
-			gen.addClause(cl);
+			gen.addClause(cl, c);
 			cl2.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			cl2.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			gen.addClause(cl2);
+			gen.addClause(cl2, c);
 			return true;
         }
         if  ("getSystemService(Ljava/lang/String;)Ljava/lang/Object;".hashCode() == m){
@@ -2775,13 +2775,13 @@ public class InstructionAnalysis {
     		cl2.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
     		cl2.appendBody(Utils.hPred(Utils.hexDec64("Ljava/lang/Object;".hashCode(), size), 
     				Utils.hexDec64(instanceNum, size), "f", "vfp", "false", "bf"));
-    		gen.addClause(cl2);
+    		gen.addClause(cl2, c);
 			cl.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
     		regUpdate.put(numRegLoc, Utils.hexDec64(instanceNum, size));
 			regUpdateL.put(numRegLoc, "false");
 			regUpdateB.put(numRegLoc, "true");
 			cl.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			gen.addClause(cl);
+			gen.addClause(cl, c);
 			return true;
         }
         ////////////////////////////////////
@@ -2795,13 +2795,13 @@ public class InstructionAnalysis {
 							"cn", 'v' + Utils.Dec(instruction.getRegisterC()), "val", "lf", "bf") + ')');
 			cl2.appendBody(Utils.hiPred(
 					'v' + Integer.toString(instruction.getRegisterD()), 'v' + Integer.toString(instruction.getRegisterC()), "val", "lf", "bf"));
-			gen.addClause(cl2);
+			gen.addClause(cl2, c);
 			cl.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			regUpdate.put(instruction.getRegisterC(), 'v' + Integer.toString(instruction.getRegisterC()));
 			regUpdateL.put(instruction.getRegisterC(), 'l' + Integer.toString(instruction.getRegisterC()));
 			regUpdateB.put(instruction.getRegisterC(), 'b' + Integer.toString(instruction.getRegisterC()));
 			cl.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			gen.addClause(cl);
+			gen.addClause(cl, c);
         	return true;
         }
         
@@ -2813,13 +2813,13 @@ public class InstructionAnalysis {
 			cl2.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			cl2.appendBody(Utils.hiPred(
 					'v' + Integer.toString(instruction.getRegisterE()), Utils.hexDec64(instanceNum, size), Utils.hexDec64(0, size), "false", "false"));
-			gen.addClause(cl2);
+			gen.addClause(cl2, c);
 			cl.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			regUpdate.put(instruction.getRegisterC(), Utils.hexDec64(instanceNum, size));
 			regUpdateL.put(instruction.getRegisterC(), "false");
 			regUpdateB.put(instruction.getRegisterC(), "true");
 			cl.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			gen.addClause(cl);
+			gen.addClause(cl, c);
 			
 			regUpdate.clear();
 			regUpdateL.clear();
@@ -2831,7 +2831,7 @@ public class InstructionAnalysis {
     			cl12.appendHead(Utils.rPred(Utils.Dec(ci), Utils.Dec(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
     			cl12.appendBody(Utils.hPred(
     					Utils.hexDec64("Landroid/content/Intent;".hashCode(), size), Utils.hexDec64(instanceNum, size), Utils.hexDec64(fieldN.getKey(), size), Utils.hexDec64(0, size), "false", Boolean.toString(fieldN.getValue())));
-    			gen.addClause(cl12);
+    			gen.addClause(cl12, c);
     		}
 			
 			return true;
@@ -2844,13 +2844,13 @@ public class InstructionAnalysis {
 				cl2.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 				cl2.appendBody(Utils.hiPred(
 						'v' + Integer.toString(instruction.getRegisterE()), Utils.hexDec64(instanceNum, size), Utils.hexDec64(0, size), "false", "false"));
-				gen.addClause(cl2);
+				gen.addClause(cl2, c);
 				cl.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 				regUpdate.put(instruction.getRegisterC(), Utils.hexDec64(instanceNum, size));
 				regUpdateL.put(instruction.getRegisterC(), "false");
 				regUpdateB.put(instruction.getRegisterC(), "true");
 				cl.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-				gen.addClause(cl);
+				gen.addClause(cl, c);
 				
 				regUpdate.clear();
 				regUpdateL.clear();
@@ -2862,7 +2862,7 @@ public class InstructionAnalysis {
 	    			cl12.appendHead(Utils.rPred(Utils.Dec(ci), Utils.Dec(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 	    			cl12.appendBody(Utils.hPred(
 	    					Utils.hexDec64("Landroid/content/Intent;".hashCode(), size), Utils.hexDec64(instanceNum, size), Utils.hexDec64(fieldN.getKey(), size), Utils.hexDec64(0, size), "false", Boolean.toString(fieldN.getValue())));
-	    			gen.addClause(cl12);
+	    			gen.addClause(cl12, c);
 	    		}
 				
 				return true;
@@ -2875,13 +2875,13 @@ public class InstructionAnalysis {
 				cl2.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 				cl2.appendBody(Utils.hiPred(
 						"f", Utils.hexDec64(instanceNum, size), Utils.hexDec64(0, size), "false", "false"));
-				gen.addClause(cl2);
+				gen.addClause(cl2, c);
 				cl.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 				regUpdate.put(instruction.getRegisterC(), Utils.hexDec64(instanceNum, size));
 				regUpdateL.put(instruction.getRegisterC(), "false");
 				regUpdateB.put(instruction.getRegisterC(), "true");
 				cl.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-				gen.addClause(cl);
+				gen.addClause(cl, c);
 				
 				regUpdate.clear();
 				regUpdateL.clear();
@@ -2893,7 +2893,7 @@ public class InstructionAnalysis {
 	    			cl12.appendHead(Utils.rPred(Utils.Dec(ci), Utils.Dec(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 	    			cl12.appendBody(Utils.hPred(
 	    					Utils.hexDec64("Landroid/content/Intent;".hashCode(), size), Utils.hexDec64(instanceNum, size), Utils.hexDec64(fieldN.getKey(), size), Utils.hexDec64(0, size), "false", Boolean.toString(fieldN.getValue())));
-	    			gen.addClause(cl12);
+	    			gen.addClause(cl12, c);
 	    		}
 				return true;
 		}
@@ -2904,10 +2904,10 @@ public class InstructionAnalysis {
 							"cn", 'v' + Utils.Dec(instruction.getRegisterD()), "val", "lf", "bf") + ')');
 			cl.appendBody(Utils.iPred(
 							"cn", Utils.hexDec64(c, size), "val", "lf", "bf"));
-			gen.addClause(cl);
+			gen.addClause(cl, c);
 			cl2.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			cl2.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			gen.addClause(cl2);
+			gen.addClause(cl2, c);
 			
 			Clause cl3 = new Clause();
 			cl3.appendHead("(and " + Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
@@ -2916,7 +2916,7 @@ public class InstructionAnalysis {
 			final String inC = Utils.hexDec64((Utils.Dec(instruction.getRegisterD()) + Utils.Dec(c)).hashCode(), size); // in(c) = _ + _)
 			cl3.appendBody(Utils.hiPred(
 					"cn", inC , "val", "lf", "bf")); 
-			gen.addClause(cl3);
+			gen.addClause(cl3, c);
 			
 			Clause cl4 = new Clause();
 			cl4.appendHead("(and " + Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
@@ -2924,7 +2924,7 @@ public class InstructionAnalysis {
 							"cn", 'v' + Utils.Dec(instruction.getRegisterD()), "val", "lf", "bf") + ')');
 			cl4.appendBody(Utils.hPred(
 					"cn", "cn" , Utils.hexDec64("parent".hashCode(), size), Utils.hexDec64(c, size), "false", "true")); 
-			gen.addClause(cl4);
+			gen.addClause(cl4, c);
 			
 			Clause cl5 = new Clause();
 			cl5.appendHead("(and " + Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
@@ -2932,7 +2932,7 @@ public class InstructionAnalysis {
 							"cn", 'v' + Utils.Dec(instruction.getRegisterD()), "val", "lf", "bf") + ')');
 			cl5.appendBody(Utils.hPred(
 					"cn", "cn" , Utils.hexDec64("intent".hashCode(), size), inC, "false", "true")); 
-			gen.addClause(cl5);
+			gen.addClause(cl5, c);
 			
 			return true;
 		}
@@ -2944,11 +2944,11 @@ public class InstructionAnalysis {
 			cl.appendBody(Utils.hiPred(
 							"cn", 'v' + Utils.Dec(instruction.getRegisterC()),
 							'v' + Integer.toString(instruction.getRegisterE()), 'l' + Integer.toString(instruction.getRegisterE()), 'b' + Integer.toString(instruction.getRegisterE())));
-			gen.addClause(cl);
+			gen.addClause(cl, c);
 			cl2.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			regUpdateL.put(instruction.getRegisterC(), "(or l" + Utils.Dec(instruction.getRegisterC()) + ' ' + 'l' + Utils.Dec(instruction.getRegisterE()) + ')');
 			cl2.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			gen.addClause(cl2);
+			gen.addClause(cl2, c);
 			return true;
 		}
 		if  (c == ("Landroid/content/Intent;".hashCode()) && 
@@ -2958,7 +2958,7 @@ public class InstructionAnalysis {
 			regUpdateL.put(numRegLoc, "false");
 			regUpdateB.put(numRegLoc, "bf");
 			cl.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			gen.addClause(cl);
+			gen.addClause(cl, c);
 			return true;
 		}
 		if (shortMethodName.contains((String) "get") && c == ("Landroid/content/Intent;".hashCode())){
@@ -2971,7 +2971,7 @@ public class InstructionAnalysis {
 				regUpdateL.put(numRegLoc, "true");
 				regUpdateB.put(numRegLoc, "bf");
 				cl.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-				gen.addClause(cl);
+				gen.addClause(cl, c);
 			}
 			else{
 				cl.appendHead("(and " + Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
@@ -2981,7 +2981,7 @@ public class InstructionAnalysis {
 				regUpdateL.put(numRegLoc, "lf");	
 				regUpdateB.put(numRegLoc, "bf");
 				cl.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-				gen.addClause(cl);
+				gen.addClause(cl, c);
 			}
 			}
 			return true;
@@ -2994,10 +2994,10 @@ public class InstructionAnalysis {
 			cl.appendBody(Utils.hPred(
 							Utils.hexDec64(c, size), Utils.hexDec64(c, size), Utils.hexDec64("result".hashCode(), size), 
 							'v' + Utils.Dec(instruction.getRegisterE()), 'l' + Utils.Dec(instruction.getRegisterE()), 'b' + Utils.Dec(instruction.getRegisterE())));
-			gen.addClause(cl);
+			gen.addClause(cl, c);
 			cl2.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			cl2.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			gen.addClause(cl2);
+			gen.addClause(cl2, c);
 			return true;
 		}
 		if (m ==  "getIntent()Landroid/content/Intent;".hashCode()){
@@ -3009,7 +3009,7 @@ public class InstructionAnalysis {
 			regUpdateL.put(numRegLoc, "lf");
 			regUpdateB.put(numRegLoc, "bf");
 			cl.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-			gen.addClause(cl);
+			gen.addClause(cl, c);
 			return true;
 		}
 		return false;

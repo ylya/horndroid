@@ -145,12 +145,12 @@ public class Utils {
     }
     
 	
-	private static void addVar(String var, final Gen gen){
+	private static void addVar(String var, final Gen gen, final String c){
 		if (var.equals((String) "true") || var.equals((String) "false")) return;
 		char firstLetter = var.charAt(0);
 		switch (firstLetter){
-			case 'l': case 'b': gen.addVar("(declare-var " + var + " Bool)"); break;
-			case 'v': gen.addVar("(declare-var " + var + " bv64)"); break;
+			case 'l': case 'b': gen.addVar("(declare-var " + var + " Bool)", Integer.parseInt(c)); break;
+			case 'v': gen.addVar("(declare-var " + var + " bv64)", Integer.parseInt(c)); break;
 		}		
 	}
 	
@@ -164,7 +164,7 @@ public class Utils {
 	    		if (!b.isEmpty()) b = b + ' ' + "Bool";
 	    		else b = "Bool";
 	    	}
-	    	gen.addDef("(declare-rel R_" + c + '_' + m + '_' + Integer.toString(pc) + '(' + v + ' ' + l + ' ' + b + ") interval_relation bound_relation)");
+	    	gen.addDef("(declare-rel R_" + c + '_' + m + '_' + Integer.toString(pc) + '(' + v + ' ' + l + ' ' + b + ") interval_relation bound_relation)", Integer.parseInt(c));
 	    }
 	    
 	    public static String rPred(final String c, final String m, final int pc, final Map<Integer, String> rUp, final Map<Integer, String> rUpL, final Map<Integer, String> rUpB, final int numArg, final int numReg, final Gen gen){
@@ -176,17 +176,26 @@ public class Utils {
 				if (var == null) var = 'v' + Integer.toString(i);	
 				if (!v.isEmpty()) v = v + ' ' + var;
 				else v = var;
-				addVar(var, gen);
+				if (!gen.containsV(i)){
+					addVar(var, gen, c);
+					gen.putV(i);
+				}
 				var = rUpL.get(i);
 				if (var == null) var = 'l' + Integer.toString(i);	
 				if (!l.isEmpty()) l = l + ' ' + var;
 				else l = var;
-				addVar(var, gen);
+				if (!gen.containsL(i)){
+					addVar(var, gen, c);
+					gen.putL(i);
+				}
 				var = rUpB.get(i);
 				if (var == null) var = 'b' + Integer.toString(i);	
 				if (!l.isEmpty()) b = b + ' ' + var;
 				else b = var;
-				addVar(var, gen);
+				if (!gen.containsB(i)){
+					addVar(var, gen, c);
+					gen.putB(i);
+				}
 	    	}
 	    	return ret + v + ' ' + l + ' ' + b + ')';
 	    }
@@ -226,7 +235,7 @@ public class Utils {
 	    		if (!b.isEmpty()) b = b + ' ' + "Bool";
 	    		else b = "Bool";
 	    	}
-	    	gen.addDef("(declare-rel RES_" + c + '_' + m + ' ' + '(' + v + ' ' + l + ' ' + b + ") interval_relation bound_relation)");
+	    	gen.addDef("(declare-rel RES_" + c + '_' + m + ' ' + '(' + v + ' ' + l + ' ' + b + ") interval_relation bound_relation)", Integer.parseInt(c));
 	    }
 	    
 	    public static String resPred(final String c, final String m, final Map<Integer, String> rUp, final Map<Integer, String> rUpL, final Map<Integer, String> rUpB, final int numArg, final Gen gen){
@@ -238,17 +247,26 @@ public class Utils {
 				if (var == null) var = 'v' + Integer.toString(i);	
 				if (!v.isEmpty()) v = v + ' ' + var;
 				else v = var;
-				addVar(var, gen);
+				if (!gen.containsV(i)){
+					addVar(var, gen, c);
+					gen.putV(i);
+				}
 				var = rUpL.get(i);
 				if (var == null) var = 'l' + Integer.toString(i);	
 				if (!l.isEmpty()) l = l + ' ' + var;
 				else l = var;
-				addVar(var, gen);
+				if (!gen.containsL(i)){
+					addVar(var, gen, c);
+					gen.putL(i);
+				}
 				var = rUpB.get(i);
 				if (var == null) var = 'b' + Integer.toString(i);	
 				if (!b.isEmpty()) b = b + ' ' + var;
 				else b = var;
-				addVar(var, gen);
+				if (!gen.containsB(i)){
+					addVar(var, gen, c);
+					gen.putB(i);
+				}
 	    	}
 	    	return ret + v + ' ' + l + ' ' + b + ')';
 	    }

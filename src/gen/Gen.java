@@ -28,17 +28,14 @@
 
 package gen;
 
-
-
-import horndroid.options;
-
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -55,13 +52,19 @@ public class Gen {
 	@Nonnull private final Set<CMPair> methodIsEntryPoint;
 	
 	@Nonnull private final Set<Integer> staticConstructor;
-	@Nonnull private final Set<String> vars;
-	@Nonnull private final Set<String> defs;
-	@Nonnull private final Set<Clause> clauses;
-	@Nonnull private final Set<String> mainMethod;
-	@Nonnull private final Set<String> queries;
-	@Nonnull private final Set<String> queriesV;
-	public Gen(){
+	@Nonnull private final Set<Integer> varsB;
+	@Nonnull private final Set<Integer> varsV;
+	@Nonnull private final Set<Integer> varsL;
+	//@Nonnull private final Set<String> defs;
+	//@Nonnull private final Set<Clause> clauses;
+	//@Nonnull private final Set<String> mainMethod;
+	//@Nonnull private final Set<String> queries;
+	//@Nonnull private final Set<String> queriesV;
+	private int numQueries;
+	private int numStringQueries;
+	private int numFileQueries;
+	private final String outputFolder;
+	public Gen(final String outputFolder){
 		//this.outputDirectory = outputDirectory;
 		/*this.clauses = Collections.synchronizedSet(new HashSet<Clause>());
 		this.defs = Collections.synchronizedSet(new HashSet<String>());
@@ -74,20 +77,78 @@ public class Gen {
 		this.methodIsSource = Collections.synchronizedSet(new HashSet <CMPair>());
 		this.methodIsEntryPoint = Collections.synchronizedSet(new HashSet <CMPair>());
 		this.staticConstructor = Collections.synchronizedSet(new HashSet <Integer>());*/
-		this.clauses = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<Clause, Boolean>()));
-		this.defs = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>()));
-		this.vars = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>()));
-		this.queries = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>()));
-		this.queriesV = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>()));
-		this.mainMethod = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>()));
+		//this.clauses = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<Clause, Boolean>()));
+		//this.defs = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>()));
+		this.varsV = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<Integer, Boolean>()));
+		this.varsB = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<Integer, Boolean>()));
+		this.varsL = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<Integer, Boolean>()));
+		//this.queries = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>()));
+		//this.queriesV = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>()));
+		//this.mainMethod = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>()));
 		this.methodIsDefined = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<CMPair, Boolean>()));
 		this.methodIsSink = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<CMPair, Boolean>()));
 		this.methodIsSource = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<CMPair, Boolean>()));
 		this.methodIsEntryPoint = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<CMPair, Boolean>()));
 		this.staticConstructor = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<Integer, Boolean>()));
+		this.numQueries = 0;
+		this.numStringQueries = 0;
+		this.outputFolder = outputFolder;
+		this.numFileQueries = 0;
+		if (new File(outputFolder).exists()){
+		Runtime runtime = Runtime.getRuntime();
+		Process proc;
+		try {
+			proc = runtime.exec(new String[]{"/bin/sh", "-c",
+					"cd " + outputFolder + ';' + 
+	    " rm *.txt"});
+		
+		BufferedReader stdInput = new BufferedReader(new 
+	             InputStreamReader(proc.getInputStream()));
+
+	    BufferedReader stdError = new BufferedReader(new 
+	             InputStreamReader(proc.getErrorStream()));
+
+	    // read the output from the command
+	    String s = null;
+	    while ((s = stdInput.readLine()) != null) {
+	    	System.out.println(s);
+	    }
+
+	    // read any errors from the attempted command
+	    if (stdError.readLine() != null)
+	    	System.out.println("Here is the standard error of the command (if any):\n");
+	    	while ((s = stdError.readLine()) != null) {
+	    		System.out.println(s);
+	        }
+	    proc.destroy();
+		}
+	    catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		}
+	}
+	public void putB(final int i){
+		varsB.add(i);
+	}
+	public void putL(final int i){
+		varsL.add(i);
+	}
+	public void putV(final int i){
+		varsV.add(i);
+	}
+	public boolean containsB(final int i){
+		return varsB.contains(i);
+	}
+	public boolean containsL(final int i){
+		return varsL.contains(i);
+	}
+	public boolean containsV(final int i){
+		return varsV.contains(i);
 	}
 	public int numberOfQueries(){
-		return queries.size();
+		//return queries.size();
+		return numQueries;
 	}
 	//public boolean isSource(int c, int m){
 	//	return methodIsSource.contains(new CMPair(c, m));
@@ -119,30 +180,243 @@ public class Gen {
 	//public void putDefined(int c, int m){
 	//	methodIsDefined.add(new CMPair (c, m));
 	//}
-	public void addQuery(String query){
-		queries.add(query);
+	public void addQuery(final String query, final int fileModifier){
+		try
+		(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(new File(outputFolder + "query" + Integer.toString(fileModifier) + ".txt"), true)))) {
+			out.println(query);
+		}catch (IOException e) {
+		}
+		this.numQueries ++;
 	}
-	public void addQueryV(String queryV){
-		queriesV.add(queryV);
+	public void addQueryV(final String queryV, final int fileModifier){
+		try
+		(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(new File(outputFolder +"solved" + Integer.toString(fileModifier) + ".txt"), true)))) {
+			out.println(Integer.toString(numStringQueries) + queryV);
+		}catch (IOException e) {
+		}
+		this.numStringQueries ++;
 	}
-	public Set<String> getQueriesV(){
+	/*public Set<String> getQueriesV(){
 		return queriesV;
+	}*/
+	public void addMain(final String main, final int fileModifier){
+		try
+		(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(new File(outputFolder +"main" + Integer.toString(fileModifier) + ".txt"), true)))) {
+			out.println(main);
+		}catch (IOException e) {
+		}
 	}
-	public void addMain(String main){
-		mainMethod.add(main);
+	public void addDef(final String def, final int fileModifier){
+		try
+		(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(new File(outputFolder +"def" + Integer.toString(fileModifier) + ".txt"), true)))) {
+			out.println(def);
+		}catch (IOException e) {
+		}
 	}
-	public void addDef(String def){
-		defs.add(def);
+	public void addVar(final String var, final int fileModifier){
+		try
+		(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(new File(outputFolder +"var" + Integer.toString(fileModifier) + ".txt"), true)))) {
+			out.println(var);
+		}catch (IOException e) {
+		}
 	}
-	public void addVar(String var){
-		vars.add(var);
-	}
-	public boolean isDef(String def){
+	/*public boolean isDef(String def){
 		if (defs.contains(def)) return true;
 		else return false;
+	}*/
+	public int getNumFileQueries(){
+		return numFileQueries;
 	}
-	public void addClause(Clause cl){
-		clauses.add(cl);
+	public void addClause(final Clause cl, final int fileModifier){
+		try
+		(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(new File(outputFolder +"clause" + Integer.toString(fileModifier) + ".txt"), true)))) {
+			out.println(cl.toString());
+		}catch (IOException e) {
+		}
+	}
+	public void writeOne(final int size){
+		File clausesFile = new File (outputFolder + "clauses.smt2");
+		if (clausesFile.exists()) clausesFile.delete();
+		try
+		(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(clausesFile, true)))) {
+			out.println(" (set-option :pp.bv-literals false) \n (set-option :fixedpoint.engine pdr) \n (define-sort bv64 () (_ BitVec " + Integer.toString(size) + "))\n");
+			out.println("(declare-var rez bv64)");
+			out.println("(declare-var rezp bv64)");
+			out.println("(declare-var buf bv64)");
+			out.println("(declare-var bufp bv64)");
+			out.println("(declare-var lrez Bool)");
+			out.println("(declare-var brez Bool)");
+			out.println("(declare-var lrezp Bool)");
+			out.println("(declare-var lbuf Bool)");
+			out.println("(declare-var lbufp Bool)");
+			out.println("(declare-var fnum Int)");
+			out.println("(declare-var f bv64)");
+			out.println("(declare-var fpp bv64)");
+			out.println("(declare-var vfp bv64)");
+			out.println("(declare-var lfp Bool)");
+			out.println("(declare-var bfp Bool)");
+			out.println("(declare-var cn bv64)");
+			out.println("(declare-var lf Bool)");
+			out.println("(declare-var bf Bool)");
+			out.println("(declare-var val bv64)");
+			out.println("(declare-var lval Bool)");
+			out.println("(declare-var bval Bool)");
+			out.println("(declare-var cnum Int)");
+			out.println("(declare-rel H (bv64 bv64 bv64 bv64 Bool Bool) interval_relation bound_relation)");
+			out.println("(declare-rel HI (bv64 bv64 bv64 Bool Bool) interval_relation bound_relation)");
+			out.println("(declare-rel I (bv64 bv64 bv64 Bool Bool) interval_relation bound_relation)");
+			out.println("(declare-rel S (Int Int bv64 Bool Bool) interval_relation bound_relation)"); 
+		}catch (IOException e) {
+		}
+		Runtime runtime = Runtime.getRuntime();
+		Process proc;
+		try {
+			proc = runtime.exec(new String[]{"/bin/sh", "-c",
+					"cd " + outputFolder + ';' + 
+	" cat main*.txt > outmain.txt; sort var*.txt | uniq > outvar.txt; sort def*.txt | uniq > outdef.txt; cat query*.txt > outquery.txt;"
+	+ " cat clause*.txt > outclause.txt; cat outvar.txt >> clauses.smt2; cat outdef.txt >> clauses.smt2; cat outclause.txt >> clauses.smt2; cat outmain.txt"
+	+ " >> clauses.smt2; cat outquery.txt >> clauses.smt2"});
+		
+		BufferedReader stdInput = new BufferedReader(new 
+	             InputStreamReader(proc.getInputStream()));
+
+	    BufferedReader stdError = new BufferedReader(new 
+	             InputStreamReader(proc.getErrorStream()));
+
+	    // read the output from the command
+	    String s = null;
+	    while ((s = stdInput.readLine()) != null) {
+	    	System.out.println(s);
+	    }
+
+	    // read any errors from the attempted command
+	    if (stdError.readLine() != null)
+	    	System.out.println("Here is the standard error of the command (if any):\n");
+	    	while ((s = stdError.readLine()) != null) {
+	    		System.out.println(s);
+	        }
+	    proc.destroy();
+		}
+	    catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	public void write(final int size){
+		
+		Runtime runtime = Runtime.getRuntime();
+		Process proc;
+		try {
+			proc = runtime.exec(new String[]{"/bin/sh", "-c",
+					"cd " + outputFolder + ';' + 
+	" cat main*.txt > outmain.txt; sort var*.txt | uniq > outvar.txt; sort def*.txt | uniq > outdef.txt;"
+	+ " cat clause*.txt > outclause.txt"});
+		
+		BufferedReader stdInput = new BufferedReader(new 
+	             InputStreamReader(proc.getInputStream()));
+
+	    BufferedReader stdError = new BufferedReader(new 
+	             InputStreamReader(proc.getErrorStream()));
+
+	    // read the output from the command
+	    String s = null;
+	    while ((s = stdInput.readLine()) != null) {
+	    	System.out.println(s);
+	    }
+
+	    // read any errors from the attempted command
+	    if (stdError.readLine() != null)
+	    	System.out.println("Here is the standard error of the command (if any):\n");
+	    	while ((s = stdError.readLine()) != null) {
+	    		System.out.println(s);
+	        }
+	    proc.destroy();
+		}
+	    catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		File dir = new File (outputFolder);
+		 File[] files = dir.listFiles();
+	        if (files != null) {
+	            for(File file: files) {
+	                if (file.isFile()) {
+	                   if (file.getName().endsWith(".txt") && file.getName().startsWith("query") && !(file.length() > 0)) {
+	                	   File clausesFile = new File (outputFolder + "clauses" + Integer.toString(numFileQueries) + ".smt2");
+	               		if (clausesFile.exists()) clausesFile.delete();
+	               		try
+	               		(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(clausesFile, true)))) {
+	               		
+	               			out.println(" (set-option :pp.bv-literals false) \n (set-option :fixedpoint.engine pdr) \n (define-sort bv64 () (_ BitVec " + Integer.toString(size) + "))\n");
+	               			
+	               			out.println("(declare-var rez bv64)");
+	            			out.println("(declare-var rezp bv64)");
+	            			out.println("(declare-var buf bv64)");
+	            			out.println("(declare-var bufp bv64)");
+	            			out.println("(declare-var lrez Bool)");
+	            			out.println("(declare-var brez Bool)");
+	            			out.println("(declare-var lrezp Bool)");
+	            			out.println("(declare-var lbuf Bool)");
+	            			out.println("(declare-var lbufp Bool)");
+	            			out.println("(declare-var fnum Int)");
+	            			out.println("(declare-var f bv64)");
+	            			out.println("(declare-var fpp bv64)");
+	            			out.println("(declare-var vfp bv64)");
+	            			out.println("(declare-var lfp Bool)");
+	            			out.println("(declare-var bfp Bool)");
+	            			out.println("(declare-var cn bv64)");
+	            			out.println("(declare-var lf Bool)");
+	            			out.println("(declare-var bf Bool)");
+	            			out.println("(declare-var val bv64)");
+	            			out.println("(declare-var lval Bool)");
+	            			out.println("(declare-var bval Bool)");
+	            			out.println("(declare-var cnum Int)");
+	            			out.println("(declare-rel H (bv64 bv64 bv64 bv64 Bool Bool) interval_relation bound_relation)");
+	            			out.println("(declare-rel HI (bv64 bv64 bv64 Bool Bool) interval_relation bound_relation)");
+	            			out.println("(declare-rel I (bv64 bv64 bv64 Bool Bool) interval_relation bound_relation)");
+	            			out.println("(declare-rel S (Int Int bv64 Bool Bool) interval_relation bound_relation)");
+	               			
+	               		}catch (IOException e) {
+	               		}
+	                		try {
+	                			proc = runtime.exec(new String[]{"/bin/sh", "-c",
+	                					"cd " + outputFolder + ';' + 
+	                	" cat outvar.txt >> outdef.txt >> outclause.txt >> outmain.txt >> " 
+	                	+ file.getAbsolutePath() + " >> clauses" + Integer.toString(numFileQueries) + ".smt2"});
+	                		
+	                		BufferedReader stdInput = new BufferedReader(new 
+	                	             InputStreamReader(proc.getInputStream()));
+
+	                	    BufferedReader stdError = new BufferedReader(new 
+	                	             InputStreamReader(proc.getErrorStream()));
+
+	                	    // read the output from the command
+	                	    String s = null;
+	                	    while ((s = stdInput.readLine()) != null) {
+	                	    	System.out.println(s);
+	                	    }
+
+	                	    // read any errors from the attempted command
+	                	    if (stdError.readLine() != null)
+	                	    	System.out.println("Here is the standard error of the command (if any):\n");
+	                	    	while ((s = stdError.readLine()) != null) {
+	                	    		System.out.println(s);
+	                	        }
+	                	    proc.destroy();
+	                		}
+	                	    catch (IOException e) {
+	                			// TODO Auto-generated catch block
+	                			e.printStackTrace();
+	                		}
+	                		numFileQueries ++;
+	                   }
+	                }
+	            }
+	        }
+		
+		
+	
 	}
 	/*private void processMethod(List<? extends ClassDef> classDefs, IndStr indStr, Method method, int c){
 		int m, numReg;
@@ -177,7 +451,7 @@ public class Gen {
 				processMethod(classDefs, indStr, method, c);
 		}
 	}*/
-	public void write(options options){
+	/*public void write(options options){
 		int count = 0;
 		Iterator<String> itq = this.queries.iterator();
 		System.out.println("Number of queries to solve: " + queries.size());
@@ -294,5 +568,5 @@ public class Gen {
     		}catch (IOException e) {
     		}
 		}
-	}
+	}*/
 }
