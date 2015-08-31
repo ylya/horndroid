@@ -2570,6 +2570,7 @@ public class InstructionAnalysis {
         }
         if  (c == ("Ljava/lang/RuntimeException;".hashCode()) && 
     			("<init>(Ljava/lang/String;)V".hashCode()) == m){
+        	if (this.instruction instanceof FiveRegisterInstruction){
 			FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
     		cl2.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
     		cl2.appendBody(Utils.hPred(Utils.hexDec64("Ljava/lang/RuntimeException;".hashCode(), size), 
@@ -2579,6 +2580,17 @@ public class InstructionAnalysis {
 			cl.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			cl.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			gen.addClause(cl, c);
+        	}
+        	else{
+        		cl2.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+        		cl2.appendBody(Utils.hPred(Utils.hexDec64("Ljava/lang/RuntimeException;".hashCode(), size), 
+        				"f", Utils.hexDec64("message".hashCode(), size), 
+        				"fpp", "lf", "bf"));
+        		gen.addClause(cl2, c);
+    			cl.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+    			cl.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+    			gen.addClause(cl, c);
+        	}
 			return true;
         }
         if  (c == ("Ljava/lang/RuntimeException;".hashCode()) && 
@@ -2675,6 +2687,7 @@ public class InstructionAnalysis {
         }
         if  (c == ("Ljava/util/Formatter;".hashCode()) && 
     			("<init>(Ljava/lang/Appendable;)V".hashCode()) == m){
+        	if (this.instruction instanceof FiveRegisterInstruction){
 			FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
 			cl.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			cl.appendBody(Utils.hPred(
@@ -2684,10 +2697,22 @@ public class InstructionAnalysis {
 			cl2.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			cl2.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			gen.addClause(cl2, c);
+        	}
+        	else{
+        		cl.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+    			cl.appendBody(Utils.hPred(
+    					Utils.hexDec64("Ljava/lang/StringBuffer;".hashCode(), size), "f",
+    					Utils.hexDec64(0, size), "fpp", "false", "true"));
+    			gen.addClause(cl, c);
+    			cl2.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+    			cl2.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+    			gen.addClause(cl2, c);
+        	}
 			return true;
         }
         if  (c == ("Ljava/util/Formatter;".hashCode()) && 
     			("format(Ljava/lang/String;[Ljava/lang/Object;)Ljava/util/Formatter;".hashCode()) == m){
+        	if (this.instruction instanceof FiveRegisterInstruction){
 			FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
 			cl.appendHead("(and " + Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, 
 					regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen) + Utils.hPred(
@@ -2700,6 +2725,20 @@ public class InstructionAnalysis {
 			cl2.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			cl2.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 			gen.addClause(cl2, c);
+        	}
+        	else{
+        		cl.appendHead("(and " + Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, 
+    					regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen) + Utils.hPred(
+    							Utils.hexDec64("Ljava/lang/StringBuffer;".hashCode(), size), "f",
+    							Utils.hexDec64(0, size), "f", "false", "true") + ')');
+    			cl.appendBody(Utils.hPred(
+    					Utils.hexDec64("Ljava/lang/StringBuffer;".hashCode(), size), "f",
+    					Utils.hexDec64(0, size), "f", "lf", "true"));
+    			gen.addClause(cl, c);
+    			cl2.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+    			cl2.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+    			gen.addClause(cl2, c);
+        	}
 			return true;
         }
         if  (c == ("Ljava/lang/StringBuffer;".hashCode()) && 
@@ -2983,6 +3022,26 @@ public class InstructionAnalysis {
 				cl.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 				gen.addClause(cl, c);
 			}
+			}
+			else{
+				if (analysis.isSource(c, m)){
+					cl.appendHead(Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+					regUpdate.put(numRegLoc, "val");
+					regUpdateL.put(numRegLoc, "true");
+					regUpdateB.put(numRegLoc, "bf");
+					cl.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+					gen.addClause(cl, c);
+				}
+				else{
+					cl.appendHead("(and " + Utils.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
+							+ ' ' + Utils.hiPred(
+									"cn", "f", "val", "lf", "bf") + ')');
+					regUpdate.put(numRegLoc, "val");
+					regUpdateL.put(numRegLoc, "lf");	
+					regUpdateB.put(numRegLoc, "bf");
+					cl.appendBody(Utils.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
+					gen.addClause(cl, c);
+				}
 			}
 			return true;
 		}
