@@ -52,6 +52,7 @@ public class main {
         options.addOption("w", false, "sensitive array indexes");
         options.addOption("s", true, "number of queries per file, run Z3 in parallel saving results to the /out folder");
         options.addOption("n", true, "bitvector size (default 64)");
+        options.addOption("m", true, "max numer of files with queries");
     }
 	public static void main(String[] args) {
 		parseCommandLine(args);
@@ -192,6 +193,9 @@ public class main {
 	        	 final int numberOfFiles = gen.getNumFileQueries();
 	        	 final String outputDirectory = hornDroidOptions.outputDirectory;
 	        	 final String z3f = z3Folder;
+	        	 
+	        	 if (hornDroidOptions.maxQueries > 0 && hornDroidOptions.maxQueries < numberOfFiles) {System.err.println("Too many queries files!"); System.exit(1);}
+	        	 
 	        	 for (int i = 0; i < numberOfFiles; i++){
 	        		 final int count = i;
 	        		 executorService.submit(new Runnable() {
@@ -365,6 +369,9 @@ public class main {
                 case 'n':
                 	hornDroidOptions.bitvectorSize = Integer.parseInt(commandLine.getOptionValue("n"));
                 	break;
+                case 'm':
+                	hornDroidOptions.bitvectorSize = Integer.parseInt(commandLine.getOptionValue("m"));
+                	break;
             }
         }    
         if (otherArgs.length != 3) {
@@ -410,5 +417,6 @@ public class main {
         System.out.println("-w sensitive array indexes");
         System.out.println("-s one query per file, run Z3 in parallel saving results to the /out folder");
         System.out.println("-n bitvector size (default 64)");
+        System.out.println("-m max numer of files with queries");
    }
 }
