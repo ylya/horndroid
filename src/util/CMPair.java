@@ -5,11 +5,17 @@ import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 public class CMPair {
-	final int c;
-	final int m;
+	final private int c;
+	final private int m;
 	public CMPair (int c, int m){
 		this.c = c;
 		this.m = m;
+	}
+	public int getC(){
+		return c;
+	}
+	public int getM(){
+		return m;
 	}
 	@Override
 	public int hashCode() {

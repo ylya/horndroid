@@ -8,4 +8,5 @@ public class options {
     public String outputDirectory = "";
     public int apiLevel = 15;
     public int bitvectorSize = 64;
+    public int maxQueries = 0;
 }

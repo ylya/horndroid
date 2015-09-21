@@ -6,8 +6,8 @@ public class ConstString {
 	private int pc;
 	private int v;
 	private int val;
-	private int dalvikName;
-	public ConstString(final int c, final int m, final int pc, final int v, final int val, final int dalvikName){
+	private String dalvikName;
+	public ConstString(final int c, final int m, final int pc, final int v, final int val, final String dalvikName){
 		this.c = c;
 		this.m = m;
 		this.pc = pc;
@@ -30,7 +30,7 @@ public class ConstString {
 	public int getVAL(){
 		return val;
 	}
-	public int getDalvikName(){
+	public String getDalvikName(){
 		return dalvikName;
 	}
 	public void putPC(int pc){
@@ -39,7 +39,7 @@ public class ConstString {
 	public void putV(int v){
 		this.v = v;
 	}
-	public void putDalvikName(int dalvikName){
+	public void putDalvikName(String dalvikName){
 		this.dalvikName = dalvikName;
 	}
 }

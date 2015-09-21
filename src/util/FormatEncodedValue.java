@@ -1,9 +1,7 @@
 
 package util;
 
-import util.iface.IndStr;
 
-import java.io.IOException;
 
 import org.jf.dexlib2.ValueType;
 import org.jf.dexlib2.iface.value.BooleanEncodedValue;
@@ -22,7 +20,7 @@ import org.jf.dexlib2.util.ReferenceUtil;
 
 public class FormatEncodedValue {
 	
-	 public static String toString(EncodedValue encodedValue, IndStr indStr, int size) throws IOException {
+	 public static String toString(EncodedValue encodedValue, int size)  {
 		 	long lVal;
 	        switch (encodedValue.getValueType()) {
 	            case ValueType.ANNOTATION:
@@ -45,9 +43,9 @@ public class FormatEncodedValue {
 	            	lVal = Double.doubleToRawLongBits(((DoubleEncodedValue)encodedValue).getValue());
 	            	return Utils.hexDec64(lVal, size);
 	            case ValueType.ENUM:
-	            	return Utils.hexDec64(indStr.get(ReferenceUtil.getShortFieldDescriptor(((EnumEncodedValue)encodedValue).getValue()),'f'), size);
+	            	return Utils.hexDec64(ReferenceUtil.getShortFieldDescriptor(((EnumEncodedValue)encodedValue).getValue()).hashCode(), size);
 	            case ValueType.FIELD:
-	            	return Utils.hexDec64(indStr.get(ReferenceUtil.getShortFieldDescriptor(((FieldEncodedValue)encodedValue).getValue()),'f'), size);
+	            	return Utils.hexDec64(ReferenceUtil.getShortFieldDescriptor(((FieldEncodedValue)encodedValue).getValue()).hashCode(), size);
 	            case ValueType.FLOAT:
 	            	lVal = (long) Float.floatToRawIntBits(((FloatEncodedValue)encodedValue).getValue());
 	            	return Utils.hexDec64(lVal, size);
@@ -62,7 +60,7 @@ public class FormatEncodedValue {
 	            case ValueType.SHORT:
 	            	return Utils.hexDec64((long) ((ShortEncodedValue)encodedValue).getValue(), size);
 	            case ValueType.STRING:
-	            	return Utils.hexDec64(indStr.get(((StringEncodedValue)encodedValue).getValue(),'s'), size);
+	            	return Utils.hexDec64(((StringEncodedValue)encodedValue).getValue().hashCode(), size);
 	            case ValueType.TYPE:
 	            	return "";
 	        }
