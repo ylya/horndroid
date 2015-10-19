@@ -1,8 +1,6 @@
 
 package util;
 
-import gen.Gen;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -22,6 +20,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import analysis.Analysis;
+import z3.Z3Engine;
 
 public class SourceSinkParser {
 	
@@ -45,7 +44,7 @@ public class SourceSinkParser {
 		    }
 		}
 	}
-	public static void parseEntryPoint(final Gen gen) throws IOException{
+	public static void parseEntryPoint(final Z3Engine z3engine) throws IOException{
 		try (BufferedReader br = new BufferedReader(new FileReader(new File("EntryPoints.txt")))) {
 		    String line;
 		    while ((line = br.readLine()) != null) {
@@ -53,7 +52,7 @@ public class SourceSinkParser {
 		    	String[] parts = line.split(Pattern.quote(" "));
 		    	int c = parts[0].hashCode();
 		    	int m = parts[1].hashCode();
-		    	gen.putEntryPoint(c, m);
+                z3engine.putEntryPoint(c, m);
 		    }
 		}
 	}
