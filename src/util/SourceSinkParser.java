@@ -66,8 +66,8 @@ public class SourceSinkParser {
 		 final Set<Integer> applications = analysis.getApplications();
 		 System.out.println("Running apktool to obtain manifest xml and layout files");
 	     Runtime runtime = Runtime.getRuntime();
-//		 Process proc = runtime.exec(new String[]{"java -jar " + apktoolFolder + "apktool.jar d " + apkFileName + " -s -f -o " + outputDirectory + "/apktool"});
-        Process proc = runtime.exec("java -jar C:\\Users\\rtongchenchitt\\Desktop\\hiwi\\horndroid-new-copy\\lib\\apktool.jar d " + apkFileName + " -s -f -o " + outputDirectory + File.separator + "apktool");
+		 Process proc = runtime.exec(new String[]{"java -jar " + apktoolFolder + "apktool.jar d " + apkFileName + " -s -f -o " + outputDirectory + "/apktool"});
+//        Process proc = runtime.exec("java -jar C:\\Users\\rtongchenchitt\\Desktop\\hiwi\\horndroid-new-copy\\lib\\apktool.jar d " + apkFileName + " -s -f -o " + outputDirectory + File.separator + "apktool");
 
         BufferedReader stdInput = new BufferedReader(new
 	     InputStreamReader(proc.getInputStream()));
