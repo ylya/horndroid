@@ -1,7 +1,5 @@
 package horndroid;
 
-import gen.Gen;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -37,6 +35,7 @@ import analysis.Analysis;
 import util.SourceSinkMethod;
 import util.SourceSinkParser;
 import util.Utils;
+import z3.Z3Engine;
 
 public class main {
 	private static final Options options;
@@ -90,11 +89,12 @@ public class main {
          	final String inputApkFileName = '/' + FilenameUtils.getPath(file.getPath()) + file.getName();
          	hornDroidOptions.outputDirectory  = fullPath + shortFilename;
         	clean();
-            final Gen gen = new Gen(hornDroidOptions.outputDirectory + '/');
-            initGen(gen, hornDroidOptions);
+//            final Gen gen = new Gen(hornDroidOptions.outputDirectory + '/');
+//            initGen(gen, hornDroidOptions);
+            final Z3Engine z3engine = new Z3Engine(hornDroidOptions);
             final ExecutorService executorService = Executors.newCachedThreadPool();
          	final ExecutorService instructionExecutorService = Executors.newCachedThreadPool();
-    		Analysis analysis = new Analysis(gen, sourcesSinks, hornDroidOptions, instructionExecutorService);
+    		Analysis analysis = new Analysis(z3engine, sourcesSinks, hornDroidOptions, instructionExecutorService);
          	System.out.println("Analysing " + file.getName());
          	startTime = System.nanoTime();
          	
@@ -116,7 +116,7 @@ public class main {
            
             System.out.print("Parsing entry points...");
             try {
-				SourceSinkParser.parseEntryPoint(gen);
+				SourceSinkParser.parseEntryPoint(z3engine);
 			} catch (IOException e1) {
 				System.err.println("Error: Can't read entry points file! " + inputApkFileName);
          		System.exit(1);
@@ -170,57 +170,65 @@ public class main {
             }
             endTime = System.nanoTime();
             System.out.println("...done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
-            
-            System.out.print("Writing files for analysis...");
-            if (hornDroidOptions.numQueries == 0){	 
-	        	 gen.writeOne(hornDroidOptions.bitvectorSize);
-	        	 endTime = System.nanoTime();
-	        	 System.out.println("...done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
-	        	 String smtFile = hornDroidOptions.outputDirectory + '/' + "clauses.smt2";
-	        	 try {
-	        	 startTime = System.nanoTime();
-	        	 	runZ3(z3Folder, smtFile, gen);
-	        	 } catch (InterruptedException e) {
-	        		 e.printStackTrace();
-	        	 } catch (IOException e) {
-	        		 // TODO Auto-generated catch block
-	        		 e.printStackTrace();
-	        	 }
-	        	 System.out.println("----------------------------------------------------------------------------");
-	        }
-	        else{
-	        	 gen.write(hornDroidOptions.bitvectorSize);
-	        	 final int numberOfFiles = gen.getNumFileQueries();
-	        	 final String outputDirectory = hornDroidOptions.outputDirectory;
-	        	 final String z3f = z3Folder;
-	        	 
-	        	 if (hornDroidOptions.maxQueries > 0 && hornDroidOptions.maxQueries < numberOfFiles) {System.err.println("Too many queries files!"); System.exit(1);}
-	        	 
-	        	 for (int i = 0; i < numberOfFiles; i++){
-	        		 final int count = i;
-	        		 executorService.submit(new Runnable() {
-	        			 @Override
-	        			 public void run() {
-	        				 try {
-	        					 Process process = new ProcessBuilder("/bin/sh", "-c", runZ3(outputDirectory, z3f, shortFilename, fullPath, count)).start();
-	        				 } catch (IOException e) {
-	        					 e.printStackTrace();  
-	        				 }
 
-	        			 }
-	        		 });
-	        	 }
-	        	 executorService.shutdown();
-	        	 try {
-	        		 executorService.awaitTermination(2, TimeUnit.DAYS);
-	        	 } catch (InterruptedException e) {
-	        		 // TODO Auto-generated catch block
-	        		 e.printStackTrace();
-	        	 }
-	        	 printQueries(gen);
-	        	 endTime = System.nanoTime();
-	        	 System.out.println("...done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
-	         	}
+            //////////////////////////////////////////////////
+
+            System.out.println("Executing all queries...");
+            startTime = System.nanoTime();
+            z3engine.executeAllQueries();
+            endTime = System.nanoTime();
+            System.out.println("...done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
+
+//            System.out.print("Writing files for analysis...");
+//            if (hornDroidOptions.numQueries == 0){
+//	        	 gen.writeOne(hornDroidOptions.bitvectorSize);
+//	        	 endTime = System.nanoTime();
+//	        	 System.out.println("...done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
+//	        	 String smtFile = hornDroidOptions.outputDirectory + '/' + "clauses.smt2";
+//	        	 try {
+//	        	 startTime = System.nanoTime();
+//	        	 	runZ3(z3Folder, smtFile, gen);
+//	        	 } catch (InterruptedException e) {
+//	        		 e.printStackTrace();
+//	        	 } catch (IOException e) {
+//	        		 // TODO Auto-generated catch block
+//	        		 e.printStackTrace();
+//	        	 }
+//	        	 System.out.println("----------------------------------------------------------------------------");
+//	        }
+//	        else{
+//	        	 gen.write(hornDroidOptions.bitvectorSize);
+//	        	 final int numberOfFiles = gen.getNumFileQueries();
+//	        	 final String outputDirectory = hornDroidOptions.outputDirectory;
+//	        	 final String z3f = z3Folder;
+//
+//	        	 if (hornDroidOptions.maxQueries > 0 && hornDroidOptions.maxQueries < numberOfFiles) {System.err.println("Too many queries files!"); System.exit(1);}
+//
+//	        	 for (int i = 0; i < numberOfFiles; i++){
+//	        		 final int count = i;
+//	        		 executorService.submit(new Runnable() {
+//	        			 @Override
+//	        			 public void run() {
+//	        				 try {
+//	        					 Process process = new ProcessBuilder("/bin/sh", "-c", runZ3(outputDirectory, z3f, shortFilename, fullPath, count)).start();
+//	        				 } catch (IOException e) {
+//	        					 e.printStackTrace();
+//	        				 }
+//
+//	        			 }
+//	        		 });
+//	        	 }
+//	        	 executorService.shutdown();
+//	        	 try {
+//	        		 executorService.awaitTermination(2, TimeUnit.DAYS);
+//	        	 } catch (InterruptedException e) {
+//	        		 // TODO Auto-generated catch block
+//	        		 e.printStackTrace();
+//	        	 }
+//	        	 printQueries(gen);
+//	        	 endTime = System.nanoTime();
+//	        	 System.out.println("...done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
+//            }
             
         }
 	}
@@ -259,87 +267,88 @@ public class main {
 			}
 			}
 	}
-	private static void printQueries(final Gen gen){
-		Runtime runtime = Runtime.getRuntime();
-		Process proc;
-        System.out.println("Solved queries:");
-        File dir = new File (hornDroidOptions.outputDirectory);
-		 File[] files = dir.listFiles();
-	        if (files != null) {
-	            for(File file: files) {
-	                if (file.isFile()) {
-	                   if (file.getName().endsWith(".txt") && file.getName().startsWith("solved") && (file.length() > 0)) {
-	                	   
-	                		try {
-	                			proc = runtime.exec(new String[]{"/bin/sh", "-c",
-	                					"cd " + hornDroidOptions.outputDirectory + ';' + 
-	                	" cat "  + file.getAbsolutePath()});
-	                		
-	                		BufferedReader stdInput = new BufferedReader(new 
-	                	             InputStreamReader(proc.getInputStream()));
+//	private static void printQueries(final Gen gen){
+//		Runtime runtime = Runtime.getRuntime();
+//		Process proc;
+//        System.out.println("Solved queries:");
+//        File dir = new File (hornDroidOptions.outputDirectory);
+//		 File[] files = dir.listFiles();
+//	        if (files != null) {
+//	            for(File file: files) {
+//	                if (file.isFile()) {
+//	                   if (file.getName().endsWith(".txt") && file.getName().startsWith("solved") && (file.length() > 0)) {
+//
+//	                		try {
+//	                			proc = runtime.exec(new String[]{"/bin/sh", "-c",
+//	                					"cd " + hornDroidOptions.outputDirectory + ';' +
+//	                	" cat "  + file.getAbsolutePath()});
+//
+//	                		BufferedReader stdInput = new BufferedReader(new
+//	                	             InputStreamReader(proc.getInputStream()));
+//
+//	                	    BufferedReader stdError = new BufferedReader(new
+//	                	             InputStreamReader(proc.getErrorStream()));
+//
+//	                	    // read the output from the command
+//	                	    String s = null;
+//	                	    while ((s = stdInput.readLine()) != null) {
+//	                	    	System.out.println(s);
+//	                	    }
+//
+//	                	    // read any errors from the attempted command
+//	                	    if (stdError.readLine() != null)
+//	                	    	System.out.println("Here is the standard error of the command (if any):\n");
+//	                	    	while ((s = stdError.readLine()) != null) {
+//	                	    		System.out.println(s);
+//	                	        }
+//	                	    proc.destroy();
+//	                		}
+//	                	    catch (IOException e) {
+//	                			// TODO Auto-generated catch block
+//	                			e.printStackTrace();
+//	                		}
+//	                   }
+//	                }
+//	            }
+//	        }
+//    }
+//    private static void runZ3(final String z3Folder, final String smtFile, final Gen gen) throws IOException, InterruptedException{
+//		System.out.println("Run Z3...");
+//		long startTime = System.nanoTime();
+//        Runtime runtime = Runtime.getRuntime();
+//		Process proc = runtime.exec(new String[]{"/bin/sh", "-c",
+//			"cd " + z3Folder + ';' + " ./z3 " + smtFile});
+//		BufferedReader stdInput = new BufferedReader(new
+//             InputStreamReader(proc.getInputStream()));
+//
+//        BufferedReader stdError = new BufferedReader(new
+//             InputStreamReader(proc.getErrorStream()));
+//
+//        // read the output from the command
+//        String s = null;
+//        while ((s = stdInput.readLine()) != null) {
+//            System.out.println(s);
+//        }
+//
+//        // read any errors from the attempted command
+//        if (stdError.readLine() != null)
+//        	System.out.println("Here is the standard error of the command (if any):\n");
+//        while ((s = stdError.readLine()) != null) {
+//            System.out.println(s);
+//        }
+//    	proc.destroy();
+//        printQueries(gen);
+//        System.out.println("Analysis...done in " + Long.toString((System.nanoTime() - startTime) / 1000000) + " milliseconds");
+//    }
+//    private static String runZ3(String directory, String z3Folder, String filename, String fullpath, int numberOfQuery) throws IOException{
+//    	String smtFile = directory + '/' + "clauses" + Integer.toString(numberOfQuery) + ".smt2";
+//    	File output = new File(fullpath + "out/");
+//    	if (output.exists()){}
+//    	else
+//    		output.mkdirs();
+//    	return "cd " + z3Folder + ';' + " ./z3 " + smtFile + " > " + fullpath + "out/" + filename + Integer.toString(numberOfQuery) +".txt";
+//    }
 
-	                	    BufferedReader stdError = new BufferedReader(new 
-	                	             InputStreamReader(proc.getErrorStream()));
-
-	                	    // read the output from the command
-	                	    String s = null;
-	                	    while ((s = stdInput.readLine()) != null) {
-	                	    	System.out.println(s);
-	                	    }
-
-	                	    // read any errors from the attempted command
-	                	    if (stdError.readLine() != null)
-	                	    	System.out.println("Here is the standard error of the command (if any):\n");
-	                	    	while ((s = stdError.readLine()) != null) {
-	                	    		System.out.println(s);
-	                	        }
-	                	    proc.destroy();
-	                		}
-	                	    catch (IOException e) {
-	                			// TODO Auto-generated catch block
-	                			e.printStackTrace();
-	                		}
-	                   }
-	                }
-	            }
-	        }
-    } 
-    private static void runZ3(final String z3Folder, final String smtFile, final Gen gen) throws IOException, InterruptedException{
-		System.out.println("Run Z3...");
-		long startTime = System.nanoTime();
-        Runtime runtime = Runtime.getRuntime();
-		Process proc = runtime.exec(new String[]{"/bin/sh", "-c",
-			"cd " + z3Folder + ';' + " ./z3 " + smtFile});
-		BufferedReader stdInput = new BufferedReader(new 
-             InputStreamReader(proc.getInputStream()));
-
-        BufferedReader stdError = new BufferedReader(new 
-             InputStreamReader(proc.getErrorStream()));
-
-        // read the output from the command
-        String s = null;
-        while ((s = stdInput.readLine()) != null) {
-            System.out.println(s);
-        }
-
-        // read any errors from the attempted command
-        if (stdError.readLine() != null)
-        	System.out.println("Here is the standard error of the command (if any):\n");
-        while ((s = stdError.readLine()) != null) {
-            System.out.println(s);
-        }
-    	proc.destroy();
-        printQueries(gen);
-        System.out.println("Analysis...done in " + Long.toString((System.nanoTime() - startTime) / 1000000) + " milliseconds");
-    }
-    private static String runZ3(String directory, String z3Folder, String filename, String fullpath, int numberOfQuery) throws IOException{
-    	String smtFile = directory + '/' + "clauses" + Integer.toString(numberOfQuery) + ".smt2";
-    	File output = new File(fullpath + "out/");
-    	if (output.exists()){}
-    	else
-    		output.mkdirs();
-    	return "cd " + z3Folder + ';' + " ./z3 " + smtFile + " > " + fullpath + "out/" + filename + Integer.toString(numberOfQuery) +".txt";
-    }
 	public static void parseCommandLine(String[] args){
 		System.out.println("Starting Horndroid...");
         CommandLineParser parser = new PosixParser();
@@ -351,8 +360,8 @@ public class main {
             return;
         }
         otherArgs = commandLine.getArgs();
-        clOptions = commandLine.getOptions();  
-        
+        clOptions = commandLine.getOptions();
+
         for (int i=0; i<clOptions.length; i++) {
             Option option = clOptions[i];
             String opt = option.getOpt();
@@ -373,7 +382,7 @@ public class main {
                 	hornDroidOptions.bitvectorSize = Integer.parseInt(commandLine.getOptionValue("m"));
                 	break;
             }
-        }    
+        }
         if (otherArgs.length != 3) {
             usage();
             return;
@@ -396,14 +405,17 @@ public class main {
             }
         }
     }
-	private static void initGen(final Gen gen, final options options){
-   	 	        
-        gen.addMain("(rule (=> (and " + Utils.hPred("cn", "cn", Utils.hexDec64("parent".hashCode(), options.bitvectorSize), "f", "lf", "bf") + ' ' +
-        		Utils.hPred("cn", "cn", Utils.hexDec64("result".hashCode(), options.bitvectorSize), "val", "lval", "bval") + ' ' +
-        		Utils.hPred("f", "f", "fpp", "vfp", "lfp", "bfp") + ')' + ' ' +
-        		Utils.hPred("f", "f", Utils.hexDec64("result".hashCode(), options.bitvectorSize), "val", "lval", "bval")
-        		+ "))", 0);
-   }
+
+    //DONE
+//	private static void initGen(final Gen gen, final options options){
+//
+//        gen.addMain("(rule (=> (and " + Utils.hPred("cn", "cn", Utils.hexDec64("parent".hashCode(), options.bitvectorSize), "f", "lf", "bf") + ' ' +
+//        		Utils.hPred("cn", "cn", Utils.hexDec64("result".hashCode(), options.bitvectorSize), "val", "lval", "bval") + ' ' +
+//        		Utils.hPred("f", "f", "fpp", "vfp", "lfp", "bfp") + ')' + ' ' +
+//        		Utils.hPred("f", "f", Utils.hexDec64("result".hashCode(), options.bitvectorSize), "val", "lval", "bval")
+//        		+ "))", 0);
+//   }
+
 	private static void usage() {
    	 SmaliHelpFormatter formatter = new SmaliHelpFormatter();
         int consoleWidth = ConsoleUtil.getConsoleWidth();

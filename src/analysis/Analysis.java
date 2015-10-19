@@ -1,5 +1,7 @@
 package analysis;
 
+import com.microsoft.z3.BitVecExpr;
+import com.microsoft.z3.BoolExpr;
 import gen.Gen;
 import horndroid.options;
 
@@ -47,10 +49,9 @@ import payload.ArrayData;
 import payload.PackedSwitch;
 import payload.SparseSwitch;
 import strings.ConstString;
-import util.CMPair;
-import util.FormatEncodedValue;
-import util.SourceSinkMethod;
-import util.Utils;
+import util.*;
+import z3.Z3Engine;
+import z3.Z3Variable;
 
 public class Analysis {
 	final private Set<GeneralClass> classes;
@@ -68,11 +69,14 @@ public class Analysis {
     final private Set<Integer> overapprox;
     final private Set<SourceSinkMethod> sourcesSinks;
     final private options options;
-    final private Gen gen;
+//    final private Gen gen;
+    final private Z3Engine z3engine;
+    final private Z3Variable var;
     final ExecutorService instructionExecutorService;
     private final Set<CMPair> refSources;
     private final Set<CMPair> refSinks;
-	public Analysis(final Gen gen, final Set<SourceSinkMethod> sourcesSinks, final options options, final ExecutorService instructionExecutorService){
+
+	public Analysis(final Z3Engine z3engine, final Set<SourceSinkMethod> sourcesSinks, final options options, final ExecutorService instructionExecutorService){
 		this.classes = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<GeneralClass, Boolean>()));
 		this.instances = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<DalvikInstance, Boolean>()));
 		this.disabledActivities = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>()));
@@ -88,7 +92,10 @@ public class Analysis {
 		this.overapprox = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>()));
 		this.instructionExecutorService = instructionExecutorService;
 		this.sourcesSinks = sourcesSinks;
-		this.gen = gen;
+        //HERE
+//		this.gen = gen;
+        this.z3engine = z3engine;
+        this.var = z3engine.getVars();
 		this.options = options;
 		
 		
@@ -123,9 +130,12 @@ public class Analysis {
 	public  Set<Integer> getLauncherActivities(){
 		return launcherActivities;
 	}
-	public Gen getGen(){
-		return gen;
-	}
+//	public Gen getGen(){
+//		return gen;
+//	}
+    public Z3Engine getZ3Engine(){
+    return z3engine;
+}
 	public int getSize(){
 		return options.bitvectorSize;
 	}
@@ -227,28 +237,34 @@ public class Analysis {
 	}
 	private void addToMain(final DalvikClass dc, final int methodIndex, final int numRegCall, final int regCount){
 		final int classIndex = dc.getType().hashCode();
-		Map<Integer, String> regUpdate = new HashMap<Integer, String>();
-        Map<Integer, String> regUpdateL = new HashMap<Integer, String>();
-        Map<Integer, String> regUpdateB = new HashMap<Integer, String>();
+		Map<Integer, BitVecExpr> regUpdate = new HashMap<>();
+        Map<Integer, BoolExpr> regUpdateL = new HashMap<>();
+        Map<Integer, BoolExpr> regUpdateB = new HashMap<>();
 		for (int i = 0; i<= numRegCall + regCount; i++){
-			regUpdateL.put(i, "false");
-		}            		
-		gen.addMain("(rule " + Utils.rPred(Integer.toString(classIndex), Integer.toString(methodIndex), 
-				0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall, gen) + ")", classIndex);
-		
+			regUpdateL.put(i, z3engine.mkFalse());
+		}
+
+        BoolExpr b1 = z3engine.rPred(Integer.toString(classIndex), Integer.toString(methodIndex),
+                0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall);
+        z3engine.addRule(b1, null);
 	}
 	private void addToMainHeap(final DalvikClass dc, final int methodIndex, final int numRegCall, final int regCount){
 		final int classIndex = dc.getType().hashCode();
-		Map<Integer, String> regUpdate = new HashMap<Integer, String>();
-        Map<Integer, String> regUpdateL = new HashMap<Integer, String>();
-        Map<Integer, String> regUpdateB = new HashMap<Integer, String>();
-		for (int i = 0; i<= numRegCall + regCount; i++){
-			regUpdateL.put(i, "false");
-		}            		
-		gen.addMain("(rule " + Utils.rPred(Integer.toString(classIndex), Integer.toString(methodIndex), 
-				0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall, gen) + ")", classIndex);
-		gen.addMain("(rule " + Utils.hPred(Utils.hexDec64(classIndex, options.bitvectorSize), "fpp", "f", "val", "false", "true") + ")",
-				classIndex);
+        Map<Integer, BitVecExpr> regUpdate = new HashMap<>();
+        Map<Integer, BoolExpr> regUpdateL = new HashMap<>();
+        Map<Integer, BoolExpr> regUpdateB = new HashMap<>();
+        for (int i = 0; i<= numRegCall + regCount; i++){
+			regUpdateL.put(i, z3engine.mkFalse());
+		}
+
+        BoolExpr b1 = z3engine.rPred(Integer.toString(classIndex), Integer.toString(methodIndex),
+                0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall);
+        z3engine.addRule(b1, null);
+
+        BoolExpr b2 = z3engine.hPred( z3engine.mkBitVector(Utils.hexDec64(classIndex, options.bitvectorSize), options.bitvectorSize),
+                                      var.getFpp(), var.getF(), var.getVal(),
+                                      z3engine.mkFalse(), z3engine.mkTrue());
+        z3engine.addRule(b2, null);
 	}
 	
 
@@ -266,20 +282,29 @@ public class Analysis {
 					addToMain(dc, m.getName().hashCode(), m.getNumReg(), m.getNumArg());
 				}
 				if (isEntryPoint){
-					Map<Integer, String> regUpdate = new HashMap<Integer, String>();
-		            Map<Integer, String> regUpdateL = new HashMap<Integer, String>();
-		            Map<Integer, String> regUpdateB = new HashMap<Integer, String>();
-		            final int numRegCall = m.getNumReg();
+                    Map<Integer, BitVecExpr> regUpdate = new HashMap<>();
+                    Map<Integer, BoolExpr> regUpdateL = new HashMap<>();
+                    Map<Integer, BoolExpr> regUpdateB = new HashMap<>();
+                    final int numRegCall = m.getNumReg();
 		            final int regCount = m.getNumArg();
 		    		int i;
 		    		for (i = 0; i<= numRegCall + regCount; i++){
-						regUpdateL.put(i, "false");
-					}		
-		    		gen.addMain("(rule (=> " + Utils.iPred(
-						"cn", Utils.hexDec64(dc.getType().hashCode(), options.bitvectorSize), "val", "lf", "bf") + ' ' +
-				         		Utils.rPred(Integer.toString(dc.getType().hashCode()), Integer.toString(m.getName().hashCode()), 
-							0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall, gen)
-				         		+ "))", dc.getType().hashCode());	
+						regUpdateL.put(i, z3engine.mkFalse());
+					}
+
+                    BoolExpr b1 = z3engine.iPred(var.getCn(),
+                                                 z3engine.mkBitVector(Utils.hexDec64(dc.getType().hashCode(), options.bitvectorSize), options.bitvectorSize),
+                                                var.getVal(), var.getLf(), var.getBf());
+                    BoolExpr b2 = z3engine.rPred(Integer.toString(dc.getType().hashCode()), Integer.toString(m.getName().hashCode()),
+                            0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall);
+                    BoolExpr b1tob2 = z3engine.implies(b1, b2);
+                    z3engine.addRule(b1tob2, null);
+
+//		    		gen.addMain("(rule (=> " + Utils.iPred(
+//						"cn", Utils.hexDec64(dc.getType().hashCode(), options.bitvectorSize), "val", "lf", "bf") + ' ' +
+//				         		Utils.rPred(Integer.toString(dc.getType().hashCode()), Integer.toString(m.getName().hashCode()),
+//							0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall, gen)
+//				         		+ "))", dc.getType().hashCode());
 				}
 				
 				if (!isDisabledActivity && isEntryPoint && (isLauncherActivity || isApplication || isOverApprox)){
@@ -372,8 +397,7 @@ public class Analysis {
 		for (final GeneralClass c: classes){
 			if ((c instanceof DalvikClass) && (!c.getType().contains("Landroid"))){
 				final DalvikClass dc = (DalvikClass) c;
-				//final boolean isActivity = isActivity(dc);
-				
+
 				final boolean isDisabledActivity = testDisabledActivity(dc);
 				final boolean isLauncherActivity = testLauncherActivity(dc);
 				final boolean isApplication = testApplication(dc);
@@ -384,8 +408,7 @@ public class Analysis {
 						isCallbackImplementation = true;
 					}
 				}
-				//final boolean isDefinedActivity = isDefinedActivity(dc);
-				
+
 				final boolean isci = isCallbackImplementation;
 				instructionExecutorService.submit(new Runnable() {
 		   			 @Override
@@ -404,7 +427,7 @@ public class Analysis {
 		if (c instanceof DalvikClass){
 			final DalvikClass dc = (DalvikClass) c;
 			final GeneralClass superClass = dc.getSuperClass();
-    		if (gen.isEntryPoint(superClass.getType().hashCode(), methodIndex)){
+    		if (z3engine.isEntryPoint(superClass.getType().hashCode(), methodIndex)){
     			return true;
     		}
     		else{	
@@ -429,13 +452,7 @@ public class Analysis {
         		}
         		
         		if (execByDefault){
-    			//!create an instance of the entrypoint class
-    			instances.add(new DalvikInstance(0, 0, 0, dc, true));    		
-    			//even more: if an activity implements an interface we should add instance also
-    			/*List<String> interfaces1 = Lists.newArrayList(classDef.getInterfaces());
-    			for (final String interfaceName: interfaces1){
-    				refClassElement.putInstance(0, 0, 0, indStr.get(interfaceName, 'c'), true);
-    			}*/
+    			instances.add(new DalvikInstance(0, 0, 0, dc, true));
         		}
         	}
         }
@@ -576,29 +593,11 @@ public class Analysis {
 	    	} 
 	    	return false;
     }
-	public void collectDataFromApk(final List<? extends ClassDef> classDefs) {  
-		//ExecutorService classCollector = Executors.newCachedThreadPool();
+	public void collectDataFromApk(final List<? extends ClassDef> classDefs) {
         for (final ClassDef classDef: classDefs) {
         	if (classDef.getType().contains("Landroid")) continue;
-        	/*classCollector.submit(new Runnable() {
-	   			 @Override
-	   			 public void run() {
-	   				 try {*/
-	   					classes.add(collectDataFromClass(classDefs, classDef));	
-	   		/*		 } catch (Exception e1) {
-						e1.printStackTrace();
-	   				 }
-	   			 }
-	        });	*/
+                classes.add(collectDataFromClass(classDefs, classDef));
         }
-        /*classCollector.shutdown();
-        try {
-        	classCollector.awaitTermination(2, TimeUnit.DAYS);
-        } catch (InterruptedException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-			
-        }  */     
         formClassStructure();
         addEntryPointsInstances();
 	}	    
@@ -643,8 +642,13 @@ public class Analysis {
             if (initialValue != null) {
             	final String fieldName = ReferenceUtil.getShortFieldDescriptor(field);
             	final int classIndex = classDef.getType().hashCode();
-        		gen.addMain("(rule (S " + Utils.Dec(classIndex) + ' ' + Utils.Dec(fieldName.hashCode())+ " " + FormatEncodedValue.toString(initialValue, options.bitvectorSize) + " false bf))",
-        				classIndex); 
+//        		gen.addMain("(rule (S " + Utils.Dec(classIndex) + ' ' + Utils.Dec(fieldName.hashCode())+ " " + FormatEncodedValue.toString(initialValue, options.bitvectorSize) + " false bf))",
+//        				classIndex);
+                BoolExpr rule = z3engine.sPred( z3engine.mkInt(Utils.Dec(classIndex)),
+                                             z3engine.mkInt(Utils.Dec(fieldName.hashCode())),
+                                             z3engine.mkBitVector(FormatEncodedValue.toString(initialValue, options.bitvectorSize), options.bitvectorSize),
+                                             z3engine.mkFalse(), var.getBf());
+                z3engine.addRule(rule, null);
         		
             	DalvikStaticField dsf = new DalvikStaticField(ReferenceUtil.getShortFieldDescriptor(field), FormatEncodedValue.toString(initialValue, options.bitvectorSize));
             		dalvikFields.add(dsf);
@@ -697,7 +701,7 @@ public class Analysis {
         //refClassElement.putMethod(method.getDefiningClass(), methodString);
             	
     	if (methodString.equals((String) "<clinit>()V")){
-    		gen.putStaticConstructor(method.getDefiningClass().hashCode()); 
+    		z3engine.putStaticConstructor(method.getDefiningClass().hashCode());
     	}
     	ImmutableList<MethodParameter> methodParameters = ImmutableList.copyOf(method.getParameters());
         for (MethodParameter parameter: methodParameters) {
