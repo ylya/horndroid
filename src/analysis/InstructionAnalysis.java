@@ -218,7 +218,7 @@ public class InstructionAnalysis {
         	case CONST_WIDE://((short)0x18, "const-wide", ReferenceType.NONE, Format.Format51l, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
         	case CONST_WIDE_HIGH16:
                 h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkBitVector(Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size), size));
+                regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size));
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkFalse());
         		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkFalse());
                 b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
@@ -230,7 +230,7 @@ public class InstructionAnalysis {
         	case CONST_STRING_JUMBO:
         	case CONST_CLASS://break;//((short)0x1c, "const-class", ReferenceType.TYPE, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
                 h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkBitVector(Utils.hexDec64(referenceIntIndex, size), size));
+                regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkBitVector(referenceIntIndex, size));
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkFalse());
         		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkFalse());
                 b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
@@ -247,7 +247,7 @@ public class InstructionAnalysis {
                     ),
                     z3engine.bvugt(
                         var.getV(((OneRegisterInstruction)instruction).getRegisterA()),
-                        z3engine.mkBitVector(Utils.hexDec64(0, size), size)
+                        z3engine.mkBitVector(0, size)
                     )
                 );
                 b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
@@ -257,7 +257,7 @@ public class InstructionAnalysis {
 
             case INSTANCE_OF:
                 h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkBitVector(Utils.hexDec64(0, size), size));
+                regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkBitVector(0, size));
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkFalse());
         		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkFalse());
                 b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
@@ -266,7 +266,7 @@ public class InstructionAnalysis {
                 regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
 
                 h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkBitVector(Utils.hexDec64(1, size), size));
+                regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkBitVector(1, size));
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkFalse());
         		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkFalse());
                 b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
@@ -297,7 +297,7 @@ public class InstructionAnalysis {
         		}
         		instanceNum = analysis.getInstNum(ci, mi, codeAddress);
         		h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-        		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkBitVector(Utils.hexDec64(instanceNum, size), size));
+        		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkBitVector(instanceNum, size));
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkFalse());
         		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkTrue());
         		b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
@@ -309,18 +309,18 @@ public class InstructionAnalysis {
 				if (fields != null)
                     for (Map.Entry<Integer, Boolean> fieldN : fields.entrySet()){
                         h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                        b = z3engine.hPred( z3engine.mkBitVector(Utils.hexDec64(referenceIntIndex, size), size),
-                                z3engine.mkBitVector(Utils.hexDec64(instanceNum, size), size),
-                                z3engine.mkBitVector(Utils.hexDec64(fieldN.getKey(), size), size),
-                                z3engine.mkBitVector(Utils.hexDec64(0, size), size),
+                        b = z3engine.hPred(z3engine.mkBitVector(referenceIntIndex, size),
+                                z3engine.mkBitVector(instanceNum, size),
+                                z3engine.mkBitVector(fieldN.getKey(), size),
+                                z3engine.mkBitVector(0, size),
                                 z3engine.mkFalse(),
                                 z3engine.mkBool(fieldN.getValue()));
                         z3engine.addRule(z3engine.implies(h, b), null);
                     } else {
                         h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                        b = z3engine.hPred(z3engine.mkBitVector(Utils.hexDec64(referenceIntIndex, size), size),
-                            z3engine.mkBitVector(Utils.hexDec64(instanceNum, size),  size),
-                            var.getF(), z3engine.mkBitVector(Utils.hexDec64(0, size), size),
+                        b = z3engine.hPred(z3engine.mkBitVector(referenceIntIndex, size),
+                            z3engine.mkBitVector(instanceNum, size),
+                            var.getF(), z3engine.mkBitVector(0, size),
                             z3engine.mkFalse(), var.getBf());
                         z3engine.addRule(z3engine.implies(h, b), null);
                     }
@@ -343,7 +343,7 @@ public class InstructionAnalysis {
         		instanceNum = analysis.getInstNum(ci, mi, codeAddress);
 //        		cl.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
         		h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkBitVector(Utils.hexDec64(instanceNum, size), size));
+                regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkBitVector(instanceNum, size));
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkFalse());
         		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkTrue());
 //        		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
@@ -355,13 +355,13 @@ public class InstructionAnalysis {
 
         		if (analysis.optionArrays()){
 //                    cl2.appendHead("(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen)
-//                            + "(bvuge " + Utils.hexDec64(0, size) + " f) " + "(bvult f " + 'v' + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) +"))");
-//                    cl2.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size), "f", Utils.hexDec64(0, size), "false", "false"));
+//                            + "(bvuge " + 0, size) + " f) " + "(bvult f " + 'v' + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) +"))");
+//                    cl2.appendBody(Utils.hPred(referenceIntIndex, size), instanceNum, size), "f", 0, size), "false", "false"));
 //                    gen.addClause(cl2, c);
                     h = z3engine.and(
                         z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                         z3engine.bvuge(
-                            z3engine.mkBitVector(Utils.hexDec64(0, size),size),
+                            z3engine.mkBitVector(0, size),
                             var.getF()
                         ),
                         z3engine.bvult(
@@ -370,21 +370,21 @@ public class InstructionAnalysis {
                         )
                     );
                     b = z3engine.hPred(
-                            z3engine.mkBitVector(Utils.hexDec64(referenceIntIndex, size), size),
-                            z3engine.mkBitVector(Utils.hexDec64(instanceNum, size), size),
-                            var.getF(), z3engine.mkBitVector(Utils.hexDec64(0, size), size),
+                            z3engine.mkBitVector(referenceIntIndex, size),
+                            z3engine.mkBitVector(instanceNum, size),
+                            var.getF(), z3engine.mkBitVector(0, size),
                             z3engine.mkFalse(), z3engine.mkFalse()
                     );
                 } else {
 //                    cl2.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-//                    cl2.appendBody(Utils.hPred(Utils.hexDec64(referenceIntIndex, size), Utils.hexDec64(instanceNum, size), Utils.hexDec64(0, size), Utils.hexDec64(0, size), "false", "false"));
+//                    cl2.appendBody(Utils.hPred(referenceIntIndex, size), instanceNum, size), 0, size), 0, size), "false", "false"));
 //                    gen.addClause(cl2, c);
                     h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
         		    b = z3engine.hPred(
-                            z3engine.mkBitVector(Utils.hexDec64(referenceIntIndex, size), size),
-                            z3engine.mkBitVector(Utils.hexDec64(instanceNum, size), size),
-                            z3engine.mkBitVector(Utils.hexDec64(0, size), size),
-                            z3engine.mkBitVector(Utils.hexDec64(0, size), size),
+                            z3engine.mkBitVector(referenceIntIndex, size),
+                            z3engine.mkBitVector(instanceNum, size),
+                            z3engine.mkBitVector(0, size),
+                            z3engine.mkBitVector(0, size),
                             z3engine.mkFalse(), z3engine.mkFalse()
                     );
                 }
@@ -397,7 +397,7 @@ public class InstructionAnalysis {
                 final int regCount = instructionA.getRegisterCount();
         		instanceNum = analysis.getInstNum(ci, mi, codeAddress);
                 h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                regUpdate.put(numRegLoc, z3engine.mkBitVector(Utils.hexDec64(instanceNum, size), size));
+                regUpdate.put(numRegLoc, z3engine.mkBitVector(instanceNum, size));
         		regUpdateL.put(numRegLoc, z3engine.mkFalse());
         		regUpdateB.put(numRegLoc, z3engine.mkTrue());
                 b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
@@ -409,9 +409,9 @@ public class InstructionAnalysis {
         			switch(regCount){
         			case 5:
                         h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                        b = z3engine.hPred(z3engine.mkBitVector(Utils.hexDec64(referenceIntIndex, size), size),
-                                           z3engine.mkBitVector(Utils.hexDec64(instanceNum, size), size),
-                                           z3engine.mkBitVector(Utils.hexDec64(4, size), size),
+                        b = z3engine.hPred(z3engine.mkBitVector(referenceIntIndex, size),
+                                           z3engine.mkBitVector(instanceNum, size),
+                                           z3engine.mkBitVector(4, size),
                                            var.getV(instructionA.getRegisterG()),
                                            var.getL(instructionA.getRegisterG()),
                                            var.getB(instructionA.getRegisterG()));
@@ -419,9 +419,9 @@ public class InstructionAnalysis {
                         z3engine.addRule(htob, null);
                     case 4:
                         h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                        b = z3engine.hPred( z3engine.mkBitVector(Utils.hexDec64(referenceIntIndex, size), size),
-                                            z3engine.mkBitVector(Utils.hexDec64(instanceNum, size), size),
-                                            z3engine.mkBitVector(Utils.hexDec64(3, size), size),
+                        b = z3engine.hPred( z3engine.mkBitVector(referenceIntIndex, size),
+                                            z3engine.mkBitVector(instanceNum, size),
+                                            z3engine.mkBitVector(3, size),
                                             var.getV(instructionA.getRegisterF()),
                                             var.getL(instructionA.getRegisterF()),
                                             var.getB(instructionA.getRegisterF()));
@@ -429,9 +429,9 @@ public class InstructionAnalysis {
                         z3engine.addRule(htob, null);
                     case 3:
                         h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                        b = z3engine.hPred( z3engine.mkBitVector(Utils.hexDec64(referenceIntIndex, size), size),
-                                            z3engine.mkBitVector(Utils.hexDec64(instanceNum, size), size),
-                                            z3engine.mkBitVector(Utils.hexDec64(2, size), size),
+                        b = z3engine.hPred( z3engine.mkBitVector(referenceIntIndex, size),
+                                            z3engine.mkBitVector(instanceNum, size),
+                                            z3engine.mkBitVector(2, size),
                                             var.getV(instructionA.getRegisterE()),
                                             var.getL(instructionA.getRegisterE()),
                                             var.getB(instructionA.getRegisterE()));
@@ -439,9 +439,9 @@ public class InstructionAnalysis {
                         z3engine.addRule(htob, null);
                     case 2:
                         h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                        b = z3engine.hPred( z3engine.mkBitVector(Utils.hexDec64(referenceIntIndex, size), size),
-                                z3engine.mkBitVector(Utils.hexDec64(instanceNum, size), size),
-                                z3engine.mkBitVector(Utils.hexDec64(1, size), size),
+                        b = z3engine.hPred( z3engine.mkBitVector(referenceIntIndex, size),
+                                z3engine.mkBitVector(instanceNum, size),
+                                z3engine.mkBitVector(1, size),
                                 var.getV(instructionA.getRegisterD()),
                                 var.getL(instructionA.getRegisterD()),
                                 var.getB(instructionA.getRegisterD()));
@@ -449,9 +449,9 @@ public class InstructionAnalysis {
                         z3engine.addRule(htob, null);
         			case 1:
                         h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                        b = z3engine.hPred( z3engine.mkBitVector(Utils.hexDec64(referenceIntIndex, size), size),
-                                z3engine.mkBitVector(Utils.hexDec64(instanceNum, size), size),
-                                z3engine.mkBitVector(Utils.hexDec64(0, size), size),
+                        b = z3engine.hPred( z3engine.mkBitVector(referenceIntIndex, size),
+                                z3engine.mkBitVector(instanceNum, size),
+                                z3engine.mkBitVector(0, size),
                                 var.getV(instructionA.getRegisterC()),
                                 var.getL(instructionA.getRegisterC()),
                                 var.getB(instructionA.getRegisterC()));
@@ -462,9 +462,9 @@ public class InstructionAnalysis {
         			switch(regCount){
         			case 5:
                         h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                        b = z3engine.hPred( z3engine.mkBitVector(Utils.hexDec64(referenceIntIndex, size), size),
-                                z3engine.mkBitVector(Utils.hexDec64(instanceNum, size), size),
-                                z3engine.mkBitVector(Utils.hexDec64(0, size), size),
+                        b = z3engine.hPred( z3engine.mkBitVector(referenceIntIndex, size),
+                                z3engine.mkBitVector(instanceNum, size),
+                                z3engine.mkBitVector(0, size),
                                 var.getV(instructionA.getRegisterG()),
                                 var.getL(instructionA.getRegisterG()),
                                 var.getB(instructionA.getRegisterG()));
@@ -472,9 +472,9 @@ public class InstructionAnalysis {
                         z3engine.addRule(htob, null);
                     case 4:
                         h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                        b = z3engine.hPred( z3engine.mkBitVector(Utils.hexDec64(referenceIntIndex, size), size),
-                                z3engine.mkBitVector(Utils.hexDec64(instanceNum, size), size),
-                                z3engine.mkBitVector(Utils.hexDec64(0, size), size),
+                        b = z3engine.hPred( z3engine.mkBitVector(referenceIntIndex, size),
+                                z3engine.mkBitVector(instanceNum, size),
+                                z3engine.mkBitVector(0, size),
                                 var.getV(instructionA.getRegisterF()),
                                 var.getL(instructionA.getRegisterF()),
                                 var.getB(instructionA.getRegisterF()));
@@ -482,9 +482,9 @@ public class InstructionAnalysis {
                         z3engine.addRule(htob, null);
                     case 3:
                         h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                        b = z3engine.hPred( z3engine.mkBitVector(Utils.hexDec64(referenceIntIndex, size), size),
-                                z3engine.mkBitVector(Utils.hexDec64(instanceNum, size), size),
-                                z3engine.mkBitVector(Utils.hexDec64(0, size), size),
+                        b = z3engine.hPred( z3engine.mkBitVector(referenceIntIndex, size),
+                                z3engine.mkBitVector(instanceNum, size),
+                                z3engine.mkBitVector(0, size),
                                 var.getV(instructionA.getRegisterE()),
                                 var.getL(instructionA.getRegisterE()),
                                 var.getB(instructionA.getRegisterE()));
@@ -492,9 +492,9 @@ public class InstructionAnalysis {
                         z3engine.addRule(htob, null);
                     case 2:
                         h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                        b = z3engine.hPred( z3engine.mkBitVector(Utils.hexDec64(referenceIntIndex, size), size),
-                                z3engine.mkBitVector(Utils.hexDec64(instanceNum, size), size),
-                                z3engine.mkBitVector(Utils.hexDec64(0, size), size),
+                        b = z3engine.hPred( z3engine.mkBitVector(referenceIntIndex, size),
+                                z3engine.mkBitVector(instanceNum, size),
+                                z3engine.mkBitVector(0, size),
                                 var.getV(instructionA.getRegisterD()),
                                 var.getL(instructionA.getRegisterD()),
                                 var.getB(instructionA.getRegisterD()));
@@ -502,9 +502,9 @@ public class InstructionAnalysis {
                         z3engine.addRule(htob, null);
                     case 1:
                         h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                        b = z3engine.hPred( z3engine.mkBitVector(Utils.hexDec64(referenceIntIndex, size), size),
-                                z3engine.mkBitVector(Utils.hexDec64(instanceNum, size), size),
-                                z3engine.mkBitVector(Utils.hexDec64(0, size), size),
+                        b = z3engine.hPred( z3engine.mkBitVector(referenceIntIndex, size),
+                                z3engine.mkBitVector(instanceNum, size),
+                                z3engine.mkBitVector(0, size),
                                 var.getV(instructionA.getRegisterC()),
                                 var.getL(instructionA.getRegisterC()),
                                 var.getB(instructionA.getRegisterC()));
@@ -518,7 +518,7 @@ public class InstructionAnalysis {
             case FILLED_NEW_ARRAY_RANGE:
         		instanceNum = analysis.getInstNum(ci, mi, codeAddress);
                 h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                regUpdate.put(numRegLoc, z3engine.mkBitVector(Utils.hexDec64(instanceNum, size), size));
+                regUpdate.put(numRegLoc, z3engine.mkBitVector(instanceNum, size));
         		regUpdateL.put(numRegLoc, z3engine.mkFalse());
         		regUpdateB.put(numRegLoc, z3engine.mkTrue());
                 b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
@@ -533,9 +533,9 @@ public class InstructionAnalysis {
 
                 for (int reg = startRegister; reg <= endRegister; reg++){
                     h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                    b = z3engine.hPred( z3engine.mkBitVector(Utils.hexDec64(referenceIntIndex, size), size),
-                            z3engine.mkBitVector(Utils.hexDec64(instanceNum, size), size),
-                            z3engine.mkBitVector(Utils.hexDec64(cr, size), size),
+                    b = z3engine.hPred( z3engine.mkBitVector(referenceIntIndex, size),
+                            z3engine.mkBitVector(instanceNum, size),
+                            z3engine.mkBitVector(cr, size),
                             var.getV(reg), var.getL(reg), var.getB(reg));
                     z3engine.addRule(z3engine.implies(h, b), null);
                     if (analysis.optionArrays()) cr++;
@@ -708,14 +708,14 @@ public class InstructionAnalysis {
                                     var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
                                     var.getV(((ThreeRegisterInstruction)instruction).getRegisterC())
                                 ),
-                                z3engine.mkBitVector(Utils.hexDec64(0, size), size), //then
+                                z3engine.mkBitVector(0, size), //then
                                 z3engine.ite( //else
                                     z3engine.bvugt(//sub-if
                                         var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
                                         var.getV(((ThreeRegisterInstruction) instruction).getRegisterC())
                                     ),
-                                    z3engine.mkBitVector(Utils.hexDec64(1, size), size), //sub-then
-                                    z3engine.mkBitVector(Utils.hexDec64(-1, size), size) //sub-else
+                                    z3engine.mkBitVector(1, size), //sub-then
+                                    z3engine.mkBitVector(-1, size) //sub-else
                                 )
                         )
                 );
@@ -882,7 +882,7 @@ public class InstructionAnalysis {
                         z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                         z3engine.not( z3engine.eq(
                                 var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                                z3engine.mkBitVector(Utils.hexDec64(0, size), size)
+                                z3engine.mkBitVector(0, size)
                         ))
                 );
                 b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
@@ -892,7 +892,7 @@ public class InstructionAnalysis {
                         z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                         z3engine.eq(
                                 var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                                z3engine.mkBitVector(Utils.hexDec64(0, size), size)
+                                z3engine.mkBitVector(0, size)
                         )
                 );
                 b = z3engine.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
@@ -907,7 +907,7 @@ public class InstructionAnalysis {
                         z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                         z3engine.eq(
                                 var.getV(((OneRegisterInstruction)instruction).getRegisterA()),
-                                z3engine.mkBitVector(Utils.hexDec64(0, size), size)
+                                z3engine.mkBitVector(0, size)
                         )
                 );
                 b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
@@ -917,7 +917,7 @@ public class InstructionAnalysis {
                         z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                         z3engine.not( z3engine.eq(
                                 var.getV(((OneRegisterInstruction)instruction).getRegisterA()),
-                                z3engine.mkBitVector(Utils.hexDec64(0, size), size)
+                                z3engine.mkBitVector(0, size)
                         ))
                 );
                 b = z3engine.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
@@ -932,7 +932,7 @@ public class InstructionAnalysis {
                         z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                         z3engine.not( z3engine.bvult(
                                 var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                                z3engine.mkBitVector(Utils.hexDec64(0, size), size)
+                                z3engine.mkBitVector(0, size)
                         ))
                 );
                 b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
@@ -942,7 +942,7 @@ public class InstructionAnalysis {
                         z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                         z3engine.bvult(
                                 var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                                z3engine.mkBitVector(Utils.hexDec64(0, size), size)
+                                z3engine.mkBitVector(0, size)
                         )
                 );
                 b = z3engine.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
@@ -957,7 +957,7 @@ public class InstructionAnalysis {
                         z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                         z3engine.not( z3engine.bvuge(
                                 var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                                z3engine.mkBitVector(Utils.hexDec64(0, size), size)
+                                z3engine.mkBitVector(0, size)
                         ))
                 );
                 b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
@@ -967,7 +967,7 @@ public class InstructionAnalysis {
                         z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                         z3engine.bvuge(
                                 var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                                z3engine.mkBitVector(Utils.hexDec64(0, size), size)
+                                z3engine.mkBitVector(0, size)
                         )
                 );
                 b = z3engine.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
@@ -982,7 +982,7 @@ public class InstructionAnalysis {
                         z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                         z3engine.not( z3engine.bvugt(
                                 var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                                z3engine.mkBitVector(Utils.hexDec64(0, size), size)
+                                z3engine.mkBitVector(0, size)
                         ))
                 );
                 b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
@@ -992,7 +992,7 @@ public class InstructionAnalysis {
                         z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                         z3engine.bvugt(
                                 var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                                z3engine.mkBitVector(Utils.hexDec64(0, size), size)
+                                z3engine.mkBitVector(0, size)
                         )
                 );
                 b = z3engine.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
@@ -1007,7 +1007,7 @@ public class InstructionAnalysis {
                         z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                         z3engine.not( z3engine.bvule(
                                 var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                                z3engine.mkBitVector(Utils.hexDec64(0, size), size)
+                                z3engine.mkBitVector(0, size)
                         ))
                 );
                 b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
@@ -1017,7 +1017,7 @@ public class InstructionAnalysis {
                         z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                         z3engine.bvule(
                                 var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                                z3engine.mkBitVector(Utils.hexDec64(0, size), size)
+                                z3engine.mkBitVector(0, size)
                         )
                 );
                 b = z3engine.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
@@ -1057,12 +1057,12 @@ public class InstructionAnalysis {
 //                    Clause cl6 = new Clause();
 //                    cl6.appendHead("(and " +
 //                    Utils.hPred("cn", "v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()),
-//                            Utils.hexDec64(0, size), "val", "lval", "bval") +
+//                            0, size), "val", "lval", "bval") +
 //                            ' ' + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen) +
 //                            ")");
                     h = z3engine.and(
                             z3engine.hPred(var.getCn(), var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                                           z3engine.mkBitVector(Utils.hexDec64(0, size), size),
+                                           z3engine.mkBitVector(0, size),
                                            var.getVal(), var.getLval(), var.getBval()),
                             z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc)
                     );
@@ -1097,14 +1097,14 @@ public class InstructionAnalysis {
                 h = z3engine.and(
                         z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                         z3engine.hPred( var.getCn(), var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                                        z3engine.mkBitVector(Utils.hexDec64(0, size), size),
-                                        z3engine.mkBitVector(Utils.hexDec64(0, size), size),
+                                        z3engine.mkBitVector(0, size),
+                                        z3engine.mkBitVector(0, size),
                                         var.getLf(), var.getBf())
                 );
                 b = z3engine.hPred( var.getCn(), var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
                                     (analysis.optionArrays()
                                             ? var.getV(((ThreeRegisterInstruction) instruction).getRegisterC())
-                                            : z3engine.mkBitVector(Utils.hexDec64(0, size), size)),
+                                            : z3engine.mkBitVector(0, size)),
                                     var.getV(((OneRegisterInstruction)instruction).getRegisterA()),
                                     var.getL(((OneRegisterInstruction)instruction).getRegisterA()),
                                     var.getB(((OneRegisterInstruction)instruction).getRegisterA())
@@ -1123,7 +1123,7 @@ public class InstructionAnalysis {
         	case IGET_SHORT:
                 h = z3engine.and(
                         z3engine.hPred(var.getCn(), var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                                       z3engine.mkBitVector(Utils.hexDec64(referenceIntIndex, size), size),
+                                       z3engine.mkBitVector(referenceIntIndex, size),
                                        var.getVal(), var.getLval(), var.getBval()),
                         z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc)
                 );
@@ -1158,12 +1158,12 @@ public class InstructionAnalysis {
                 h = z3engine.and(
                         z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                         z3engine.hPred(var.getCn(), var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                                        var.getF(), z3engine.mkBitVector(Utils.hexDec64(0, size), size),
+                                        var.getF(), z3engine.mkBitVector(0, size),
                                         var.getLf(), var.getBf())
                 );
                 b = z3engine.hPred(
                         var.getCn(), var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                        z3engine.mkBitVector(Utils.hexDec64(referenceIntIndex, size), size),
+                        z3engine.mkBitVector(referenceIntIndex, size),
                         var.getV(((OneRegisterInstruction)instruction).getRegisterA()),
                         var.getL(((OneRegisterInstruction)instruction).getRegisterA()),
                         var.getB(((OneRegisterInstruction)instruction).getRegisterA())
@@ -1186,7 +1186,7 @@ public class InstructionAnalysis {
         		}
 
                 h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkBitVector(Utils.hexDec64(0, size), size));
+                regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkBitVector(0, size));
                 regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkFalse());
                 regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getBf());
                 b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
@@ -1273,13 +1273,13 @@ public class InstructionAnalysis {
                                     z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                                     z3engine.eq(
                                             var.getV(referenceReg),
-                                            z3engine.mkBitVector(Utils.hexDec64(instance.hashCode(), size), size)
+                                            z3engine.mkBitVector(instance.hashCode(), size)
                                     )
                             );
 
-        					regUpdate = updateRegBitVec(numRegCall, numArgCall, var.getInjectV(), false);
-                            regUpdateL = updateRegBool(numRegCall, numArgCall, var.getInjectL(), false);
-                            regUpdateB = updateRegBool(numRegCall, numArgCall, var.getInjectB(), false);
+        					regUpdate = updateRegBitVec(numRegCall, numArgCall, var.getInjectV(var), false);
+                            regUpdateL = updateRegBool(numRegCall, numArgCall, var.getInjectL(var), false);
+                            regUpdateB = updateRegBool(numRegCall, numArgCall, var.getInjectB(var), false);
 
                             b = z3engine.rInvokePred(Integer.toString(di.getDalvikClass().getType().hashCode()), Integer.toString(di.getMethod().getName().hashCode()), 0,
                                     regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, size);
@@ -1292,9 +1292,9 @@ public class InstructionAnalysis {
         				if (callReturns){
         					for (final DalvikInstance instance: di.getInstances()){
                                 BoolExpr subh = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                                regUpdate = updateRegBitVec(numRegCall, numArgCall, var.getInjectV(), false);
-                                regUpdateL = updateRegBool(numRegCall, numArgCall, var.getInjectL(), false);
-                                regUpdateB = updateRegBool(numRegCall, numArgCall, var.getInjectB(), false);                                regUpdate.put(numArgCall, var.getRez());
+                                regUpdate = updateRegBitVec(numRegCall, numArgCall, var.getInjectV(var), false);
+                                regUpdateL = updateRegBool(numRegCall, numArgCall, var.getInjectL(var), false);
+                                regUpdateB = updateRegBool(numRegCall, numArgCall, var.getInjectB(var), false);                                regUpdate.put(numArgCall, var.getRez());
                                 regUpdateL.put(numArgCall, var.getLrez());
                                 regUpdateB.put(numArgCall, var.getBrez());
                                 h = z3engine.and(
@@ -1302,7 +1302,7 @@ public class InstructionAnalysis {
                                         z3engine.resPred(Integer.toString(di.getDalvikClass().getType().hashCode()), referenceIndex, regUpdate, regUpdateL, regUpdateB, numArgCall),
                                         z3engine.eq(
                                                 var.getV(referenceReg),
-                                                z3engine.mkBitVector(Utils.hexDec64(instance.hashCode(), size), size)
+                                                z3engine.mkBitVector(instance.hashCode(), size)
                                         )
                                 );
 
@@ -1395,11 +1395,11 @@ public class InstructionAnalysis {
                                 default: //array
                                     instanceNum = analysis.getInstNum(ci, mi, codeAddress);
                                     h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                                    b = z3engine.hPred(z3engine.mkBitVector(Utils.hexDec64(returnTypeInt, size), size),
-                                                        z3engine.mkBitVector(Utils.hexDec64(instanceNum, size), size),
+                                    b = z3engine.hPred(z3engine.mkBitVector(returnTypeInt, size),
+                                                        z3engine.mkBitVector(instanceNum, size),
                                                         var.getF(), var.getBuf(), returnLabel, var.getBf());
                                     z3engine.addRule(z3engine.implies(h, b), null);
-                                    regUpdate.put(numRegLoc, z3engine.mkBitVector(Utils.hexDec64(instanceNum, size), size));
+                                    regUpdate.put(numRegLoc, z3engine.mkBitVector(instanceNum, size));
                                     regUpdateL.put(numRegLoc, returnLabel);
                                     regUpdateB.put(numRegLoc, z3engine.mkTrue());
 
@@ -1433,7 +1433,7 @@ public class InstructionAnalysis {
                                         z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                                         z3engine.eq(
                                                 var.getV(instr2.getRegisterD()),
-                                                z3engine.mkBitVector(Utils.hexDec64(instance.hashCode(), size), size)
+                                                z3engine.mkBitVector(instance.hashCode(), size)
                                         )
                                 );
                                 numArgCall = di.getMethod().getNumArg();
@@ -1472,9 +1472,9 @@ public class InstructionAnalysis {
                 		regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
 
                 		h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                        regUpdate = updateRegBitVec(numRegCall, numArgCall, var.getInjectV(), false);
-                        regUpdateL = updateRegBool(numRegCall, numArgCall, var.getInjectL(), false);
-                        regUpdateB = updateRegBool(numRegCall, numArgCall, var.getInjectB(), false);
+                        regUpdate = updateRegBitVec(numRegCall, numArgCall, var.getInjectV(var), false);
+                        regUpdateL = updateRegBool(numRegCall, numArgCall, var.getInjectL(var), false);
+                        regUpdateB = updateRegBool(numRegCall, numArgCall, var.getInjectB(var), false);
                         b = z3engine.rInvokePred(referenceStringClassIndex, referenceIndex, 0, regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, size);
                         z3engine.addRule(z3engine.implies(h, b), null);
 
@@ -1483,9 +1483,9 @@ public class InstructionAnalysis {
                 		if (callReturns){
                             BoolExpr subh = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
 //                			head = "(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen);
-                            regUpdate = updateRegBitVec(numRegCall, numArgCall, var.getInjectV(), false);
-                            regUpdateL = updateRegBool(numRegCall, numArgCall, var.getInjectL(), false);
-                            regUpdateB = updateRegBool(numRegCall, numArgCall, var.getInjectB(), false);
+                            regUpdate = updateRegBitVec(numRegCall, numArgCall, var.getInjectV(var), false);
+                            regUpdateL = updateRegBool(numRegCall, numArgCall, var.getInjectL(var), false);
+                            regUpdateB = updateRegBool(numRegCall, numArgCall, var.getInjectB(var), false);
                             regUpdate.put(numArgCall, var.getRez());
                 			regUpdateL.put(numArgCall, var.getLrez());
                 			regUpdateB.put(numArgCall, var.getBrez());
@@ -1611,10 +1611,10 @@ public class InstructionAnalysis {
                                     )
                             );
 
-                            regUpdate = updateRegBitVec(numRegCall, numArgCall, var.getInjectV(), true);
-                            regUpdateL = updateRegBool(numRegCall, numArgCall, var.getInjectL(), true);
-                            regUpdateB = updateRegBool(numRegCall, numArgCall, var.getInjectB(), true);
-                            
+                            regUpdate = updateRegBitVec(numRegCall, numArgCall, var.getInjectV(var), true);
+                            regUpdateL = updateRegBool(numRegCall, numArgCall, var.getInjectL(var), true);
+                            regUpdateB = updateRegBool(numRegCall, numArgCall, var.getInjectB(var), true);
+
                             b = z3engine.rInvokePred(Integer.toString(di.getDalvikClass().getType().hashCode()), Integer.toString(di.getMethod().getName().hashCode()), 0,
                                     regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, size);
 
@@ -1626,9 +1626,9 @@ public class InstructionAnalysis {
         				if (callReturns){
         					for (final DalvikInstance instance: di.getInstances()){
                                 BoolExpr temph = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                                regUpdate = updateResBitVec(numRegCall, numArgCall, var.getInjectV(), true);
-                                regUpdateL = updateResBool(numRegCall, numArgCall, var.getInjectL(), true);
-                                regUpdateB = updateResBool(numRegCall, numArgCall, var.getInjectB(), true);
+                                regUpdate = updateResBitVec(numRegCall, numArgCall, var.getInjectV(var), true);
+                                regUpdateL = updateResBool(numRegCall, numArgCall, var.getInjectL(var), true);
+                                regUpdateB = updateResBool(numRegCall, numArgCall, var.getInjectB(var), true);
                                 regUpdate.put(numArgCall, var.getRez());
                                 regUpdateL.put(numArgCall, var.getLrez());
                                 regUpdateB.put(numArgCall, var.getBrez());
@@ -1767,9 +1767,9 @@ public class InstructionAnalysis {
 
                 		h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
 
-                        regUpdate = updateRegBitVec(numRegCall, numArgCall, var.getInjectV(), true);
-                        regUpdateL = updateRegBool(numRegCall, numArgCall, var.getInjectL(), true);
-                        regUpdateB = updateRegBool(numRegCall, numArgCall, var.getInjectB(), true);
+                        regUpdate = updateRegBitVec(numRegCall, numArgCall, var.getInjectV(var), true);
+                        regUpdateL = updateRegBool(numRegCall, numArgCall, var.getInjectL(var), true);
+                        regUpdateB = updateRegBool(numRegCall, numArgCall, var.getInjectB(var), true);
 
                         b = z3engine.rInvokePred(referenceStringClassIndex, referenceIndex, 0, regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, size);
 
@@ -1782,9 +1782,9 @@ public class InstructionAnalysis {
                         if (callReturns){
 //                			head = "(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen);
                             subh = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                            regUpdate = updateResBitVec(numRegCall, numArgCall, var.getInjectV(), true);
-                            regUpdateL = updateResBool(numRegCall, numArgCall, var.getInjectL(), true);
-                            regUpdateB = updateResBool(numRegCall, numArgCall, var.getInjectB(), true);
+                            regUpdate = updateResBitVec(numRegCall, numArgCall, var.getInjectV(var), true);
+                            regUpdateL = updateResBool(numRegCall, numArgCall, var.getInjectL(var), true);
+                            regUpdateB = updateResBool(numRegCall, numArgCall, var.getInjectB(var), true);
                             regUpdate.put(numArgCall, var.getRez());
                 			regUpdateL.put(numArgCall, var.getLrez());
                 			regUpdateB.put(numArgCall, var.getBrez());
@@ -1867,7 +1867,7 @@ public class InstructionAnalysis {
                                     b = z3engine.hPred(z3engine.mkBitVector(returnTypeInt, size), z3engine.mkBitVector(instanceNum, size),
                                                         var.getF(), var.getBuf(), returnLabel, var.getBf());
                                     z3engine.addRule(z3engine.implies(h, b), null);
-                                    regUpdate.put(numRegLoc, z3engine.mkBitVector(Utils.hexDec64(instanceNum, size), size));
+                                    regUpdate.put(numRegLoc, z3engine.mkBitVector(instanceNum, size));
                                     regUpdateL.put(numRegLoc, returnLabel);
                                     regUpdateB.put(numRegLoc, z3engine.mkTrue());
 
@@ -2554,11 +2554,11 @@ public class InstructionAnalysis {
                 regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
                         z3engine.bvadd(
                                 var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                                z3engine.mkBitVector(Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size), size)
+                                z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
                         )
                 );
 //                        "(bvadd v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ' '
-//        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
+//        				+ ((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getL(((TwoRegisterInstruction)instruction).getRegisterB()));
 //        		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 //        		gen.addClause(cl, c);
@@ -2574,11 +2574,11 @@ public class InstructionAnalysis {
                 regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
                         z3engine.bvmul(
                                 var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                                z3engine.mkBitVector(Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size), size)
+                                z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
                         )
                 );
 //                        "(bvmul v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ' '
-//        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
+//        				+ ((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getL(((TwoRegisterInstruction)instruction).getRegisterB()));
 //        		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 //        		gen.addClause(cl, c);
@@ -2594,11 +2594,11 @@ public class InstructionAnalysis {
                 regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
                         z3engine.bvudiv(
                                 var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                                z3engine.mkBitVector(Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size), size)
+                                z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
                         )
                 );
 //                        "(bvudiv v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ' '
-//        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
+//        				+ ((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getL(((TwoRegisterInstruction)instruction).getRegisterB()));
 //        		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 //        		gen.addClause(cl, c);
@@ -2615,11 +2615,11 @@ public class InstructionAnalysis {
                 regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
                         z3engine.bvurem(
                                 var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                                z3engine.mkBitVector(Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size), size)
+                                z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
                         )
                 );
 //                        "(bvurem v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ' '
-//        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
+//        				+ ((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getL(((TwoRegisterInstruction)instruction).getRegisterB()));
 //        		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 //        		gen.addClause(cl, c);
@@ -2636,11 +2636,11 @@ public class InstructionAnalysis {
                 regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
                         z3engine.bvand(
                                 var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                                z3engine.mkBitVector(Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size), size)
+                                z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
                         )
                 );
 //                        "(bvand v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ' '
-//        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
+//        				+ ((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getL(((TwoRegisterInstruction)instruction).getRegisterB()));
 //        		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 //        		gen.addClause(cl, c);
@@ -2657,11 +2657,11 @@ public class InstructionAnalysis {
                 regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
                         z3engine.bvor(
                                 var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                                z3engine.mkBitVector(Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size), size)
+                                z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
                         )
                 );
 //                        "(bvor v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ' '
-//        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
+//        				+ ((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getL(((TwoRegisterInstruction)instruction).getRegisterB()));
 //        		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 //        		gen.addClause(cl, c);
@@ -2678,11 +2678,11 @@ public class InstructionAnalysis {
                 regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
                         z3engine.bvxor(
                                 var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                                z3engine.mkBitVector(Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size), size)
+                                z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
                         )
                 );
 //                        "(bvxor v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ' '
-//        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
+//        				+ ((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getL(((TwoRegisterInstruction)instruction).getRegisterB()));
 //        		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 //        		gen.addClause(cl, c);
@@ -2698,12 +2698,12 @@ public class InstructionAnalysis {
         		h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                 regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
                         z3engine.bvsub(
-                                z3engine.mkBitVector(Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size), size),
+                                z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
                                 var.getV(((TwoRegisterInstruction)instruction).getRegisterB())
                         )
                 );
 //                        "(bvsub " +
-//        				Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + " v" +
+//        				((WideLiteralInstruction)instruction).getWideLiteral(), size) + " v" +
 //        				Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB())
 //        				 + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getL(((TwoRegisterInstruction)instruction).getRegisterB()));
@@ -2720,10 +2720,10 @@ public class InstructionAnalysis {
         		h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                 regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
                     z3engine.bvshl(var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                                   z3engine.mkBitVector(Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size), size))
+                                   z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size))
                 );
 //                        "(bvshl v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ' '
-//        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
+//        				+ ((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getL(((TwoRegisterInstruction)instruction).getRegisterB()));
 //        		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 //        		gen.addClause(cl, c);
@@ -2740,11 +2740,11 @@ public class InstructionAnalysis {
                 regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
                         z3engine.bvashr(
                                 var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                                z3engine.mkBitVector(Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size), size)
+                                z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
                         )
                 );
 //                        "(bvashr v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ' '
-//        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
+//        				+ ((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getL(((TwoRegisterInstruction)instruction).getRegisterB()));
 //        		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 //        		gen.addClause(cl, c);
@@ -2761,11 +2761,11 @@ public class InstructionAnalysis {
                 regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
                         z3engine.bvlshr(
                                 var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                                z3engine.mkBitVector(Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size), size)
+                                z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
                         )
                 );
 //                        "(bvlshr v" + Integer.toString(((TwoRegisterInstruction)instruction).getRegisterB()) + ' '
-//        				+ Utils.hexDec64(((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
+//        				+ ((WideLiteralInstruction)instruction).getWideLiteral(), size) + ')');
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getL(((TwoRegisterInstruction)instruction).getRegisterB()));
 //        		cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
 //        		gen.addClause(cl, c);
@@ -2884,6 +2884,7 @@ public class InstructionAnalysis {
     }
 
     private void addQueryRange(final Z3Engine z3, BoolExpr p, String className, String methodName, String pc, String sinkName, final boolean verboseOption){
+        System.out.println("\nadding query range: " + className + "." + methodName);
         Z3Variable var = z3.getVars();
         RegisterRangeInstruction instruction = (RegisterRangeInstruction)this.instruction;
         int regCount = instruction.getRegisterCount();
@@ -2904,7 +2905,8 @@ public class InstructionAnalysis {
     }
 
     private void addQuery(final Z3Engine z3, BoolExpr p, String className, String methodName, String pc, String sinkName, final boolean verboseResults){
-    	Z3Variable var = z3.getVars();
+    	System.out.println("adding query: " + className + "." + methodName);
+        Z3Variable var = z3.getVars();
         FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
         final int regCount = instruction.getRegisterCount();
 

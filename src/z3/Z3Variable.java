@@ -9,7 +9,7 @@ import java.util.ArrayList;
  */
 public class Z3Variable {
 
-    private final int GUARD = 1000;
+    private final int GUARD = 100;
 
     private final Context ctx;
     private final BoolSort bool;
@@ -47,7 +47,7 @@ public class Z3Variable {
         this.val = (BitVecExpr) ctx.mkBound(18, bv64);
         this.lval = (BoolExpr) ctx.mkBound(19, bool);
         this.bval = (BoolExpr) ctx.mkBound(20, bool);
-        this.cnum = (IntExpr) ctx.mkBound(21, bv64);
+        this.cnum = (IntExpr) ctx.mkBound(21, integer);
 
     }
 
@@ -144,18 +144,18 @@ public class Z3Variable {
     public BitVecExpr getV(int i){
         try {
 //            if (i < 0) return ctx.mkBV(-1*i, bv64);
-            return (BitVecExpr) ctx.mkBound(GUARD + 3*i + 1, bv64);
+            return (BitVecExpr) ctx.mkBound(GUARD + 3*i + 0, bv64);
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("getV");
         }
     }
 
-    public VariableInject getInjectV(){
+    public VariableInject getInjectV(final Z3Variable var){
         return new VariableInject() {
             @Override
             public BitVecExpr getBV(int i) {
-                return getV(i);
+                return var.getV(i);
             }
 
             @Override
@@ -167,14 +167,14 @@ public class Z3Variable {
 
     public BoolExpr getL(int i){
         try {
-            return (BoolExpr) ctx.mkBound(GUARD + 3*i + 2, bool);
+            return (BoolExpr) ctx.mkBound(GUARD + 3*i + 1, bool);
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("getL");
         }
     }
 
-    public VariableInject getInjectL(){
+    public VariableInject getInjectL(final Z3Variable var){
         return new VariableInject() {
             @Override
             public BitVecExpr getBV(int i) {
@@ -183,21 +183,21 @@ public class Z3Variable {
 
             @Override
             public BoolExpr getB(int i) {
-                return getL(i);
+                return var.getL(i);
             }
         };
     }
 
     public BoolExpr getB(int i){
         try {
-            return (BoolExpr) ctx.mkBound(GUARD + 3*i + 3, bool);
+            return (BoolExpr) ctx.mkBound(GUARD + 3*i + 2, bool);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("getL");
+            throw new RuntimeException("getB");
         }
     }
 
-    public VariableInject getInjectB(){
+    public VariableInject getInjectB(final Z3Variable var){
         return new VariableInject() {
             @Override
             public BitVecExpr getBV(int i) {
@@ -206,7 +206,7 @@ public class Z3Variable {
 
             @Override
             public BoolExpr getB(int i) {
-                return getB(i);
+                return var.getB(i);
             }
         };
     }

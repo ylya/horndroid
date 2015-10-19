@@ -2,7 +2,6 @@ package analysis;
 
 import com.microsoft.z3.BitVecExpr;
 import com.microsoft.z3.BoolExpr;
-import gen.Gen;
 import horndroid.options;
 
 import java.util.ArrayList;
@@ -246,7 +245,7 @@ public class Analysis {
 
         BoolExpr b1 = z3engine.rPred(Integer.toString(classIndex), Integer.toString(methodIndex),
                 0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall);
-        z3engine.addRule(b1, null);
+        z3engine.addRule(b1, dc.toString() + methodIndex + "zz");
 	}
 	private void addToMainHeap(final DalvikClass dc, final int methodIndex, final int numRegCall, final int regCount){
 		final int classIndex = dc.getType().hashCode();
@@ -257,14 +256,14 @@ public class Analysis {
 			regUpdateL.put(i, z3engine.mkFalse());
 		}
 
-        BoolExpr b1 = z3engine.rPred(Integer.toString(classIndex), Integer.toString(methodIndex),
-                0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall);
-        z3engine.addRule(b1, null);
-
-        BoolExpr b2 = z3engine.hPred( z3engine.mkBitVector(Utils.hexDec64(classIndex, options.bitvectorSize), options.bitvectorSize),
-                                      var.getFpp(), var.getF(), var.getVal(),
-                                      z3engine.mkFalse(), z3engine.mkTrue());
-        z3engine.addRule(b2, null);
+//        BoolExpr b1 = z3engine.rPred(Integer.toString(classIndex), Integer.toString(methodIndex),
+//                0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall);
+//        z3engine.addRule(b1, null);
+//
+//        BoolExpr b2 = z3engine.hPred( z3engine.mkBitVector(classIndex, options.bitvectorSize),
+//                                      var.getFpp(), var.getF(), var.getVal(),
+//                                      z3engine.mkFalse(), z3engine.mkTrue());
+//        z3engine.addRule(b2, null);
 	}
 	
 
@@ -281,6 +280,7 @@ public class Analysis {
 				if (isCallbackImplementation){
 					addToMain(dc, m.getName().hashCode(), m.getNumReg(), m.getNumArg());
 				}
+
 				if (isEntryPoint){
                     Map<Integer, BitVecExpr> regUpdate = new HashMap<>();
                     Map<Integer, BoolExpr> regUpdateL = new HashMap<>();
@@ -293,12 +293,17 @@ public class Analysis {
 					}
 
                     BoolExpr b1 = z3engine.iPred(var.getCn(),
-                                                 z3engine.mkBitVector(Utils.hexDec64(dc.getType().hashCode(), options.bitvectorSize), options.bitvectorSize),
+                                                 z3engine.mkBitVector(dc.getType().hashCode(), options.bitvectorSize),
                                                 var.getVal(), var.getLf(), var.getBf());
-                    BoolExpr b2 = z3engine.rPred(Integer.toString(dc.getType().hashCode()), Integer.toString(m.getName().hashCode()),
+
+                    BoolExpr b2 = z3engine.rPred(Integer.toString(dc.getType().hashCode()),
+                            Integer.toString(m.getName().hashCode()),
                             0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall);
+
                     BoolExpr b1tob2 = z3engine.implies(b1, b2);
+
                     z3engine.addRule(b1tob2, null);
+
 
 //		    		gen.addMain("(rule (=> " + Utils.iPred(
 //						"cn", Utils.hexDec64(dc.getType().hashCode(), options.bitvectorSize), "val", "lf", "bf") + ' ' +
@@ -306,13 +311,15 @@ public class Analysis {
 //							0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall, gen)
 //				         		+ "))", dc.getType().hashCode());
 				}
-				
+
 				if (!isDisabledActivity && isEntryPoint && (isLauncherActivity || isApplication || isOverApprox)){
-					addToMainHeap(dc, m.getName().hashCode(), m.getNumReg(), m.getNumArg());
+                    addToMainHeap(dc, m.getName().hashCode(), m.getNumReg(), m.getNumArg());
 				}
+
 				if (isCallback){
 					addToMain(dc, m.getName().hashCode(), m.getNumReg(), m.getNumArg());
 				}
+
 				int codeAddress = 0;
 		        for (final Instruction instruction: m.getInstructions()){
 		        	InstructionAnalysis ia = new InstructionAnalysis(this, instruction, dc, m, codeAddress);
@@ -410,17 +417,18 @@ public class Analysis {
 				}
 
 				final boolean isci = isCallbackImplementation;
-				instructionExecutorService.submit(new Runnable() {
-		   			 @Override
-		   			 public void run() {
-		   				 try {
-		   					 processClass(dc, isDisabledActivity, isci, isLauncherActivity, isApplication, isOverapprox);	
-		   				 } catch (Exception e1) {
-							e1.printStackTrace();
-		   				 }
-		   			 }
-		        });
-			}
+//				instructionExecutorService.submit(new Runnable() {
+//		   			 @Override
+//		   			 public void run() {
+//		   				 try {
+//		   					 processClass(dc, isDisabledActivity, isci, isLauncherActivity, isApplication, isOverapprox);
+//		   				 } catch (Exception e1) {
+//							e1.printStackTrace();
+//		   				 }
+//		   			 }
+//		        });
+                processClass(dc, isDisabledActivity, isci, isLauncherActivity, isApplication, isOverapprox);
+            }
 		}
 	}
 	private boolean testEntryPoint(final GeneralClass c, final int methodIndex){
@@ -646,8 +654,9 @@ public class Analysis {
 //        				classIndex);
                 BoolExpr rule = z3engine.sPred( z3engine.mkInt(Utils.Dec(classIndex)),
                                              z3engine.mkInt(Utils.Dec(fieldName.hashCode())),
-                                             z3engine.mkBitVector(FormatEncodedValue.toString(initialValue, options.bitvectorSize), options.bitvectorSize),
-                                             z3engine.mkFalse(), var.getBf());
+//                                             z3engine.mkBitVector(FormatEncodedValue.toString(initialValue, options.bitvectorSize), options.bitvectorSize),
+                                            FormatEncodedValue.toBitVec(z3engine, initialValue, options.bitvectorSize),
+                                            z3engine.mkFalse(), var.getBf());
                 z3engine.addRule(rule, null);
         		
             	DalvikStaticField dsf = new DalvikStaticField(ReferenceUtil.getShortFieldDescriptor(field), FormatEncodedValue.toString(initialValue, options.bitvectorSize));

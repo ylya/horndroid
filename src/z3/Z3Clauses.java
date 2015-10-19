@@ -17,6 +17,7 @@ public interface Z3Clauses {
     public BoolExpr mkBool(boolean b);
     public BitVecExpr mkBitVector(String data, int len);
     public BitVecExpr mkBitVector(int data, int len);
+    public BitVecExpr mkBitVector(long data, int len);
     public IntExpr mkInt(String data);
     public IntExpr mkInt(int data);
 

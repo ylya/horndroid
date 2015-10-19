@@ -3,9 +3,8 @@ package z3;
 import com.microsoft.z3.*;
 import com.sun.org.apache.xpath.internal.operations.Bool;
 import horndroid.options;
+import org.apache.commons.lang3.RandomStringUtils;
 import util.CMPair;
-import util.Utils;
-//import z3.impl.Z3ClausesImpl;
 
 import javax.annotation.Nonnull;
 import java.util.*;
@@ -34,6 +33,7 @@ public class Z3Engine implements Z3Clauses {
     public Z3Engine(options options){
         try {
             bvSize = options.bitvectorSize;
+            mQueries = new ArrayList<>();
 
             //legacy
             this.methodIsEntryPoint = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<CMPair, Boolean>()));
@@ -41,34 +41,45 @@ public class Z3Engine implements Z3Clauses {
 
 
             Global.setParameter("fixedpoint.engine", "pdr");
+            Global.setParameter("fixedpoint.datalog.unbound_compressor", "false");
+            Global.setParameter("pp.bv-literals", "false");
+
             HashMap<String, String> cfg = new HashMap<String, String>();
-            mContext = new Context();
-            mFixedPoint = mContext.mkFixedpoint();
+            mContext = new Context(cfg); //Context ctx = mContext;
+            mFixedPoint = mContext.mkFixedpoint(); //Fixedpoint fp = mFixedPoint;
 
             // add vars
             var = new Z3Variable(mContext, bvSize);
 
             // add func
             func = new Z3Function(mContext, bvSize);
+            mFixedPoint.registerRelation(func.getH());
+            mFixedPoint.registerRelation(func.getHi());
+            mFixedPoint.registerRelation(func.getI());
+            mFixedPoint.registerRelation(func.getS());
+            Symbol[] symbols = new Symbol[]{mContext.mkSymbol("interval_relation"),
+                                            mContext.mkSymbol("bound_relation")};
+            mFixedPoint.setPredicateRepresentation(func.getH(), symbols);
+            mFixedPoint.setPredicateRepresentation(func.getHi(), symbols);
+            mFixedPoint.setPredicateRepresentation(func.getI(), symbols);
+            mFixedPoint.setPredicateRepresentation(func.getS(), symbols);
 
             // add main
             BoolExpr b1 = hPred( var.getCn(), var.getCn(),
-                                 mContext.mkBV(Utils.hexDec64("parent".hashCode(), bvSize), bvSize),
+                                 mContext.mkBV("parent".hashCode(), bvSize),
                                  var.getF(), var.getLf(), var.getBf());
             BoolExpr b2 = hPred( var.getCn(), var.getCn(),
-                                 mContext.mkBV(Utils.hexDec64("result".hashCode(), bvSize), bvSize),
+                                 mContext.mkBV("result".hashCode(), bvSize),
                                  var.getVal(), var.getLval(), var.getBval());
             BoolExpr b3 = hPred( var.getF(), var.getF(), var.getFpp(),
                                  var.getVfp(), var.getLfp(), var.getBfp());
             BoolExpr b1b2b3 = mContext.mkAnd(b1, b2, b3);
-
             BoolExpr b4 = hPred( var.getF(), var.getF(),
-                                 mContext.mkBV(Utils.hexDec64("result".hashCode(), bvSize), bvSize),
+                                 mContext.mkBV("result".hashCode(), bvSize),
                                  var.getVal(), var.getLval(), var.getBval());
-
             BoolExpr b1b2b3_b4 = mContext.mkImplies(b1b2b3, b4);
-            this.addRule(b1b2b3_b4, null);
 
+            this.addRule(b1b2b3_b4, "zz");
         } catch (Z3Exception e){
             e.printStackTrace();
             throw new RuntimeException("Z3Engine Failed");
@@ -96,7 +107,7 @@ public class Z3Engine implements Z3Clauses {
 
     public void addRule(BoolExpr rule, String symbol){
         try {
-            mFixedPoint.addRule(rule, mContext.mkSymbol(symbol));
+            mFixedPoint.addRule(rule, mContext.mkSymbol(RandomStringUtils.random(16,true,true)));
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Z3Engine Failed: addRule");
@@ -144,7 +155,7 @@ public class Z3Engine implements Z3Clauses {
             return mContext.mkBV(data, len);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: mkBitVector");
+            throw new RuntimeException("Z3Engine Failed: mkBitVector String");
         }
     }
 
@@ -154,7 +165,17 @@ public class Z3Engine implements Z3Clauses {
             return mContext.mkBV(data, len);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: mkBitVector");
+            throw new RuntimeException("Z3Engine Failed: mkBitVector int");
+        }
+    }
+
+    @Override
+    public BitVecExpr mkBitVector(long data, int len) {
+        try {
+            return mContext.mkBV(data, len);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Z3Engine Failed: mkBitVector long");
         }
     }
 
@@ -428,13 +449,18 @@ public class Z3Engine implements Z3Clauses {
     }
 
     public void executeAllQueries(){
-        for (Z3Query q : this.mQueries){
-            if(q.isVerbose())
-                System.out.println(q.getDescription());
+
+        for (int i = 0; i < mQueries.size(); i++){
+            Z3Query q = mQueries.get(i);
+            System.out.print((i+1) + ": ");
+//            if(q.isVerbose())
+//                System.out.println(q.getDescription());
             try{
                 Status result = mFixedPoint.query(q.getQuery());
+//                System.out.println(q.getQuery());
                 System.out.println(result);
-                System.out.println(mFixedPoint.getAnswer());
+//                if(q.isVerbose())
+//                    System.out.println(mFixedPoint.getAnswer());
             } catch (Z3Exception e) {
                 throw new RuntimeException("Fail executing query: " + q.getDescription());
             }
@@ -452,9 +478,8 @@ public class Z3Engine implements Z3Clauses {
     }
 
     public void declareRel(String name, Sort[] domain, Sort range){
-        FuncDecl f = null;
         try {
-            f = mContext.mkFuncDecl(name, domain, range);
+            FuncDecl f = mContext.mkFuncDecl(name, domain, range);
             this.declareRel(f);
         } catch (Z3Exception e) {
             e.printStackTrace();
@@ -486,12 +511,18 @@ public class Z3Engine implements Z3Clauses {
 
     private FuncDecl rPredDef(String c, String m, int pc, int size) {
         try {
+            BitVecSort bv64 = mContext.mkBitVecSort(bvSize);
+            BoolSort bool = mContext.mkBoolSort();
+
             String funcName = "R_" + c + '_' + m + '_' + Integer.toString(pc);
-            Sort[] domains = new Sort[3 * (size + 1)];
-            Arrays.fill(domains, 0, size + 1, mContext.mkBitVecSort(64));
-            Arrays.fill(domains, size + 1, 3 * (size + 1), mContext.mkBoolSort());
+            Sort[] domains = new Sort[3 * size];
+            Arrays.fill(domains, 0, size, bv64);
+            Arrays.fill(domains, size, 3 * size, bool);
             FuncDecl f = mContext.mkFuncDecl(funcName, domains, mContext.mkBoolSort());
             this.declareRel(f);
+            Symbol[] symbols = new Symbol[]{mContext.mkSymbol("interval_relation"),
+                                            mContext.mkSymbol("bound_relation")};
+            mFixedPoint.setPredicateRepresentation(f, symbols);
             return f;
         } catch (Z3Exception e) {
             e.printStackTrace();
@@ -528,19 +559,20 @@ public class Z3Engine implements Z3Clauses {
     @Override
     public BoolExpr rPred(final String c, final String m, final int pc, final Map<Integer, BitVecExpr> rUp, final Map<Integer, BoolExpr> rUpL, final Map<Integer, BoolExpr> rUpB, final int numArg, final int numReg) {
         try {
-            int size = numArg + numReg;
+            int size = numArg + numReg + 1; // include return register
             FuncDecl r = this.rPredDef(c, m, pc, size);
 
-            Expr[] e = new Expr[3 * ++size]; // include return register
+            Expr[] e = new Expr[3 * size];
             for(int i = 0, j = size, k = 2*size; i < size; i++, j++, k++){
-                e[i] = rUp.get(i) == null ? rUp.get(i) : var.getV(i);
-                e[j] = rUpL.get(j) == null ? rUpL.get(j) : var.getL(j);
-                e[k] = rUpB.get(k) == null ? rUpB.get(k) : var.getB(k);
+                e[i] = rUp.get(i); if (e[i] == null) e[i] = var.getV(i);
+                e[j] = rUpL.get(j); if (e[j] == null) e[j] = var.getL(j);
+                e[k] = rUpB.get(k); if (e[k] == null) e[k] = var.getB(k);
             }
+
             return (BoolExpr) r.apply(e);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: rPredDef");
+            throw new RuntimeException("Z3Engine Failed: rPred");
         }
     }
 
@@ -563,15 +595,28 @@ public class Z3Engine implements Z3Clauses {
 //            else b = var;
 //        }
 //        return null;
-////        return ret + v + ' ' + l + ' ' + b + ')';
+//        return ret + v + ' ' + l + ' ' + b + ')';
 //    }
 
     @Override
     public BoolExpr rInvokePred(final String c, final String m, final int pc, final Map<Integer, BitVecExpr> rUp, final Map<Integer, BoolExpr> rUpL, final Map<Integer, BoolExpr> rUpB, final int numArg, final int numReg, final int size) {
-        this.rPredDef(c, m, pc, numArg + numReg);
-        String name = "R" + '_' + c + '_' + m + '_' + Integer.toString(pc);
+        try {
+            int arraySize = numArg + numReg + 1;
+            FuncDecl f = this.rPredDef(c, m, pc, arraySize);
+    //        String name = "R" + '_' + c + '_' + m + '_' + Integer.toString(pc);
 
-        return null;
+            Expr[] e = new Expr[3 * arraySize];
+            for(int i = 0, j = arraySize, k = 2*arraySize; i < arraySize; i++, j++, k++){
+                e[i] = rUp.get(i); if (e[i] == null) e[i] = this.mkBitVector(0, size);
+                e[j] = rUpL.get(j); if (e[j] == null) e[j] = this.mkFalse();
+                e[k] = rUpB.get(k); if (e[k] == null) e[k] = this.mkFalse();
+            }
+
+            return (BoolExpr) f.apply(e);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Z3Engine Failed: rInvokePred");
+        }
     }
 
 //    private void resPredDef(final String c, final String m, final int size, final Z3Engine z3engine){
@@ -593,12 +638,15 @@ public class Z3Engine implements Z3Clauses {
             BoolSort bool = mContext.mkBoolSort();
 
             String funcName = "RES_" + c + '_' + m;
-            Sort[] domains = new Sort[3 * (size + 1)];
-            Arrays.fill(domains, 0, size + 1, bv64);
-            Arrays.fill(domains, size + 1, 3 * (size + 1), bool);
+            Sort[] domains = new Sort[3 * size];
+            Arrays.fill(domains, 0, size, bv64);
+            Arrays.fill(domains, size, 3 * size, bool);
             FuncDecl f = mContext.mkFuncDecl(funcName, domains, bool);
 
             this.declareRel(f);
+            Symbol[] symbols = new Symbol[]{mContext.mkSymbol("interval_relation"),
+                                            mContext.mkSymbol("bound_relation")};
+            mFixedPoint.setPredicateRepresentation(f, symbols);
             return f;
         } catch (Z3Exception e) {
             e.printStackTrace();
@@ -631,19 +679,23 @@ public class Z3Engine implements Z3Clauses {
     @Override
     public BoolExpr resPred(final String c, final String m, final Map<Integer, BitVecExpr> rUp, final Map<Integer, BoolExpr> rUpL, final Map<Integer, BoolExpr> rUpB, final int numArg) {
         try {
-            FuncDecl res = this.resPredDef(c, m, numArg);
+            int size = numArg + 1; // include return register
+            FuncDecl res = this.resPredDef(c, m, size);
 
-            int size = numArg + 1;
-            Expr[] e = new Expr[3 * size]; // include return register
-            for(int i = 0, j = size, k = 2*size; i < size; i++, j++, k++){
-                e[i] = rUp.get(i) == null ? rUp.get(i) : var.getV(i);
-                e[j] = rUpL.get(j) == null ? rUpL.get(j) : var.getL(j);
-                e[k] = rUpB.get(k) == null ? rUpB.get(k) : var.getB(k);
+            Expr[] e = new Expr[3 * size];
+            for(int i = 0, j = size, k = 2*size; i < size; i++, j++, k++) {
+                e[i] = rUp.get(i);
+                if (e[i] == null) e[i] = var.getV(i);
+                e[j] = rUpL.get(j);
+                if (e[j] == null) e[j] = var.getL(j);
+                e[k] = rUpB.get(k);
+                if (e[k] == null) e[k] = var.getB(k);
             }
+
             return (BoolExpr) res.apply(e);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: rPredDef");
+            throw new RuntimeException("Z3Engine Failed: resPred");
         }
     }
 

@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import com.microsoft.z3.BoolExpr;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.Option;
@@ -36,6 +37,7 @@ import util.SourceSinkMethod;
 import util.SourceSinkParser;
 import util.Utils;
 import z3.Z3Engine;
+import z3.Z3Query;
 
 public class main {
 	private static final Options options;
@@ -88,13 +90,13 @@ public class main {
          	final String fullPath      = '/' + FilenameUtils.getPath(file.getPath());
          	final String inputApkFileName = '/' + FilenameUtils.getPath(file.getPath()) + file.getName();
          	hornDroidOptions.outputDirectory  = fullPath + shortFilename;
-        	clean();
+//        	clean();
 //            final Gen gen = new Gen(hornDroidOptions.outputDirectory + '/');
 //            initGen(gen, hornDroidOptions);
             final Z3Engine z3engine = new Z3Engine(hornDroidOptions);
-            final ExecutorService executorService = Executors.newCachedThreadPool();
+
          	final ExecutorService instructionExecutorService = Executors.newCachedThreadPool();
-    		Analysis analysis = new Analysis(z3engine, sourcesSinks, hornDroidOptions, instructionExecutorService);
+            Analysis analysis = new Analysis(z3engine, sourcesSinks, hornDroidOptions, instructionExecutorService);
          	System.out.println("Analysing " + file.getName());
          	startTime = System.nanoTime();
          	
@@ -113,6 +115,8 @@ public class main {
 				System.err.println("Error: Loading dex file failed!");
 				System.exit(1);
 			}
+
+            //////////////////////////////////////
            
             System.out.print("Parsing entry points...");
             try {
@@ -123,6 +127,9 @@ public class main {
 			}
             endTime = System.nanoTime();
             System.out.println("done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
+
+            //////////////////////////////////////
+
             startTime = System.nanoTime();
             System.out.print("Parsing callbacks and disabled activities...");
             try {
@@ -139,26 +146,31 @@ public class main {
 			}
             endTime = System.nanoTime();
             System.out.println("...done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
-            
+
+            //////////////////////////////////////
+
             System.out.print("Sorting classes...");
             startTime = System.nanoTime();
             List<? extends ClassDef> classDefs = Ordering.natural().sortedCopy(dexFile.getClasses());
             endTime = System.nanoTime();
             System.out.println("done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
+
+            //////////////////////////////////////
+
             System.out.print("Collecting data for Horn Clause generation...");
             startTime = System.nanoTime();
             analysis.collectDataFromApk(classDefs);
             endTime = System.nanoTime();
             System.out.println("done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
-            
-            startTime = System.nanoTime();
+
+            //////////////////////////////////////
+
             System.out.print("Generating Horn Clauses..");
             startTime = System.nanoTime();
             analysis.createHornClauses();
             endTime = System.nanoTime();
             System.out.println("...done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
-            startTime = System.nanoTime();
-            
+
             System.out.print("Waiting for treads to terminate...");
             startTime = System.nanoTime();
             instructionExecutorService.shutdown();
@@ -175,6 +187,14 @@ public class main {
 
             System.out.println("Executing all queries...");
             startTime = System.nanoTime();
+
+            BoolExpr b = z3engine.mkBool(false);
+            BoolExpr alwaysFalse = z3engine.eq(b, z3engine.mkTrue());
+            z3engine.addQuery(new Z3Query(alwaysFalse, "Always False", false));
+            BoolExpr alwaysTrue = z3engine.eq(b, z3engine.mkFalse());
+            z3engine.addQuery(new Z3Query(alwaysTrue, "Always True", false));
+
+
             z3engine.executeAllQueries();
             endTime = System.nanoTime();
             System.out.println("...done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
