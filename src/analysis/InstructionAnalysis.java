@@ -115,9 +115,6 @@ public class InstructionAnalysis {
         String classIndex = Utils.Dec(ci);
         final int numRegLoc = dm.getNumReg();
         final int numParLoc = dm.getNumArg();
-//        Clause cl = new Clause();
-//        Clause cl2 = new Clause();
-//        Clause cl3 = new Clause();
         String head = "";
         BoolExpr returnLabel;
         Map<Integer, BitVecExpr> regUpdate = new HashMap<>();
@@ -155,13 +152,10 @@ public class InstructionAnalysis {
             case MOVE_RESULT://((short)0x0a, "move-result", ReferenceType.NONE, Format.Format11x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         	case MOVE_RESULT_WIDE://((short)0x0b, "move-result-wide", ReferenceType.NONE, Format.Format11x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
         	case MOVE_RESULT_OBJECT:
-//        		cl.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
                 h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                 regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getV(numRegLoc));
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getL(numRegLoc));
         		regUpdateB.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getB(numRegLoc));
-//              cl.appendBody(Utils.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-//              gen.addClause(cl, c);
                 b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                 z3engine.addRule(z3engine.implies(h, b), null);
         		break;//((short)0x0c, "move-result-object", ReferenceType.NONE, Format.Format11x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
@@ -2875,12 +2869,13 @@ public class InstructionAnalysis {
     	int startRegister = instruction.getStartRegister();
     	int endRegister   =   startRegister+regCount-1;
 
-        BoolExpr[] bools = new BoolExpr[endRegister - startRegister + 2];
-        bools[0] = z3engine.mkFalse();
-        for(int reg = startRegister, i = 1; reg <= endRegister; reg++, i++){
-            bools[i] = z3engine.getVars().getL(reg);
+        BoolExpr labels = z3engine.mkFalse();
+        for(int reg = startRegister; reg <= endRegister; reg++){
+            labels = z3engine.or(
+                    labels, z3engine.getVars().getL(reg)
+            );
         }
-        return z3engine.or(bools);
+        return z3engine.or(labels);
     }
 
     private void addQueryRange(final Z3Engine z3, BoolExpr p, String className, String methodName, String pc, String sinkName, final boolean verboseOption){
