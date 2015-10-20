@@ -188,11 +188,11 @@ public class main {
             System.out.println("Executing all queries...");
             startTime = System.nanoTime();
 
-            BoolExpr b = z3engine.mkBool(false);
-            BoolExpr alwaysFalse = z3engine.eq(b, z3engine.mkTrue());
-            z3engine.addQuery(new Z3Query(alwaysFalse, "Always False", false));
-            BoolExpr alwaysTrue = z3engine.eq(b, z3engine.mkFalse());
-            z3engine.addQuery(new Z3Query(alwaysTrue, "Always True", false));
+//            BoolExpr b = z3engine.mkBool(false);
+//            BoolExpr alwaysFalse = z3engine.eq(b, z3engine.mkTrue());
+//            z3engine.addQuery(new Z3Query(alwaysFalse, "Always False", false));
+//            BoolExpr alwaysTrue = z3engine.eq(b, z3engine.mkFalse());
+//            z3engine.addQuery(new Z3Query(alwaysTrue, "Always True", false));
 
 
             z3engine.executeAllQueries();

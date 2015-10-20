@@ -256,14 +256,14 @@ public class Analysis {
 			regUpdateL.put(i, z3engine.mkFalse());
 		}
 
-//        BoolExpr b1 = z3engine.rPred(Integer.toString(classIndex), Integer.toString(methodIndex),
-//                0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall);
-//        z3engine.addRule(b1, null);
-//
-//        BoolExpr b2 = z3engine.hPred( z3engine.mkBitVector(classIndex, options.bitvectorSize),
-//                                      var.getFpp(), var.getF(), var.getVal(),
-//                                      z3engine.mkFalse(), z3engine.mkTrue());
-//        z3engine.addRule(b2, null);
+        BoolExpr b1 = z3engine.rPred(Integer.toString(classIndex), Integer.toString(methodIndex),
+                0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall);
+        z3engine.addRule(b1, null);
+
+        BoolExpr b2 = z3engine.hPred( z3engine.mkBitVector(classIndex, options.bitvectorSize),
+                                      var.getFpp(), var.getF(), var.getVal(),
+                                      z3engine.mkFalse(), z3engine.mkTrue());
+        z3engine.addRule(b2, null);
 	}
 	
 

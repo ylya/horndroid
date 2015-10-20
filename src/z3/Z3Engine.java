@@ -2,11 +2,15 @@ package z3;
 
 import com.microsoft.z3.*;
 import com.sun.org.apache.xpath.internal.operations.Bool;
+
 import horndroid.options;
+
 import org.apache.commons.lang3.RandomStringUtils;
+
 import util.CMPair;
 
 import javax.annotation.Nonnull;
+
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -41,7 +45,7 @@ public class Z3Engine implements Z3Clauses {
 
 
             Global.setParameter("fixedpoint.engine", "pdr");
-            Global.setParameter("fixedpoint.datalog.unbound_compressor", "false");
+            Global.setParameter("fixedpoint.unbound_compressor", "false");
             Global.setParameter("pp.bv-literals", "false");
 
             HashMap<String, String> cfg = new HashMap<String, String>();
@@ -450,11 +454,12 @@ public class Z3Engine implements Z3Clauses {
 
     public void executeAllQueries(){
 
+    	//System.out.println(mFixedPoint);
         for (int i = 0; i < mQueries.size(); i++){
             Z3Query q = mQueries.get(i);
             System.out.print((i+1) + ": ");
-//            if(q.isVerbose())
-//                System.out.println(q.getDescription());
+          if(q.isVerbose())
+               System.out.println(q.getDescription());
             try{
                 Status result = mFixedPoint.query(q.getQuery());
 //                System.out.println(q.getQuery());
@@ -565,10 +570,16 @@ public class Z3Engine implements Z3Clauses {
             Expr[] e = new Expr[3 * size];
             for(int i = 0, j = size, k = 2*size; i < size; i++, j++, k++){
                 e[i] = rUp.get(i); if (e[i] == null) e[i] = var.getV(i);
-                e[j] = rUpL.get(j); if (e[j] == null) e[j] = var.getL(j);
-                e[k] = rUpB.get(k); if (e[k] == null) e[k] = var.getB(k);
+                e[j] = rUpL.get(i); if (e[j] == null) e[j] = var.getL(i);
+                e[k] = rUpB.get(i); if (e[k] == null) e[k] = var.getB(i);
             }
-
+            BoolExpr b = this.and(
+            		(BoolExpr) r.apply(e),
+            		this.eq(this.getVars().getL(0), this.mkFalse())
+    		);
+            
+            Z3Query q = new Z3Query(b, c + ' ' + m + ' ' + Integer.toString(pc) + " test register 0", true);
+            //this.addQuery(q);
             return (BoolExpr) r.apply(e);
         } catch (Z3Exception e) {
             e.printStackTrace();
@@ -608,8 +619,8 @@ public class Z3Engine implements Z3Clauses {
             Expr[] e = new Expr[3 * arraySize];
             for(int i = 0, j = arraySize, k = 2*arraySize; i < arraySize; i++, j++, k++){
                 e[i] = rUp.get(i); if (e[i] == null) e[i] = this.mkBitVector(0, size);
-                e[j] = rUpL.get(j); if (e[j] == null) e[j] = this.mkFalse();
-                e[k] = rUpB.get(k); if (e[k] == null) e[k] = this.mkFalse();
+                e[j] = rUpL.get(i); if (e[j] == null) e[j] = this.mkFalse();
+                e[k] = rUpB.get(i); if (e[k] == null) e[k] = this.mkFalse();
             }
 
             return (BoolExpr) f.apply(e);
@@ -686,10 +697,10 @@ public class Z3Engine implements Z3Clauses {
             for(int i = 0, j = size, k = 2*size; i < size; i++, j++, k++) {
                 e[i] = rUp.get(i);
                 if (e[i] == null) e[i] = var.getV(i);
-                e[j] = rUpL.get(j);
-                if (e[j] == null) e[j] = var.getL(j);
-                e[k] = rUpB.get(k);
-                if (e[k] == null) e[k] = var.getB(k);
+                e[j] = rUpL.get(i);
+                if (e[j] == null) e[j] = var.getL(i);
+                e[k] = rUpB.get(i);
+                if (e[k] == null) e[k] = var.getB(i);
             }
 
             return (BoolExpr) res.apply(e);

@@ -1229,6 +1229,9 @@ public class InstructionAnalysis {
             case INVOKE_VIRTUAL:
         	case INVOKE_SUPER:
         	case INVOKE_INTERFACE:
+        		
+        		
+        		
         		modRes = false;
         		if ((referenceIntIndex == "execute(Ljava/lang/Runnable;)V".hashCode()) && (referenceClassIndex == "Ljava/util/concurrent/ExecutorService;".hashCode())){
         			implementations = analysis.getImplementations("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode());
@@ -1270,6 +1273,8 @@ public class InstructionAnalysis {
                                             z3engine.mkBitVector(instance.hashCode(), size)
                                     )
                             );
+                            
+                           
 
         					regUpdate = updateRegBitVec(numRegCall, numArgCall, var.getInjectV(var), false);
                             regUpdateL = updateRegBool(numRegCall, numArgCall, var.getInjectL(var), false);
@@ -1279,6 +1284,7 @@ public class InstructionAnalysis {
                                     regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, size);
 
                             z3engine.addRule(z3engine.implies(h, b), null);
+                            
 
                             regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
         				}
@@ -1286,20 +1292,21 @@ public class InstructionAnalysis {
         				if (callReturns){
         					for (final DalvikInstance instance: di.getInstances()){
                                 BoolExpr subh = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                                regUpdate = updateRegBitVec(numRegCall, numArgCall, var.getInjectV(var), false);
-                                regUpdateL = updateRegBool(numRegCall, numArgCall, var.getInjectL(var), false);
-                                regUpdateB = updateRegBool(numRegCall, numArgCall, var.getInjectB(var), false);                                regUpdate.put(numArgCall, var.getRez());
+                                regUpdate = updateResBitVec(numRegCall, numArgCall, var.getInjectV(var), false);
+                                regUpdateL = updateResBool(numRegCall, numArgCall, var.getInjectL(var), false);
+                                regUpdateB = updateResBool(numRegCall, numArgCall, var.getInjectB(var), false);                              
+                                regUpdate.put(numArgCall, var.getRez());
                                 regUpdateL.put(numArgCall, var.getLrez());
                                 regUpdateB.put(numArgCall, var.getBrez());
                                 h = z3engine.and(
                                         subh,
-                                        z3engine.resPred(Integer.toString(di.getDalvikClass().getType().hashCode()), referenceIndex, regUpdate, regUpdateL, regUpdateB, numArgCall),
+                                        z3engine.resPred(Integer.toString(di.getDalvikClass().getType().hashCode()), Integer.toString(referenceIntIndex), regUpdate, regUpdateL, regUpdateB, numArgCall),
                                         z3engine.eq(
                                                 var.getV(referenceReg),
                                                 z3engine.mkBitVector(instance.hashCode(), size)
                                         )
                                 );
-
+ 
                                 regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
 
                                 returnLabel = analysis.isSource(di.getDalvikClass().getType().hashCode(), referenceIntIndex)
@@ -1310,8 +1317,9 @@ public class InstructionAnalysis {
                                     regUpdateL.put(numRegLoc, returnLabel);
                                 }
                                 b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
+                                                                
                                 z3engine.addRule(z3engine.implies(h, b), null);
-
+                                                               
                                 regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
         					}
                 		} else {
@@ -1477,9 +1485,9 @@ public class InstructionAnalysis {
                 		if (callReturns){
                             BoolExpr subh = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
 //                			head = "(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen);
-                            regUpdate = updateRegBitVec(numRegCall, numArgCall, var.getInjectV(var), false);
-                            regUpdateL = updateRegBool(numRegCall, numArgCall, var.getInjectL(var), false);
-                            regUpdateB = updateRegBool(numRegCall, numArgCall, var.getInjectB(var), false);
+                            regUpdate = updateResBitVec(numRegCall, numArgCall, var.getInjectV(var), false);
+                            regUpdateL = updateResBool(numRegCall, numArgCall, var.getInjectL(var), false);
+                            regUpdateB = updateResBool(numRegCall, numArgCall, var.getInjectB(var), false);
                             regUpdate.put(numArgCall, var.getRez());
                 			regUpdateL.put(numArgCall, var.getLrez());
                 			regUpdateB.put(numArgCall, var.getBrez());
@@ -2891,8 +2899,10 @@ public class InstructionAnalysis {
                     p,
                     z3.eq(var.getL(reg), z3.mkTrue())
             );
+            //System.out.println(q);
+            
             String d = "Test if register " + Integer.toString(reg) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
-            z3.addQuery(new Z3Query(q, d, verboseOption));
+            z3.addQuery(new Z3Query(q, d, true));
 //        	gen.addQuery("(query (and " + p + ' ' +
 //        			"(= " + 'l' + Integer.toString(reg) +  " true))\n " + verbose + ":unbound-compressor false \n)", c);
 //        	gen.addQueryV("Test if register " + Integer.toString(reg) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName, c);
@@ -3148,7 +3158,7 @@ public class InstructionAnalysis {
             int regCount = instruction.getRegisterCount();
         	int startRegister = instruction.getStartRegister();
         	int endRegister   =   startRegister+regCount-1;
-        	BoolExpr orLabels = null;
+        	BoolExpr orLabels = z3engine.mkFalse();
         	switch (regCount){
                 case 0: return regUpdate;
                 case 1: return regUpdate;
@@ -3719,7 +3729,7 @@ public class InstructionAnalysis {
 			final int instanceNum = analysis.getInstNum(ci, mi, codeAddress);
             h2 = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
             b2 = z3engine.hPred(z3engine.mkBitVector("Ljava/lang/Object;".hashCode(), size),
-                    z3engine.mkBitVector(instanceNum, size), var.getF(), var.getVfp(), z3engine.mkTrue(), var.getBf());
+                    z3engine.mkBitVector(instanceNum, size), var.getF(), var.getVfp(), z3engine.mkFalse(), var.getBf());
             z3engine.addRule(z3engine.implies(h2, b2), null);
             h = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
     		regUpdate.put(numRegLoc, z3engine.mkBitVector(instanceNum, size));
