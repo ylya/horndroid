@@ -611,7 +611,6 @@ public class Analysis {
 		Map<DalvikClass, DalvikMethod> exResolvents = null;
 		if (!allDefinitions.isEmpty()){
 				exResolvents = allDefinitions.get(new CMPair(ci, mi));
-			
 		}
 		if (exResolvents != null) return exResolvents;
 		if (visited.contains(ci)) return null;
