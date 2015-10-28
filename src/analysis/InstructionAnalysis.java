@@ -2953,7 +2953,6 @@ public class InstructionAnalysis {
     }
 
     private void addQueryRange(final Z3Engine z3, BoolExpr p, String className, String methodName, String pc, String sinkName, final boolean verboseOption){
-        System.out.println("\nadding query range: " + className + "." + methodName);
         Z3Variable var = z3.getVars();
         RegisterRangeInstruction instruction = (RegisterRangeInstruction)this.instruction;
         int regCount = instruction.getRegisterCount();
@@ -2965,10 +2964,9 @@ public class InstructionAnalysis {
                     p,
                     z3.eq(var.getL(reg), z3.mkTrue())
             );
-            //System.out.println(q);
-            
+
             String d = "Test if register " + Integer.toString(reg) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
-            z3.addQuery(new Z3Query(q, d, true));
+            z3.addQuery(new Z3Query(q, d, verboseOption, className, methodName, pc, sinkName));
 //        	gen.addQuery("(query (and " + p + ' ' +
 //        			"(= " + 'l' + Integer.toString(reg) +  " true))\n " + verbose + ":unbound-compressor false \n)", c);
 //        	gen.addQueryV("Test if register " + Integer.toString(reg) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName, c);
@@ -2976,7 +2974,6 @@ public class InstructionAnalysis {
     }
 
     private void addQuery(final Z3Engine z3, BoolExpr p, String className, String methodName, String pc, String sinkName, final boolean verboseResults){
-    	System.out.println("adding query: " + className + "." + methodName);
         Z3Variable var = z3.getVars();
         FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
         final int regCount = instruction.getRegisterCount();
@@ -2988,35 +2985,35 @@ public class InstructionAnalysis {
                         z3.eq(var.getL(instruction.getRegisterG()), z3.mkTrue())
                 );
                 String d5 = "Test if register " + Integer.toString(instruction.getRegisterG()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
-                z3.addQuery(new Z3Query(q5, d5, verboseResults));
+                z3.addQuery(new Z3Query(q5, d5, verboseResults, className, methodName, pc, sinkName));
             case 4:
                 BoolExpr q4 = z3.and(
                         p,
                         z3.eq(var.getL(instruction.getRegisterF()), z3.mkTrue())
                 );
                 String d4 = "Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
-                z3.addQuery(new Z3Query(q4, d4, verboseResults));
+                z3.addQuery(new Z3Query(q4, d4, verboseResults, className, methodName, pc, sinkName));
             case 3:
                 BoolExpr q3 = z3.and(
                         p,
                         z3.eq(var.getL(instruction.getRegisterE()), z3.mkTrue())
                 );
                 String d3 = "Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
-                z3.addQuery(new Z3Query(q3, d3, verboseResults));
+                z3.addQuery(new Z3Query(q3, d3, verboseResults, className, methodName, pc, sinkName));
             case 2:
                 BoolExpr q2 = z3.and(
                         p,
                         z3.eq(var.getL(instruction.getRegisterD()), z3.mkTrue())
                 );
                 String d2 = "Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
-                z3.addQuery(new Z3Query(q2, d2, verboseResults));
+                z3.addQuery(new Z3Query(q2, d2, verboseResults, className, methodName, pc, sinkName));
             case 1:
                 BoolExpr q1 = z3.and(
                         p,
                         z3.eq(var.getL(instruction.getRegisterC()), z3.mkTrue())
                 );
                 String d1 = "Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
-            	z3.addQuery(new Z3Query(q1, d1, verboseResults));
+            	z3.addQuery(new Z3Query(q1, d1, verboseResults, className, methodName, pc, sinkName));
         }
     }
 

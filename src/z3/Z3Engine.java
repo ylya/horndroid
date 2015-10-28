@@ -12,7 +12,7 @@ import util.CMPair;
 import javax.annotation.Nonnull;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 
 public class Z3Engine implements Z3Clauses {
 
@@ -20,6 +20,7 @@ public class Z3Engine implements Z3Clauses {
     private Fixedpoint mFixedPoint;
 
     private ArrayList<Z3Query> mQueries;
+    private Z3Query mCurrentQuery;
 
     private int bvSize;
     private Z3Variable var;
@@ -45,7 +46,7 @@ public class Z3Engine implements Z3Clauses {
 
 
             Global.setParameter("fixedpoint.engine", "pdr");
-            Global.setParameter("fixedpoint.unbound_compressor", "false");
+//            Global.setParameter("fixedpoint.unbound_compressor", "false");
             Global.setParameter("pp.bv-literals", "false");
 
             HashMap<String, String> cfg = new HashMap<String, String>();
@@ -57,16 +58,10 @@ public class Z3Engine implements Z3Clauses {
 
             // add func
             func = new Z3Function(mContext, bvSize);
-            mFixedPoint.registerRelation(func.getH());
-            mFixedPoint.registerRelation(func.getHi());
-            mFixedPoint.registerRelation(func.getI());
-            mFixedPoint.registerRelation(func.getS());
-            Symbol[] symbols = new Symbol[]{mContext.mkSymbol("interval_relation"),
-                                            mContext.mkSymbol("bound_relation")};
-            mFixedPoint.setPredicateRepresentation(func.getH(), symbols);
-            mFixedPoint.setPredicateRepresentation(func.getHi(), symbols);
-            mFixedPoint.setPredicateRepresentation(func.getI(), symbols);
-            mFixedPoint.setPredicateRepresentation(func.getS(), symbols);
+            this.declareRel(func.getH());
+            this.declareRel(func.getHi());
+            this.declareRel(func.getI());
+            this.declareRel(func.getS());
 
             // add main
             BoolExpr b1 = hPred( var.getCn(), var.getCn(),
@@ -83,7 +78,7 @@ public class Z3Engine implements Z3Clauses {
                                  var.getVal(), var.getLval(), var.getBval());
             BoolExpr b1b2b3_b4 = mContext.mkImplies(b1b2b3, b4);
 
-            this.addRule(b1b2b3_b4, "zz");
+            this.addRule(b1b2b3_b4, null);
         } catch (Z3Exception e){
             e.printStackTrace();
             throw new RuntimeException("Z3Engine Failed");
@@ -117,10 +112,6 @@ public class Z3Engine implements Z3Clauses {
             throw new RuntimeException("Z3Engine Failed: addRule");
         }
     }
-
-//    public void addRule(BoolExpr rule, int symbol){
-//        mFixedPoint.addRule(rule, mContext.mkSymbol(symbol));
-//    }
 
 
     @Override
@@ -449,27 +440,72 @@ public class Z3Engine implements Z3Clauses {
     }
 
     public void addQuery(Z3Query query){
-        mQueries.add(query);
+        boolean askCompactQuery = true;
+
+        boolean sameAsCurrentQuery =
+                askCompactQuery
+                        && mCurrentQuery != null
+                        && mCurrentQuery.getClassName().equals(query.getClassName())
+                        && mCurrentQuery.getMethodName().equals(query.getMethodName())
+                        && mCurrentQuery.getPc().equals(query.getPc())
+                        && mCurrentQuery.getSinkName().equals(query.getSinkName());
+
+        if( sameAsCurrentQuery ){
+            // merge by or-ing queries
+            mCurrentQuery.setQuery(
+                    this.or(
+                            mCurrentQuery.getQuery(),
+                            query.getQuery()
+                    )
+            );
+        } else {
+            // start new query
+            if(mCurrentQuery != null) mQueries.add(mCurrentQuery);
+            mCurrentQuery = query;
+        }
     }
 
     public void executeAllQueries(){
+// ensure that the cached query is added
+        if(mCurrentQuery != null) mQueries.add(mCurrentQuery);
 
-    	//System.out.println(mFixedPoint);
-        for (int i = 0; i < mQueries.size(); i++){
-            Z3Query q = mQueries.get(i);
-            System.out.print((i+1) + ": ");
-         // if(q.isVerbose())
-        //       System.out.println(q.getDescription());
-            try{
-                Status result = mFixedPoint.query(q.getQuery());
-//                System.out.println(q.getQuery());
-                System.out.println(result);
-//                if(q.isVerbose())
-//                    System.out.println(mFixedPoint.getAnswer());
-            } catch (Z3Exception e) {
-                throw new RuntimeException("Fail executing query: " + q.getDescription());
+        int threshold = 10;
+        int timeout = 30; // 30 minutes
+
+//		ExecutorService executor = Executors.newFixedThreadPool(threshold);
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        System.out.println("Number of queries: " + Integer.toString(mQueries.size()));
+
+        for (int i = 0; i < mQueries.size(); i++) {
+
+            final Z3Query q = mQueries.get(i);
+            System.out.print((i + 1) + ": ");
+            if (q.isVerbose())
+                System.out.println(q.getDescription());
+
+            final Future<String> future = executor.submit(new Callable() {
+                @Override
+                public String call() throws Exception {
+
+                    Status result = mFixedPoint.query(q.getQuery());
+                    System.out.println(result);
+
+                    return result.toString();
+                }
+            });
+
+            try {
+                future.get(timeout, TimeUnit.MINUTES);
+            } catch (TimeoutException e) {
+                future.cancel(true);
+            } catch (InterruptedException e) {
+                future.cancel(true);
+            } catch (ExecutionException e) {
+                future.cancel(true);
             }
         }
+
+        executor.shutdownNow();
     }
 
 
@@ -535,32 +571,6 @@ public class Z3Engine implements Z3Clauses {
         }
     }
 
-//    public BoolExpr rPred(final String c, final String m, final int pc, final Map<Integer, String> rUp, final Map<Integer, String> rUpL, final Map<Integer, String> rUpB, final int numArg, final int numReg, final Z3Engine z3engine){
-////        rPredDef(c, m , pc, numArg + numReg);
-////        String ret = "(R" + '_' + c + '_' + m + '_' + Integer.toString(pc) + ' ';
-//        String v = "", l = "", b = "", var;
-//        for (int i = 0; i <= (numArg + numReg); i++){
-////            gen.updateBiggestRegister(i);
-//            //TODO: ASK
-//            z3engine.updateBiggestRegister(i);
-//            var = rUp.get(i);
-//            if (var == null) {var = 'v' + Integer.toString(i);}
-//            if (!v.isEmpty()) {v = v + ' ' + var;}
-//            else {v = var;}
-//            var = rUpL.get(i);
-//            if (var == null) var = 'l' + Integer.toString(i);
-//            if (!l.isEmpty()) l = l + ' ' + var;
-//            else l = var;
-//            var = rUpB.get(i);
-//            if (var == null) var = 'b' + Integer.toString(i);
-//            if (!l.isEmpty()) b = b + ' ' + var;
-//            else b = var;
-//        }
-//        return null;
-////        return ret + v + ' ' + l + ' ' + b + ')';
-//    }
-
-
     @Override
     public BoolExpr rPred(final String c, final String m, final int pc, final Map<Integer, BitVecExpr> rUp, final Map<Integer, BoolExpr> rUpL, final Map<Integer, BoolExpr> rUpB, final int numArg, final int numReg) {
         try {
@@ -573,13 +583,7 @@ public class Z3Engine implements Z3Clauses {
                 e[j] = rUpL.get(i); if (e[j] == null) e[j] = var.getL(i);
                 e[k] = rUpB.get(i); if (e[k] == null) e[k] = var.getB(i);
             }
-            BoolExpr b = this.and(
-            		(BoolExpr) r.apply(e),
-            		this.eq(this.getVars().getL(0), this.mkFalse())
-    		);
-            
-            Z3Query q = new Z3Query(b, c + ' ' + m + ' ' + Integer.toString(pc) + " test register 0", true);
-            //this.addQuery(q);
+
             return (BoolExpr) r.apply(e);
         } catch (Z3Exception e) {
             e.printStackTrace();
@@ -587,27 +591,6 @@ public class Z3Engine implements Z3Clauses {
         }
     }
 
-//    public BoolExpr rInvokePred(final String c, final String m, final int pc, final Map<Integer, String> rUp, final Map<Integer, String> rUpL, final Map<Integer, String> rUpB, final int numArg, final int numReg, final int size){
-//        rPredDef(c, m , pc, numArg + numReg);
-//        String ret = "(R" + '_' + c + '_' + m + '_' + Integer.toString(pc) + ' ';
-//        String v = "", l = "", b = "", var;
-//        for (int i = 0; i <= (numArg + numReg); i++){
-//            var = rUp.get(i);
-//            if (var == null) var = "(_ bv0 "+ Integer.toString(size) + ")";
-//            if (!v.isEmpty()) v = v + ' ' + var;
-//            else v = var;
-//            var = rUpL.get(i);
-//            if (var == null) var = "false";
-//            if (!l.isEmpty()) l = l + ' ' + var;
-//            else l = var;
-//            var = rUpB.get(i);
-//            if (var == null) var = "false";
-//            if (!l.isEmpty()) b = b + ' ' + var;
-//            else b = var;
-//        }
-//        return null;
-//        return ret + v + ' ' + l + ' ' + b + ')';
-//    }
 
     @Override
     public BoolExpr rInvokePred(final String c, final String m, final int pc, final Map<Integer, BitVecExpr> rUp, final Map<Integer, BoolExpr> rUpL, final Map<Integer, BoolExpr> rUpB, final int numArg, final int numReg, final int size) {
@@ -630,19 +613,6 @@ public class Z3Engine implements Z3Clauses {
         }
     }
 
-//    private void resPredDef(final String c, final String m, final int size, final Z3Engine z3engine){
-//        String v = "", l = "", b = "";
-//        for (int i = 0; i <= size; i++){
-//            if (!v.isEmpty()) v = v + ' ' + "bv64";
-//            else v = "bv64";
-//            if (!l.isEmpty()) l = l + ' ' + "Bool";
-//            else l = "Bool";
-//            if (!b.isEmpty()) b = b + ' ' + "Bool";
-//            else b = "Bool";
-//        }
-//        gen.addDef("(declare-rel RES_" + c + '_' + m + ' ' + '(' + v + ' ' + l + ' ' + b + ") interval_relation bound_relation)", Integer.parseInt(c));
-//    }
-
     private FuncDecl resPredDef(String c, String m, int size) {
         try {
             BitVecSort bv64 = mContext.mkBitVecSort(bvSize);
@@ -664,28 +634,6 @@ public class Z3Engine implements Z3Clauses {
             throw new RuntimeException("Z3Engine Failed: resPredDef");
         }
     }
-
-//    public BoolExpr resPred(final String c, final String m, final Map<Integer, String> rUp, final Map<Integer, String> rUpL, final Map<Integer, String> rUpB, final int numArg, final Z3Engine z3engine){
-//        resPredDef(c, m , numArg);
-//        String ret = "(RES" + '_' + c + '_' + m + ' ';
-//        String v = "", l = "", b = "", var;
-//        for (int i = 0; i <= numArg; i++){
-//            var = rUp.get(i);
-//            if (var == null) var = 'v' + Integer.toString(i);
-//            if (!v.isEmpty()) v = v + ' ' + var;
-//            else v = var;
-//            var = rUpL.get(i);
-//            if (var == null) var = 'l' + Integer.toString(i);
-//            if (!l.isEmpty()) l = l + ' ' + var;
-//            else l = var;
-//            var = rUpB.get(i);
-//            if (var == null) var = 'b' + Integer.toString(i);
-//            if (!b.isEmpty()) b = b + ' ' + var;
-//            else b = var;
-//        }
-//        return null;
-////        return ret + v + ' ' + l + ' ' + b + ')';
-//    }
 
     @Override
     public BoolExpr resPred(final String c, final String m, final Map<Integer, BitVecExpr> rUp, final Map<Integer, BoolExpr> rUpL, final Map<Integer, BoolExpr> rUpB, final int numArg) {
