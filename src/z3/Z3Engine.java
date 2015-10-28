@@ -458,8 +458,8 @@ public class Z3Engine implements Z3Clauses {
         for (int i = 0; i < mQueries.size(); i++){
             Z3Query q = mQueries.get(i);
             System.out.print((i+1) + ": ");
-          if(q.isVerbose())
-               System.out.println(q.getDescription());
+         // if(q.isVerbose())
+        //       System.out.println(q.getDescription());
             try{
                 Status result = mFixedPoint.query(q.getQuery());
 //                System.out.println(q.getQuery());
