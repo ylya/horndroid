@@ -153,18 +153,30 @@ public class Analysis {
 	public Set<SparseSwitch> getSparseSwitch(){
 		return sparseSwitchPayload;
 	}
-	public Integer staticFieldsLookup(final GeneralClass ci, final int fi){
+	public Integer staticFieldsLookup(final GeneralClass ci, final int fi, final Set<Integer> visited){
+		if (!visited.isEmpty())
+			{
+			if (visited.contains(ci.getType().hashCode()))
+				return null;
+			}
+		visited.add(ci.getType().hashCode());
 		if (ci instanceof DalvikClass){
 		final DalvikClass dc = (DalvikClass) ci;
 		for (final DalvikField f: dc.getFields()){
 			if (f.getName().hashCode() == fi)
 				return ci.getType().hashCode();
 		}
-		return staticFieldsLookup(dc.getSuperClass(), fi);
+		return staticFieldsLookup(dc.getSuperClass(), fi, visited);
 		}
 		else return null;
 	}
-	public Integer staticFieldsLookup(final int ci, final int fi){
+	public Integer staticFieldsLookup(final int ci, final int fi, final Set<Integer> visited){
+		if (!visited.isEmpty())
+		{
+		if (visited.contains(ci))
+			return null;
+		}
+		visited.add(ci);
 		for (final GeneralClass c: classes){
 			if ((c instanceof DalvikClass) && (c.getType().hashCode() == ci)){
 				final DalvikClass dc = (DalvikClass) c;
@@ -172,7 +184,7 @@ public class Analysis {
 					if (f.getName().hashCode() == fi)
 						return ci;
 				}
-				return staticFieldsLookup(dc.getSuperClass(), fi);
+				return staticFieldsLookup(dc.getSuperClass(), fi, visited);
 			}
 		}
 		return null;
@@ -276,7 +288,7 @@ public class Analysis {
 		    			isCallback = true;
 		    		}
 				}
-				final boolean isEntryPoint = testEntryPoint(dc, m.getName().hashCode());
+				final boolean isEntryPoint = testEntryPoint(dc, m.getName().hashCode(), Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
 				if (isCallbackImplementation){
 					addToMain(dc, m.getName().hashCode(), m.getNumReg(), m.getNumArg());
 				}
@@ -334,7 +346,13 @@ public class Analysis {
 		final String classN =  parts[parts.length - 1];
 		return classN;
 	}
-	private boolean testOverapprox(final GeneralClass c){
+	private boolean testOverapprox(final GeneralClass c, final Set<Integer> visited){
+		if (!visited.isEmpty())
+		{
+		if (visited.contains(c.getType().hashCode()))
+			return false;
+		}
+		visited.add(c.getType().hashCode());
 		if (overapprox.contains(c.getType().hashCode())){
 			return true;
 		}
@@ -349,12 +367,18 @@ public class Analysis {
 				}
 				if (launcherChild) return true;
 				else 
-					return testOverapprox(dc.getSuperClass());
+					return testOverapprox(dc.getSuperClass(), visited);
 			}
 		}
 		return false;
 	}
-	private boolean testLauncherActivity(final GeneralClass c){
+	private boolean testLauncherActivity(final GeneralClass c, final Set<Integer> visited){
+		if (!visited.isEmpty())
+		{
+		if (visited.contains(c.getType().hashCode()))
+			return false;
+		}
+		visited.add(c.getType().hashCode());
 		if (launcherActivities.contains(makeName(c).hashCode())){
 			return true;
 		}
@@ -369,7 +393,7 @@ public class Analysis {
 				}
 				if (launcherChild) return true;
 				else 
-					return testLauncherActivity(dc.getSuperClass());
+					return testLauncherActivity(dc.getSuperClass(), visited);
 			}
 		}
 		return false;
@@ -380,7 +404,13 @@ public class Analysis {
 		}
 		return false;
 	}
-	private boolean testApplication(final GeneralClass c){
+	private boolean testApplication(final GeneralClass c, final Set<Integer> visited){
+		if (!visited.isEmpty())
+		{
+		if (visited.contains(c.getType().hashCode()))
+			return false;
+		}
+		visited.add(c.getType().hashCode());
 		if (applications.contains(makeName(c).hashCode())){
 			return true;
 		}
@@ -395,7 +425,7 @@ public class Analysis {
 				}
 				if (launcherChild) return true;
 				else 
-					return testApplication(dc.getSuperClass());
+					return testApplication(dc.getSuperClass(), visited);
 			}
 		}
 		return false;
@@ -406,9 +436,9 @@ public class Analysis {
 				final DalvikClass dc = (DalvikClass) c;
 
 				final boolean isDisabledActivity = testDisabledActivity(dc);
-				final boolean isLauncherActivity = testLauncherActivity(dc);
-				final boolean isApplication = testApplication(dc);
-				final boolean isOverapprox = testOverapprox(dc);
+				final boolean isLauncherActivity = testLauncherActivity(dc, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
+				final boolean isApplication = testApplication(dc, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
+				final boolean isOverapprox = testOverapprox(dc, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
 				boolean isCallbackImplementation = false;
 				for (final GeneralClass interfaceC: dc.getInterfaces()){
 					if (callbackImplementations.contains(interfaceC.getType().hashCode())){
@@ -431,7 +461,13 @@ public class Analysis {
             }
 		}
 	}
-	private boolean testEntryPoint(final GeneralClass c, final int methodIndex){
+	private boolean testEntryPoint(final GeneralClass c, final int methodIndex, final Set<Integer> visited){
+		if (!visited.isEmpty())
+		{
+		if (visited.contains(c.getType().hashCode()))
+			return false;
+		}
+		visited.add(c.getType().hashCode());
 		if (c instanceof DalvikClass){
 			final DalvikClass dc = (DalvikClass) c;
 			final GeneralClass superClass = dc.getSuperClass();
@@ -439,7 +475,7 @@ public class Analysis {
     			return true;
     		}
     		else{	
-    			return testEntryPoint(superClass, methodIndex);
+    			return testEntryPoint(superClass, methodIndex, visited);
     		}
 		}
     	return false;
@@ -452,8 +488,10 @@ public class Analysis {
         		boolean execByDefault = false;
         		for (final DalvikMethod method: dc.getMethods()){
         			final int methodIndex = method.getName().hashCode();
-        			if (!testDisabledActivity(dc) && testEntryPoint(dc, methodIndex)
-              				 && (testLauncherActivity(dc) || testApplication(dc) || testOverapprox(dc))){
+        			if (!testDisabledActivity(dc) && testEntryPoint(dc, methodIndex, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())))
+              				 && (testLauncherActivity(dc, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>()))) 
+              						 || testApplication(dc, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>()))) 
+              						 || testOverapprox(dc, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>()))))){
               			 execByDefault = true;
               			 break;
               		 }
@@ -505,7 +543,7 @@ public class Analysis {
 	
 	public Set<DalvikImplementation> getImplementations(final int ci, final int mi){
 		final Set<DalvikImplementation> implementations = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<DalvikImplementation, Boolean>()));
-		final Map<DalvikClass, DalvikMethod> definitions = isDefined(ci, mi);
+		final Map<DalvikClass, DalvikMethod> definitions = isDefined(ci, mi, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
 		if (definitions == null) return null;
 		for (Map.Entry<DalvikClass, DalvikMethod> entry : definitions.entrySet()){
 			final DalvikImplementation di = new DalvikImplementation(entry.getKey(), entry.getValue());
@@ -527,12 +565,18 @@ public class Analysis {
 		return implementations;
 	}
 	
-	public Map<DalvikClass, DalvikMethod> isDefined(final int ci, int mi){	
+	public Map<DalvikClass, DalvikMethod> isDefined(final int ci, int mi, Set<Integer> visited){	
+		if (!visited.isEmpty())
+		{
+		if (visited.contains(ci))
+			return null;
+		}
+		visited.add(ci);
 		Map<DalvikClass, DalvikMethod> resolvents = new ConcurrentHashMap<DalvikClass, DalvikMethod>();
-		if (isThread(ci) && (mi == "execute([Ljava/lang/Object;)Landroid/os/AsyncTask;".hashCode())){
+		if (isThread(ci, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>()))) && (mi == "execute([Ljava/lang/Object;)Landroid/os/AsyncTask;".hashCode())){
   			mi = "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode();
   		}
-  		if (isThread(ci) && (mi == "start()V".hashCode())){
+  		if (isThread(ci, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>()))) && (mi == "start()V".hashCode())){
   			mi = "run()V".hashCode();
   		}
 		for (final GeneralClass c: classes){
@@ -547,7 +591,7 @@ public class Analysis {
 					}
 					for (final DalvikClass sc: cd.getChildClasses()){
 						if (sc != null){
-							final Map<DalvikClass, DalvikMethod> resolventsChild = isDefined(sc.getType().hashCode(), mi);
+							final Map<DalvikClass, DalvikMethod> resolventsChild = isDefined(sc.getType().hashCode(), mi, visited);
 							if (resolventsChild != null)
 								resolvents.putAll(resolventsChild);
 						}
@@ -570,7 +614,13 @@ public class Analysis {
 		return resolvents;
 	}
 	
-	public boolean isThread(final GeneralClass c){
+	public boolean isThread(final GeneralClass c, Set<Integer> visited){
+		if (!visited.isEmpty())
+		{
+		if (visited.contains(c.getType().hashCode()))
+			return false;
+		}
+		visited.add(c.getType().hashCode());
 		 if (c instanceof DalvikClass){
 			 final DalvikClass dc = (DalvikClass) c;
 			 final GeneralClass sc = dc.getSuperClass();
@@ -579,12 +629,18 @@ public class Analysis {
 				 return true;
 			 }
 			 else{
-				 return isThread(sc);
+				 return isThread(sc, visited);
 			 }
 		 }
 	     return false;
 	    }
-	public boolean isThread(final int classInd){
+	public boolean isThread(final int classInd, Set<Integer> visited){
+		if (!visited.isEmpty())
+		{
+		if (visited.contains(classInd))
+			return false;
+		}
+		visited.add(classInd);
 			for (final GeneralClass c : classes) {
 	    		if ((c instanceof DalvikClass) && (c.getType().hashCode() == classInd)){
 	    			final DalvikClass dc = (DalvikClass) c;
@@ -596,7 +652,7 @@ public class Analysis {
 	    	        			return true;
 	    	        	}
 	    	        }
-	    			return isThread(c);
+	    			return isThread(c, visited);
 	    		}			
 	    	} 
 	    	return false;
