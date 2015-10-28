@@ -851,6 +851,9 @@ public class Analysis {
     	if (!refSinks.isEmpty())
     		if (refSinks.contains(new CMPair(className.hashCode(), methodName.hashCode())))
     				return false;
+    	if (!refNull.isEmpty())
+    		if (refNull.contains(new CMPair(className.hashCode(), methodName.hashCode())))
+    				return null;
     	final int classIndex = className.hashCode();
     	final String classNameFormat = className.substring(1, className.length()-1);
     	final String methodNameFormat = methodName.substring(0, methodName.indexOf('('));
@@ -1059,6 +1062,9 @@ public class Analysis {
          				refSources.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
          			else
          				refSinks.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
+         		}
+         		else{
+         			refNull.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
          		}
          		
          	}
