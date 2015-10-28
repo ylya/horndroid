@@ -74,6 +74,11 @@ public class Analysis {
     final ExecutorService instructionExecutorService;
     private final Set<CMPair> refSources;
     private final Set<CMPair> refSinks;
+    private final Set<CMPair> refNull;
+    private final Set<CMPair> isNotDefined;
+    private final Set<CMPair> isNotImpl;
+    final private Map<CMPair, Set<DalvikImplementation>> allImplementations;
+    final private Map<CMPair, Map<DalvikClass, DalvikMethod>> allDefinitions;
 
 	public Analysis(final Z3Engine z3engine, final Set<SourceSinkMethod> sourcesSinks, final options options, final ExecutorService instructionExecutorService){
 		this.classes = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<GeneralClass, Boolean>()));
@@ -100,6 +105,12 @@ public class Analysis {
 		
 		this.refSources = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <CMPair, Boolean>()));
 		this.refSinks = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <CMPair, Boolean>()));
+		this.refNull = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <CMPair, Boolean>()));
+		this.allImplementations = Collections.synchronizedMap(new ConcurrentHashMap <CMPair, Set<DalvikImplementation>>());
+		this.allDefinitions = Collections.synchronizedMap(new ConcurrentHashMap <CMPair, Map<DalvikClass, DalvikMethod>>());
+		
+		this.isNotDefined = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <CMPair, Boolean>()));
+		this.isNotImpl = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <CMPair, Boolean>()));
 		
 		this.overapprox.add("Landroid/content/ContentProvider;".hashCode());
 		this.overapprox.add("Landroid/app/Service;".hashCode());
@@ -110,6 +121,18 @@ public class Analysis {
 	    this.overapprox.add("Landroid/app/ListFragment;".hashCode());
 	    this.overapprox.add("Landroid/support/v4/app/ListFragment;".hashCode());
 	    this.overapprox.add("Landroid/os/Handler;".hashCode());
+	}
+	public void putNotImpl(final int c, final int m){
+		isNotImpl.add(new CMPair(c, m));
+	}
+	public void putImplemented(final int c, final int m, final Set<DalvikImplementation> implementations){
+		allImplementations.put(new CMPair(c,  m), implementations);
+	}
+	public void putNotDefined(final int c, final int m){
+		isNotDefined.add(new CMPair(c, m));
+	}
+	public void putDefined(final int c, final int m, final Map <DalvikClass, DalvikMethod> definitions){
+		allDefinitions.put(new CMPair(c, m), definitions);
 	}
 	public  Set<Integer> getDisabledActivities(){
 		return disabledActivities;
@@ -542,9 +565,25 @@ public class Analysis {
 	}
 	
 	public Set<DalvikImplementation> getImplementations(final int ci, final int mi){
+	  if (!isNotImpl.isEmpty()){
+			if (isNotImpl.contains(new CMPair(ci, mi)))
+				return null;
+		}
+		if (!allImplementations.isEmpty()){
+			if (allImplementations.containsKey(new CMPair(ci, mi))){
+				return allImplementations.get(new CMPair(ci, mi));
+			}
+		}
 		final Set<DalvikImplementation> implementations = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<DalvikImplementation, Boolean>()));
 		final Map<DalvikClass, DalvikMethod> definitions = isDefined(ci, mi, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
-		if (definitions == null) return null;
+		if (definitions == null) 
+			{
+				isNotDefined.add(new CMPair(ci, mi));
+				return null;
+			}
+		else{
+			allDefinitions.put(new CMPair(ci, mi), definitions);
+		}
 		for (Map.Entry<DalvikClass, DalvikMethod> entry : definitions.entrySet()){
 			final DalvikImplementation di = new DalvikImplementation(entry.getKey(), entry.getValue());
 			for (final DalvikInstance instance: instances){
@@ -565,18 +604,24 @@ public class Analysis {
 		return implementations;
 	}
 	
-	public Map<DalvikClass, DalvikMethod> isDefined(final int ci, int mi, Set<Integer> visited){	
-		if (!visited.isEmpty())
-		{
-		if (visited.contains(ci))
-			return null;
-		}
-		visited.add(ci);
+	public Map<DalvikClass, DalvikMethod> isDefined(final int ci, int mi, final Set<Integer> visited){	
+		if (!isNotDefined.isEmpty())
+			if (isNotDefined.contains(new CMPair(ci, mi))) return null;
 		Map<DalvikClass, DalvikMethod> resolvents = new ConcurrentHashMap<DalvikClass, DalvikMethod>();
-		if (isThread(ci, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>()))) && (mi == "execute([Ljava/lang/Object;)Landroid/os/AsyncTask;".hashCode())){
+		Map<DalvikClass, DalvikMethod> exResolvents = null;
+		if (!allDefinitions.isEmpty()){
+				exResolvents = allDefinitions.get(new CMPair(ci, mi));
+			
+		}
+		if (exResolvents != null) return exResolvents;
+		if (visited.contains(ci)) return null;
+		else visited.add(ci);
+		
+		final boolean isThread = isThread(ci, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
+		if (isThread && (mi == "execute([Ljava/lang/Object;)Landroid/os/AsyncTask;".hashCode())){
   			mi = "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode();
   		}
-  		if (isThread(ci, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>()))) && (mi == "start()V".hashCode())){
+  		if (isThread && (mi == "start()V".hashCode())){
   			mi = "run()V".hashCode();
   		}
 		for (final GeneralClass c: classes){
@@ -613,6 +658,7 @@ public class Analysis {
 		if (resolvents.isEmpty()) return null;
 		return resolvents;
 	}
+
 	
 	public boolean isThread(final GeneralClass c, Set<Integer> visited){
 		if (!visited.isEmpty())
@@ -793,7 +839,13 @@ public class Analysis {
         return dm;
     }
     
-    public Boolean isSourceSink(final List<? extends ClassDef> classDefs, final String className, final String methodName){
+    public Boolean isSourceSink(final List<? extends ClassDef> classDefs, final String className, final String methodName, final Set<Integer> visited){
+    	if (!visited.isEmpty())
+		{
+		if (visited.contains(className.hashCode()))
+			return false;
+		}
+		visited.add(className.hashCode());
     	if (!refSources.isEmpty())
     		if (refSources.contains(new CMPair(className.hashCode(), methodName.hashCode())))
     				return true;
@@ -833,7 +885,7 @@ public class Analysis {
     	for (final ClassDef classDef: classDefs){
     		if (classIndex == classDef.getType().hashCode()){
     			if (classDef.getSuperclass()!= null){
-    				return isSourceSink(classDefs, classDef.getSuperclass(), methodName);
+    				return isSourceSink(classDefs, classDef.getSuperclass(), methodName, visited);
     			}
     		}
     	}
@@ -1002,7 +1054,7 @@ public class Analysis {
          	/*refClassElement.addCallRef(referenceClassIndex, referenceIntIndex, c, m, nextCode);
          	 * */
          	if (referenceStringClass != null){
-         		final Boolean isSourceSink = isSourceSink(classDefs, referenceStringClass, referenceString);
+         		final Boolean isSourceSink = isSourceSink(classDefs, referenceStringClass, referenceString, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
          		if (isSourceSink != null){
          			if (isSourceSink)
          				refSources.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
@@ -1051,16 +1103,20 @@ public class Analysis {
 			
          	/*refClassElement.addCallRef(referenceClassIndex, referenceIntIndex, c, m, nextCode);
          	*/
-         	if (referenceStringClass != null){
-             		final Boolean isSourceSink = isSourceSink(classDefs, referenceStringClass, referenceString);
-             		if (isSourceSink != null){
-             			if (isSourceSink)
-             				refSources.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
-             			else
-             				refSinks.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
-             		}
-             		        		
-         	}
+			 if (referenceStringClass != null){
+	         		final Boolean isSourceSink = isSourceSink(classDefs, referenceStringClass, referenceString, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
+	         		if (isSourceSink != null){
+	         			if (isSourceSink)
+	         				refSources.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
+	         			else
+	         				refSinks.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
+	         		}
+	         		else{
+	         			refNull.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
+	         		}
+	         		
+	         	}
+
              if ((referenceClassIndex == "Landroid/content/Intent;".hashCode())
              		&& (referenceIntIndex == "<init>(Landroid/content/Context;Ljava/lang/Class;)V".hashCode())){
             	 instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass("Landroid/content/Intent;"), true));

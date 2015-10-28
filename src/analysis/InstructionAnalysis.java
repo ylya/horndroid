@@ -1235,26 +1235,46 @@ public class InstructionAnalysis {
         	case INVOKE_INTERFACE:
         		
         		
-        		
         		modRes = false;
         		if ((referenceIntIndex == "execute(Ljava/lang/Runnable;)V".hashCode()) && (referenceClassIndex == "Ljava/util/concurrent/ExecutorService;".hashCode())){
         			implementations = analysis.getImplementations("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode());
+        			if (implementations == null){
+        				analysis.putNotImpl("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode());
+        			}
+        			else{
+        				analysis.putImplemented("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode(), implementations);
+        			}
         			modRes = true;
         		}
         		if (referenceIntIndex == "start()V".hashCode()){
         			implementations = analysis.getImplementations(referenceClassIndex, "run()V".hashCode());
+        			if (implementations == null){
+        				analysis.putNotImpl(referenceClassIndex, "run()V".hashCode());
+        			}
+        			else{
+        				analysis.putImplemented(referenceClassIndex, "run()V".hashCode(), implementations);
+        			}
         			modRes = true;
         		}
         		if (referenceIntIndex == "execute([Ljava/lang/Object;)Landroid/os/AsyncTask;".hashCode()){
     				implementations = analysis.getImplementations(referenceClassIndex, "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode());
+    				if (implementations == null){
+        				analysis.putNotImpl(referenceClassIndex, "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode());
+        			}
+        			else{
+        				analysis.putImplemented(referenceClassIndex, "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode(), implementations);
+        			}
     				modRes = true;
     			}
-        		if (referenceClassIndex == "Landroid/telephony/TelephonyManager;".hashCode() && referenceIntIndex == "getDeviceId()Ljava/lang/String;".hashCode()){
-        			int i = 0;
-        			i = i +1;
-        		}
+        		
         		if (!modRes){
     				implementations = analysis.getImplementations(referenceClassIndex, referenceIntIndex);
+    				if (implementations == null){
+        				analysis.putNotImpl(referenceClassIndex, referenceIntIndex);
+        			}
+        			else{
+        				analysis.putImplemented(referenceClassIndex, referenceIntIndex, implementations);
+        			}
     			}
 
         		isDefined = (implementations != null);
@@ -1467,7 +1487,8 @@ public class InstructionAnalysis {
 
         		staticDefinitions = analysis.isDefined(referenceClassIndex, referenceIntIndex, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
         		isDefined = staticDefinitions != null;
-
+        		if (!isDefined) analysis.putNotDefined(referenceClassIndex, referenceIntIndex);
+                else analysis.putDefined(referenceClassIndex, referenceIntIndex, staticDefinitions);
         		if (isDefined){
         			for (final Map.Entry<DalvikClass, DalvikMethod> definition: staticDefinitions.entrySet()){
         				numRegCall = definition.getValue().getNumReg();
@@ -1592,9 +1613,49 @@ public class InstructionAnalysis {
         	case INVOKE_SUPER_RANGE:
         	case INVOKE_INTERFACE_RANGE:
 
-    			implementations = analysis.getImplementations(referenceClassIndex, referenceIntIndex);
+        		modRes = false;
+        		if ((referenceIntIndex == "execute(Ljava/lang/Runnable;)V".hashCode()) && (referenceClassIndex == "Ljava/util/concurrent/ExecutorService;".hashCode())){
+        			implementations = analysis.getImplementations("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode());
+        			if (implementations == null){
+        				analysis.putNotImpl("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode());
+        			}
+        			else{
+        				analysis.putImplemented("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode(), implementations);
+        			}
+        			modRes = true;
+        		}
+        		if (referenceIntIndex == "start()V".hashCode()){
+        			implementations = analysis.getImplementations(referenceClassIndex, "run()V".hashCode());
+        			if (implementations == null){
+        				analysis.putNotImpl(referenceClassIndex, "run()V".hashCode());
+        			}
+        			else{
+        				analysis.putImplemented(referenceClassIndex, "run()V".hashCode(), implementations);
+        			}
+        			modRes = true;
+        		}
+        		if (referenceIntIndex == "execute([Ljava/lang/Object;)Landroid/os/AsyncTask;".hashCode()){
+    				implementations = analysis.getImplementations(referenceClassIndex, "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode());
+    				if (implementations == null){
+        				analysis.putNotImpl(referenceClassIndex, "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode());
+        			}
+        			else{
+        				analysis.putImplemented(referenceClassIndex, "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode(), implementations);
+        			}
+    				modRes = true;
+    			}
+        		
+        		if (!modRes){
+    				implementations = analysis.getImplementations(referenceClassIndex, referenceIntIndex);
+    				if (implementations == null){
+        				analysis.putNotImpl(referenceClassIndex, referenceIntIndex);
+        			}
+        			else{
+        				analysis.putImplemented(referenceClassIndex, referenceIntIndex, implementations);
+        			}
+    			}
 
-    			isDefined = false;
+        		isDefined = (implementations != null);
         		if (implementations != null)
         			isDefined = true;
         		RegisterRangeInstruction instr3 = (RegisterRangeInstruction)this.instruction;
@@ -1759,7 +1820,8 @@ public class InstructionAnalysis {
         	case INVOKE_STATIC_RANGE:
         		staticDefinitions = analysis.isDefined(referenceClassIndex, referenceIntIndex, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
                 isDefined = staticDefinitions != null;
-
+                if (!isDefined) analysis.putNotDefined(referenceClassIndex, referenceIntIndex);
+                else analysis.putDefined(referenceClassIndex, referenceIntIndex, staticDefinitions);
         		if (isDefined){
         			for (final Map.Entry<DalvikClass, DalvikMethod> definition: staticDefinitions.entrySet()){
         				numRegCall = definition.getValue().getNumReg();
