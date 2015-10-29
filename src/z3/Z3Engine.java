@@ -17,7 +17,9 @@ import java.util.concurrent.*;
 public class Z3Engine implements Z3Clauses {
 
     private Context mContext;
-    private Fixedpoint mFixedPoint;
+//    private Fixedpoint mFixedPoint;
+    private ArrayList<BoolExpr> mRules;
+    private ArrayList<FuncDecl> mFuncs;
 
     private ArrayList<Z3Query> mQueries;
     private Z3Query mCurrentQuery;
@@ -51,7 +53,9 @@ public class Z3Engine implements Z3Clauses {
 
             HashMap<String, String> cfg = new HashMap<String, String>();
             mContext = new Context(cfg); //Context ctx = mContext;
-            mFixedPoint = mContext.mkFixedpoint(); //Fixedpoint fp = mFixedPoint;
+//            mFixedPoint = mContext.mkFixedpoint(); //Fixedpoint fp = mFixedPoint;
+            mFuncs = new ArrayList<>();
+            mRules = new ArrayList<>();
 
             // add vars
             var = new Z3Variable(mContext, bvSize);
@@ -106,7 +110,9 @@ public class Z3Engine implements Z3Clauses {
 
     public void addRule(BoolExpr rule, String symbol){
         try {
-            mFixedPoint.addRule(rule, mContext.mkSymbol(RandomStringUtils.random(16,true,true)));
+//            mFixedPoint.addRule(rule, null);
+            mRules.add(rule);
+//                    mContext.mkSymbol(RandomStringUtils.random(16,true,true)));
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Z3Engine Failed: addRule");
@@ -483,11 +489,22 @@ public class Z3Engine implements Z3Clauses {
             if (q.isVerbose())
                 System.out.println(q.getDescription());
 
+            final Fixedpoint temp = mContext.mkFixedpoint();
+            for(BoolExpr rule : mRules){
+                temp.addRule(rule, null);
+            }
+            for(FuncDecl func : mFuncs){
+                temp.registerRelation(func);
+                Symbol[] symbols = new Symbol[]{mContext.mkSymbol("interval_relation"),
+                        mContext.mkSymbol("bound_relation")};
+                temp.setPredicateRepresentation(func, symbols);
+            }
+
             final Future<String> future = executor.submit(new Callable() {
                 @Override
                 public String call() throws Exception {
 
-                    Status result = mFixedPoint.query(q.getQuery());
+                    Status result = temp.query(q.getQuery());
                     System.out.println(result);
 
                     return result.toString();
@@ -511,7 +528,8 @@ public class Z3Engine implements Z3Clauses {
 
     public void declareRel(FuncDecl funcDecl){
         try {
-            mFixedPoint.registerRelation(funcDecl);
+//            mFixedPoint.registerRelation(funcDecl);
+            mFuncs.add(funcDecl);
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Z3Engine Failed: declareRel");
@@ -537,19 +555,6 @@ public class Z3Engine implements Z3Clauses {
         }
     }
 
-//    private void rPredDef(final String c, final String m, final int pc, final int size, final Z3Engine z3engine){
-//        String v = "", l = "", b = "";
-//        for (int i = 0; i <= size; i++){
-//            if (!v.isEmpty()) v = v + ' ' + "bv64";
-//            else v = "bv64";
-//            if (!l.isEmpty()) l = l + ' ' + "Bool";
-//            else l = "Bool";
-//            if (!b.isEmpty()) b = b + ' ' + "Bool";
-//            else b = "Bool";
-//        }
-//        gen.addDef("(declare-rel R_" + c + '_' + m + '_' + Integer.toString(pc) + '(' + v + ' ' + l + ' ' + b + ") interval_relation bound_relation)", Integer.parseInt(c));
-//    }
-
     private FuncDecl rPredDef(String c, String m, int pc, int size) {
         try {
             BitVecSort bv64 = mContext.mkBitVecSort(bvSize);
@@ -561,9 +566,9 @@ public class Z3Engine implements Z3Clauses {
             Arrays.fill(domains, size, 3 * size, bool);
             FuncDecl f = mContext.mkFuncDecl(funcName, domains, mContext.mkBoolSort());
             this.declareRel(f);
-            Symbol[] symbols = new Symbol[]{mContext.mkSymbol("interval_relation"),
-                                            mContext.mkSymbol("bound_relation")};
-            mFixedPoint.setPredicateRepresentation(f, symbols);
+//            Symbol[] symbols = new Symbol[]{mContext.mkSymbol("interval_relation"),
+//                                            mContext.mkSymbol("bound_relation")};
+//            mFixedPoint.setPredicateRepresentation(f, symbols);
             return f;
         } catch (Z3Exception e) {
             e.printStackTrace();
@@ -625,9 +630,9 @@ public class Z3Engine implements Z3Clauses {
             FuncDecl f = mContext.mkFuncDecl(funcName, domains, bool);
 
             this.declareRel(f);
-            Symbol[] symbols = new Symbol[]{mContext.mkSymbol("interval_relation"),
-                                            mContext.mkSymbol("bound_relation")};
-            mFixedPoint.setPredicateRepresentation(f, symbols);
+//            Symbol[] symbols = new Symbol[]{mContext.mkSymbol("interval_relation"),
+//                                            mContext.mkSymbol("bound_relation")};
+//            mFixedPoint.setPredicateRepresentation(f, symbols);
             return f;
         } catch (Z3Exception e) {
             e.printStackTrace();
