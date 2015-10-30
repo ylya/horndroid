@@ -50,13 +50,13 @@ public interface Z3Clauses {
     /*
      *  Custom Predicate
      */
-        public BoolExpr rPred(String c, String m, int pc, Map<Integer, BitVecExpr> rUp, Map<Integer, BoolExpr> rUpL, Map<Integer, BoolExpr> rUpB, int numArg, int numReg);
-        public BoolExpr rInvokePred(String c, String m, int pc, Map<Integer, BitVecExpr> rUp, Map<Integer, BoolExpr> rUpL, Map<Integer, BoolExpr> rUpB, int numArg, int numReg, int size);
+    public BoolExpr rPred(String c, String m, int pc, Map<Integer, BitVecExpr> rUp, Map<Integer, BoolExpr> rUpL, Map<Integer, BoolExpr> rUpB, int numArg, int numReg);
+    public BoolExpr rInvokePred(String c, String m, int pc, Map<Integer, BitVecExpr> rUp, Map<Integer, BoolExpr> rUpL, Map<Integer, BoolExpr> rUpB, int numArg, int numReg, int size);
     //    public void rPredDef(String c, String m, int pc, int size);
-    
+
     public BoolExpr resPred(String c, String m, Map<Integer, BitVecExpr> rUp, Map<Integer, BoolExpr> rUpL, Map<Integer, BoolExpr> rUpB, int numArg);
-//    public void resPredDef(String c, String m, int size);
-    
+    //    public void resPredDef(String c, String m, int size);
+
     public BoolExpr hPred(BitVecExpr cname, BitVecExpr inst, BitVecExpr element, BitVecExpr value, BoolExpr label, BoolExpr block);
     public BoolExpr hiPred(BitVecExpr cname, BitVecExpr inst, BitVecExpr value, BoolExpr label, BoolExpr block);
     public BoolExpr iPred(BitVecExpr cname, BitVecExpr inst, BitVecExpr value, BoolExpr label, BoolExpr block);

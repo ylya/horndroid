@@ -17,7 +17,7 @@ import java.util.concurrent.*;
 public class Z3Engine implements Z3Clauses {
 
     private Context mContext;
-//    private Fixedpoint mFixedPoint;
+    //    private Fixedpoint mFixedPoint;
     private ArrayList<BoolExpr> mRules;
     private ArrayList<FuncDecl> mFuncs;
 
@@ -48,12 +48,12 @@ public class Z3Engine implements Z3Clauses {
 
 
             Global.setParameter("fixedpoint.engine", "pdr");
-//            Global.setParameter("fixedpoint.unbound_compressor", "false");
+            //            Global.setParameter("fixedpoint.unbound_compressor", "false");
             Global.setParameter("pp.bv-literals", "false");
 
             HashMap<String, String> cfg = new HashMap<String, String>();
             mContext = new Context(cfg); //Context ctx = mContext;
-//            mFixedPoint = mContext.mkFixedpoint(); //Fixedpoint fp = mFixedPoint;
+            //            mFixedPoint = mContext.mkFixedpoint(); //Fixedpoint fp = mFixedPoint;
             mFuncs = new ArrayList<>();
             mRules = new ArrayList<>();
 
@@ -69,17 +69,17 @@ public class Z3Engine implements Z3Clauses {
 
             // add main
             BoolExpr b1 = hPred( var.getCn(), var.getCn(),
-                                 mContext.mkBV("parent".hashCode(), bvSize),
-                                 var.getF(), var.getLf(), var.getBf());
+                    mContext.mkBV("parent".hashCode(), bvSize),
+                    var.getF(), var.getLf(), var.getBf());
             BoolExpr b2 = hPred( var.getCn(), var.getCn(),
-                                 mContext.mkBV("result".hashCode(), bvSize),
-                                 var.getVal(), var.getLval(), var.getBval());
+                    mContext.mkBV("result".hashCode(), bvSize),
+                    var.getVal(), var.getLval(), var.getBval());
             BoolExpr b3 = hPred( var.getF(), var.getF(), var.getFpp(),
-                                 var.getVfp(), var.getLfp(), var.getBfp());
+                    var.getVfp(), var.getLfp(), var.getBfp());
             BoolExpr b1b2b3 = mContext.mkAnd(b1, b2, b3);
             BoolExpr b4 = hPred( var.getF(), var.getF(),
-                                 mContext.mkBV("result".hashCode(), bvSize),
-                                 var.getVal(), var.getLval(), var.getBval());
+                    mContext.mkBV("result".hashCode(), bvSize),
+                    var.getVal(), var.getLval(), var.getBval());
             BoolExpr b1b2b3_b4 = mContext.mkImplies(b1b2b3, b4);
 
             this.addRule(b1b2b3_b4, null);
@@ -110,9 +110,9 @@ public class Z3Engine implements Z3Clauses {
 
     public void addRule(BoolExpr rule, String symbol){
         try {
-//            mFixedPoint.addRule(rule, null);
+            //            mFixedPoint.addRule(rule, null);
             mRules.add(rule);
-//                    mContext.mkSymbol(RandomStringUtils.random(16,true,true)));
+            //                    mContext.mkSymbol(RandomStringUtils.random(16,true,true)));
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Z3Engine Failed: addRule");
@@ -376,7 +376,7 @@ public class Z3Engine implements Z3Clauses {
     }
 
     @Override
-     public BitVecExpr bvlshr(BitVecExpr bv1, BitVecExpr bv2) {
+    public BitVecExpr bvlshr(BitVecExpr bv1, BitVecExpr bv2) {
         try {
             return mContext.mkBVLSHR(bv1, bv2);
         } catch (Z3Exception e) {
@@ -386,7 +386,7 @@ public class Z3Engine implements Z3Clauses {
     }
 
     @Override
-     public BitVecExpr bvashr(BitVecExpr bv1, BitVecExpr bv2) {
+    public BitVecExpr bvashr(BitVecExpr bv1, BitVecExpr bv2) {
         try {
             return mContext.mkBVASHR(bv1, bv2);
         } catch (Z3Exception e) {
@@ -450,11 +450,11 @@ public class Z3Engine implements Z3Clauses {
 
         boolean sameAsCurrentQuery =
                 askCompactQuery
-                        && mCurrentQuery != null
-                        && mCurrentQuery.getClassName().equals(query.getClassName())
-                        && mCurrentQuery.getMethodName().equals(query.getMethodName())
-                        && mCurrentQuery.getPc().equals(query.getPc())
-                        && mCurrentQuery.getSinkName().equals(query.getSinkName());
+                && mCurrentQuery != null
+                && mCurrentQuery.getClassName().equals(query.getClassName())
+                && mCurrentQuery.getMethodName().equals(query.getMethodName())
+                && mCurrentQuery.getPc().equals(query.getPc())
+                && mCurrentQuery.getSinkName().equals(query.getSinkName());
 
         if( sameAsCurrentQuery ){
             // merge by or-ing queries
@@ -462,8 +462,8 @@ public class Z3Engine implements Z3Clauses {
                     this.or(
                             mCurrentQuery.getQuery(),
                             query.getQuery()
-                    )
-            );
+                            )
+                    );
         } else {
             // start new query
             if(mCurrentQuery != null) mQueries.add(mCurrentQuery);
@@ -472,13 +472,13 @@ public class Z3Engine implements Z3Clauses {
     }
 
     public void executeAllQueries(){
-// ensure that the cached query is added
+        // ensure that the cached query is added
         if(mCurrentQuery != null) mQueries.add(mCurrentQuery);
 
         int threshold = 10;
         int timeout = 30; // 30 minutes
 
-//		ExecutorService executor = Executors.newFixedThreadPool(threshold);
+        //		ExecutorService executor = Executors.newFixedThreadPool(threshold);
         ExecutorService executor = Executors.newSingleThreadExecutor();
         System.out.println("Number of queries: " + Integer.toString(mQueries.size()));
 
@@ -528,7 +528,7 @@ public class Z3Engine implements Z3Clauses {
 
     public void declareRel(FuncDecl funcDecl){
         try {
-//            mFixedPoint.registerRelation(funcDecl);
+            //            mFixedPoint.registerRelation(funcDecl);
             mFuncs.add(funcDecl);
         } catch (Z3Exception e) {
             e.printStackTrace();
@@ -566,9 +566,9 @@ public class Z3Engine implements Z3Clauses {
             Arrays.fill(domains, size, 3 * size, bool);
             FuncDecl f = mContext.mkFuncDecl(funcName, domains, mContext.mkBoolSort());
             this.declareRel(f);
-//            Symbol[] symbols = new Symbol[]{mContext.mkSymbol("interval_relation"),
-//                                            mContext.mkSymbol("bound_relation")};
-//            mFixedPoint.setPredicateRepresentation(f, symbols);
+            //            Symbol[] symbols = new Symbol[]{mContext.mkSymbol("interval_relation"),
+            //                                            mContext.mkSymbol("bound_relation")};
+            //            mFixedPoint.setPredicateRepresentation(f, symbols);
             return f;
         } catch (Z3Exception e) {
             e.printStackTrace();
@@ -602,7 +602,7 @@ public class Z3Engine implements Z3Clauses {
         try {
             int arraySize = numArg + numReg + 1;
             FuncDecl f = this.rPredDef(c, m, pc, arraySize);
-    //        String name = "R" + '_' + c + '_' + m + '_' + Integer.toString(pc);
+            //        String name = "R" + '_' + c + '_' + m + '_' + Integer.toString(pc);
 
             Expr[] e = new Expr[3 * arraySize];
             for(int i = 0, j = arraySize, k = 2*arraySize; i < arraySize; i++, j++, k++){
@@ -630,9 +630,9 @@ public class Z3Engine implements Z3Clauses {
             FuncDecl f = mContext.mkFuncDecl(funcName, domains, bool);
 
             this.declareRel(f);
-//            Symbol[] symbols = new Symbol[]{mContext.mkSymbol("interval_relation"),
-//                                            mContext.mkSymbol("bound_relation")};
-//            mFixedPoint.setPredicateRepresentation(f, symbols);
+            //            Symbol[] symbols = new Symbol[]{mContext.mkSymbol("interval_relation"),
+            //                                            mContext.mkSymbol("bound_relation")};
+            //            mFixedPoint.setPredicateRepresentation(f, symbols);
             return f;
         } catch (Z3Exception e) {
             e.printStackTrace();
