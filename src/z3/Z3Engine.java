@@ -29,23 +29,17 @@ public class Z3Engine implements Z3Clauses {
     private Z3Function func;
 
     //legacy
-    private int biggestRegisterNumber;
-    public void updateBiggestRegister(final int i){
-        if (i > this.biggestRegisterNumber) biggestRegisterNumber = i;
-    }
+    //private int biggestRegisterNumber;
+    //public void updateBiggestRegister(final int i){
+    //    if (i > this.biggestRegisterNumber) biggestRegisterNumber = i;
+    //}
 
-    @Nonnull private final Set<CMPair> methodIsEntryPoint;
-    @Nonnull private final Set<Integer> staticConstructor;
+
 
     public Z3Engine(options options){
         try {
             bvSize = options.bitvectorSize;
             mQueries = new ArrayList<>();
-
-            //legacy
-            this.methodIsEntryPoint = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<CMPair, Boolean>()));
-            this.staticConstructor = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<Integer, Boolean>()));
-
 
             Global.setParameter("fixedpoint.engine", "pdr");
             //            Global.setParameter("fixedpoint.unbound_compressor", "false");
@@ -87,18 +81,6 @@ public class Z3Engine implements Z3Clauses {
             e.printStackTrace();
             throw new RuntimeException("Z3Engine Failed");
         }
-    }
-
-    //legacy
-    public void putEntryPoint(int c, int m){ methodIsEntryPoint.add(new CMPair (c, m));}
-    public boolean isEntryPoint(int c, int m){
-        return methodIsEntryPoint.contains(new CMPair(c, m));
-    }
-    public boolean hasStaticConstructor(int c){
-        return staticConstructor.contains(c);
-    }
-    public void putStaticConstructor(int c){
-        staticConstructor.add(c);
     }
 
 

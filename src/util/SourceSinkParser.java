@@ -44,7 +44,7 @@ public class SourceSinkParser {
 		    }
 		}
 	}
-	public static void parseEntryPoint(final Z3Engine z3engine) throws IOException{
+	public static void parseEntryPoint(final Analysis analysis) throws IOException{
 		try (BufferedReader br = new BufferedReader(new FileReader(new File("EntryPoints.txt")))) {
 		    String line;
 		    while ((line = br.readLine()) != null) {
@@ -52,7 +52,7 @@ public class SourceSinkParser {
 		    	String[] parts = line.split(Pattern.quote(" "));
 		    	int c = parts[0].hashCode();
 		    	int m = parts[1].hashCode();
-                z3engine.putEntryPoint(c, m);
+                analysis.putEntryPoint(c, m);
 		    }
 		}
 	}

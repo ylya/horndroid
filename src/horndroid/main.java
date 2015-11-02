@@ -120,7 +120,7 @@ public class main {
 
             System.out.print("Parsing entry points...");
             try {
-                SourceSinkParser.parseEntryPoint(z3engine);
+                SourceSinkParser.parseEntryPoint(analysis);
             } catch (IOException e1) {
                 System.err.println("Error: Can't read entry points file! " + inputApkFileName);
                 System.exit(1);

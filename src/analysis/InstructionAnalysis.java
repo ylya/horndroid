@@ -330,7 +330,7 @@ public class InstructionAnalysis {
 
             regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
 
-            if (z3engine.hasStaticConstructor(referenceIntIndex)){
+            if (analysis.hasStaticConstructor(referenceIntIndex)){
                 h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                 int staticConstNum = "<clinit>()V".hashCode();
                 dmc = analysis.getExactMethod(referenceIntIndex, staticConstNum);

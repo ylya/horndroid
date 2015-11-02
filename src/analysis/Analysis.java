@@ -14,6 +14,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 //import java.util.concurrent.Executors;
 
+import javax.annotation.Nonnull;
+
 import org.jf.baksmali.Adaptors.ClassDefinition;
 import org.jf.baksmali.Adaptors.MethodDefinition;
 import org.jf.baksmali.Adaptors.MethodDefinition.InvalidSwitchPayload;
@@ -79,6 +81,9 @@ public class Analysis {
     private final Set<CMPair> isNotImpl;
     final private Map<CMPair, Set<DalvikImplementation>> allImplementations;
     final private Map<CMPair, Map<DalvikClass, DalvikMethod>> allDefinitions;
+    
+    @Nonnull private final Set<CMPair> methodIsEntryPoint;
+    @Nonnull private final Set<Integer> staticConstructor;
 
     public Analysis(final Z3Engine z3engine, final Set<SourceSinkMethod> sourcesSinks, final options options, final ExecutorService instructionExecutorService){
         this.classes = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<GeneralClass, Boolean>()));
@@ -121,6 +126,10 @@ public class Analysis {
         this.overapprox.add("Landroid/app/ListFragment;".hashCode());
         this.overapprox.add("Landroid/support/v4/app/ListFragment;".hashCode());
         this.overapprox.add("Landroid/os/Handler;".hashCode());
+        
+        this.methodIsEntryPoint = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<CMPair, Boolean>()));
+        this.staticConstructor = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<Integer, Boolean>()));
+
     }
     public void putNotImpl(final int c, final int m){
         isNotImpl.add(new CMPair(c, m));
@@ -494,7 +503,7 @@ public class Analysis {
         if (c instanceof DalvikClass){
             final DalvikClass dc = (DalvikClass) c;
             final GeneralClass superClass = dc.getSuperClass();
-            if (z3engine.isEntryPoint(superClass.getType().hashCode(), methodIndex)){
+            if (this.isEntryPoint(superClass.getType().hashCode(), methodIndex)){
                 return true;
             }
             else{	
@@ -811,7 +820,7 @@ public class Analysis {
         //refClassElement.putMethod(method.getDefiningClass(), methodString);
 
         if (methodString.equals((String) "<clinit>()V")){
-            z3engine.putStaticConstructor(method.getDefiningClass().hashCode());
+            this.putStaticConstructor(method.getDefiningClass().hashCode());
         }
         ImmutableList<MethodParameter> methodParameters = ImmutableList.copyOf(method.getParameters());
         for (MethodParameter parameter: methodParameters) {
@@ -1147,5 +1156,15 @@ public class Analysis {
         default:
             break;
         }
+    }
+    public void putEntryPoint(int c, int m){ methodIsEntryPoint.add(new CMPair (c, m));}
+    public boolean isEntryPoint(int c, int m){
+        return methodIsEntryPoint.contains(new CMPair(c, m));
+    }
+    public boolean hasStaticConstructor(int c){
+        return staticConstructor.contains(c);
+    }
+    public void putStaticConstructor(int c){
+        staticConstructor.add(c);
     }
 }
