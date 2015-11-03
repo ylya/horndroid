@@ -36,6 +36,7 @@ import analysis.Analysis;
 import util.SourceSinkMethod;
 import util.SourceSinkParser;
 import util.Utils;
+import z3.FSEngine;
 import z3.Z3Engine;
 import z3.Z3Query;
 
@@ -94,9 +95,10 @@ public class main {
             //            final Gen gen = new Gen(hornDroidOptions.outputDirectory + '/');
             //            initGen(gen, hornDroidOptions);
             final Z3Engine z3engine = new Z3Engine(hornDroidOptions);
+            final FSEngine fsengine = new FSEngine(hornDroidOptions);
 
             final ExecutorService instructionExecutorService = Executors.newCachedThreadPool();
-            Analysis analysis = new Analysis(z3engine, sourcesSinks, hornDroidOptions, instructionExecutorService);
+            Analysis analysis = new Analysis(z3engine, fsengine, sourcesSinks, hornDroidOptions, instructionExecutorService);
             System.out.println("Analysing " + file.getName());
             startTime = System.nanoTime();
 

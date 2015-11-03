@@ -4,6 +4,7 @@ import com.microsoft.z3.BitVecExpr;
 import com.microsoft.z3.BoolExpr;
 import horndroid.options;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -51,6 +52,7 @@ import payload.PackedSwitch;
 import payload.SparseSwitch;
 import strings.ConstString;
 import util.*;
+import z3.FSEngine;
 import z3.Z3Engine;
 import z3.Z3Variable;
 
@@ -72,6 +74,7 @@ public class Analysis {
     final private options options;
     //    final private Gen gen;
     final private Z3Engine z3engine;
+    final private FSEngine fsengine;
     final private Z3Variable var;
     final ExecutorService instructionExecutorService;
     private final Set<CMPair> refSources;
@@ -84,8 +87,19 @@ public class Analysis {
     
     @Nonnull private final Set<CMPair> methodIsEntryPoint;
     @Nonnull private final Set<Integer> staticConstructor;
+    
+    private Map<Integer, Integer> allocationPointNumbers = Collections.synchronizedMap(new HashMap <Integer, Integer>());
+    private Map<Integer, Integer> allocationPointSize = Collections.synchronizedMap(new HashMap <Integer, Integer>());
+    private Map<Integer, Integer> allocationPointOffset = Collections.synchronizedMap(new HashMap <Integer, Integer>());
+    private Integer localHeapNumberEntries;
+    private Integer localHeapSize;
 
-    public Analysis(final Z3Engine z3engine, final Set<SourceSinkMethod> sourcesSinks, final options options, final ExecutorService instructionExecutorService){
+    
+    //private int numberAllocationPoints;
+    //private Map<Integer,String> allocationsPoints;
+    
+    
+    public Analysis(final Z3Engine z3engine,final FSEngine fsengine, final Set<SourceSinkMethod> sourcesSinks, final options options, final ExecutorService instructionExecutorService){
         this.classes = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<GeneralClass, Boolean>()));
         this.instances = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<DalvikInstance, Boolean>()));
         this.disabledActivities = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>()));
@@ -104,6 +118,7 @@ public class Analysis {
         //HERE
         //		this.gen = gen;
         this.z3engine = z3engine;
+        this.fsengine = fsengine;
         this.var = z3engine.getVars();
         this.options = options;
 
@@ -130,6 +145,8 @@ public class Analysis {
         this.methodIsEntryPoint = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<CMPair, Boolean>()));
         this.staticConstructor = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<Integer, Boolean>()));
 
+        //this.numberAllocationPoints = 0;
+        //this.allocationsPoints = new ConcurrentHashMap<Integer,String>();
     }
     public void putNotImpl(final int c, final int m){
         isNotImpl.add(new CMPair(c, m));
@@ -233,6 +250,52 @@ public class Analysis {
         }
         return null;
     }
+    
+    /*
+     * Return a bijective mapping (i --> field_i) between [[0;inputMap.size() - 1]] and the inputMap key-space
+     */
+    public Map<Integer,Integer> classFieldsMapping(final Map<Integer,Boolean> inputMap){
+        Map<Integer, Integer> result = Collections.synchronizedMap(new HashMap <Integer, Integer>(inputMap.size()));
+        List<Integer> list = new ArrayList<Integer>(inputMap.keySet());
+        Collections.sort(list);
+        for (int i =  0; i < inputMap.size(); i++){
+            result.put(i, list.get(i));
+        }
+        return result;
+    }
+    
+    private void initializeAllocationMapping(){
+        Integer itNumber = 0;
+        Integer offset = 0;
+        for (DalvikInstance i : instances){
+            Integer instanceNum = i.hashCode();
+            ImmutableList<Instruction> instructions = getExactMethod(i.getC(),i.getM()).getInstructions();
+            Instruction instruction = instructions.get(i.getPC());   
+            
+            String referenceString = null;
+            
+            if (instruction instanceof ReferenceInstruction) {
+                ReferenceInstruction referenceInstruction = (ReferenceInstruction)instruction;
+                Reference reference = referenceInstruction.getReference();
+                referenceString = Utils.getShortReferenceString(reference);
+                //referenceIntIndex = referenceString.hashCode();
+                //referenceIndex = Utils.Dec(referenceIntIndex);
+            }
+            else{
+                throw new RuntimeException("initializeAllocationMapping: Failed");
+            }
+            Set<Integer> fields = this.getClassFields(referenceString, instanceNum).keySet();
+                        
+            allocationPointNumbers.put(instanceNum, itNumber);
+            allocationPointSize.put(instanceNum, fields.size());
+            allocationPointOffset.put(instanceNum, offset);
+            offset += fields.size() + 1;
+            itNumber += 1;
+        }
+        localHeapSize = offset;
+        localHeapNumberEntries = itNumber;
+    }
+    
     public Map<Integer, Boolean> getClassFields(final String className, final int instanceNum){
         Map<Integer, Boolean> result = Collections.synchronizedMap(new HashMap <Integer, Boolean>());
         boolean found = false;
@@ -273,6 +336,7 @@ public class Analysis {
         return result;
     }
     public Integer getInstNum(final int c, final int m, final int pc){
+        // This is rather inefficient
         for (final DalvikInstance instance: instances)
             if ((instance.getC() == c) && (instance.getM() == m) && (instance.getPC() == pc)) 
                 return instance.hashCode();
@@ -366,7 +430,7 @@ public class Analysis {
 
             int codeAddress = 0;
             for (final Instruction instruction: m.getInstructions()){
-                InstructionAnalysis ia = new InstructionAnalysis(this, instruction, dc, m, codeAddress);
+                SimpleInstructionAnalysis ia = new SimpleInstructionAnalysis(this, instruction, dc, m, codeAddress);
                 ia.CreateHornClauses();
                 codeAddress += instruction.getCodeUnits();
             }
@@ -462,7 +526,40 @@ public class Analysis {
         }
         return false;
     }
+    
+    // generate labels for the R predicates
+    public String mkLabel(DalvikClass c, DalvikMethod m, int pc){
+        return Integer.toString(c.getType().hashCode()) + "_" + Integer.toString(m.getName().hashCode()) + "_" + Integer.toString(pc);
+    }
+    
+    // count the number of allocation points and compute the allocationPoints set
+    /*
+      private void countAllocationPoints(){
+     
+        for (final GeneralClass c: classes){
+            if ((c instanceof DalvikClass) && (!c.getType().contains("Landroid"))){
+                final DalvikClass dc = (DalvikClass) c;
+                for (final DalvikMethod m : dc.getMethods()){
+                    int codeAddress = 0;
+                    for (final Instruction instruction: m.getInstructions()){
+                        if (instruction.getOpcode() == Opcode.NEW_INSTANCE) {
+                            allocationsPoints.put(numberAllocationPoints,this.mkLabel(dc,m,codeAddress));
+                            numberAllocationPoints += 1;
+                            codeAddress += instruction.getCodeUnits();
+                        }
+                    }
+                }
+            }
+        }
+    }
+    */
+    
     public void createHornClauses(){
+        // Initialize allocationPointOffset,allocationPointNumbers and allocationPointSize
+        initializeAllocationMapping();
+        // Correctly set the corresponding fields in the FSEngine
+        fsengine.initialize(localHeapNumberEntries, localHeapSize);
+        
         for (final GeneralClass c: classes){
             if ((c instanceof DalvikClass) && (!c.getType().contains("Landroid"))){
                 final DalvikClass dc = (DalvikClass) c;

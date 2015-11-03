@@ -1,22 +1,17 @@
 package z3;
 
 import com.microsoft.z3.*;
-import com.sun.org.apache.xpath.internal.operations.Bool;
+//import com.sun.org.apache.xpath.internal.operations.Bool;
 
 import horndroid.options;
-
-import org.apache.commons.lang3.RandomStringUtils;
-
-import util.CMPair;
-
-import javax.annotation.Nonnull;
 
 import java.util.*;
 import java.util.concurrent.*;
 
-public class Z3Engine  implements Z3Clauses {
 
+public class FSEngine{
     private Context mContext;
+    private Boolean initialized = false;
     //    private Fixedpoint mFixedPoint;
     private ArrayList<BoolExpr> mRules;
     private ArrayList<FuncDecl> mFuncs;
@@ -26,8 +21,10 @@ public class Z3Engine  implements Z3Clauses {
 
     private int bvSize;
     private Z3Variable var;
-    private Z3Function func;
+    private FSFunction func;
 
+    private Integer localHeapNumberEntries;
+    private Integer localHeapSize;
     //legacy
     //private int biggestRegisterNumber;
     //public void updateBiggestRegister(final int i){
@@ -36,7 +33,7 @@ public class Z3Engine  implements Z3Clauses {
 
 
 
-    public Z3Engine(options options){
+    public FSEngine(options options){
         try {
             bvSize = options.bitvectorSize;
             mQueries = new ArrayList<>();
@@ -55,7 +52,7 @@ public class Z3Engine  implements Z3Clauses {
             var = new Z3Variable(mContext, bvSize);
 
             // add func
-            func = new Z3Function(mContext, bvSize);
+            func = new FSFunction(mContext, bvSize);
             this.declareRel(func.getH());
             this.declareRel(func.getHi());
             this.declareRel(func.getI());
@@ -79,16 +76,22 @@ public class Z3Engine  implements Z3Clauses {
             this.addRule(b1b2b3_b4, null);
         } catch (Z3Exception e){
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed");
+            throw new RuntimeException("FSEngine Failed");
         }
     }
 
+    public void initialize(Integer localHeapNumberEntries,Integer localHeapSize){
+        if (this.initialized) throw new RuntimeException("FSEngine Failed: initialized twice");
+        this.localHeapNumberEntries = localHeapNumberEntries;
+        this.localHeapSize = localHeapSize;
+        this.initialized = true;
+    }
 
     public Context getContext(){ return mContext; }
 
     public Z3Variable getVars(){ return var; }
 
-    public Z3Function getFunc(){ return func; }
+    public FSFunction getFunc(){ return func; }
 
     public void addRule(BoolExpr rule, String symbol){
         try {
@@ -97,333 +100,333 @@ public class Z3Engine  implements Z3Clauses {
             //                    mContext.mkSymbol(RandomStringUtils.random(16,true,true)));
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: addRule");
+            throw new RuntimeException("FSEngine Failed: addRule");
         }
     }
 
 
-    @Override
+    
     public BoolExpr mkTrue() {
         try {
             return mContext.mkBool(true);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: true");
+            throw new RuntimeException("FSEngine Failed: true");
         }
     }
 
-    @Override
+    
     public BoolExpr mkFalse() {
         try {
             return mContext.mkBool(false);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: false");
+            throw new RuntimeException("FSEngine Failed: false");
         }
     }
 
-    @Override
+    
     public BoolExpr mkBool(boolean b) {
         try {
             return mContext.mkBool(b);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: mkBool");
+            throw new RuntimeException("FSEngine Failed: mkBool");
         }
     }
 
-    @Override
+    
     public BitVecExpr mkBitVector(String data, int len) {
         try {
             return mContext.mkBV(data, len);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: mkBitVector String");
+            throw new RuntimeException("FSEngine Failed: mkBitVector String");
         }
     }
 
-    @Override
+    
     public BitVecExpr mkBitVector(int data, int len) {
         try {
             return mContext.mkBV(data, len);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: mkBitVector int");
+            throw new RuntimeException("FSEngine Failed: mkBitVector int");
         }
     }
 
-    @Override
+    
     public BitVecExpr mkBitVector(long data, int len) {
         try {
             return mContext.mkBV(data, len);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: mkBitVector long");
+            throw new RuntimeException("FSEngine Failed: mkBitVector long");
         }
     }
 
-    @Override
+    
     public IntExpr mkInt(String data) {
         try {
             return mContext.mkInt(data);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: mkInt");
+            throw new RuntimeException("FSEngine Failed: mkInt");
         }
     }
 
-    @Override
+    
     public IntExpr mkInt(int data) {
         try {
             return mContext.mkInt(data);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: mkInt");
+            throw new RuntimeException("FSEngine Failed: mkInt");
         }
     }
 
-    @Override
+    
     public BoolExpr and(BoolExpr... b) {
         try {
             return mContext.mkAnd(b);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: and");
+            throw new RuntimeException("FSEngine Failed: and");
         }
     }
 
-    @Override
+    
     public BoolExpr or(BoolExpr... b) {
         try {
             return mContext.mkOr(b);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: or");
+            throw new RuntimeException("FSEngine Failed: or");
         }
     }
 
-    @Override
+    
     public BoolExpr not(BoolExpr b) {
         try {
             return mContext.mkNot(b);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: not");
+            throw new RuntimeException("FSEngine Failed: not");
         }
     }
 
-    @Override
+    
     public BoolExpr eq(BoolExpr b1, BoolExpr b2) {
         try {
             return mContext.mkEq(b1, b2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: eq");
+            throw new RuntimeException("FSEngine Failed: eq");
         }
     }
 
-    @Override
+    
     public BoolExpr eq(BitVecExpr bv1, BitVecExpr bv2) {
         try {
             return mContext.mkEq(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: eq");
+            throw new RuntimeException("FSEngine Failed: eq");
         }
     }
 
-    @Override
+    
     public Expr ite(BoolExpr b, Expr e1, Expr e2) {
         try {
             return mContext.mkITE(b, e1, e2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: ite");
+            throw new RuntimeException("FSEngine Failed: ite");
         }
     }
 
-    @Override
+    
     public BitVecExpr bvneg(BitVecExpr bv) {
         try {
             return mContext.mkBVNeg(bv);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvneg");
+            throw new RuntimeException("FSEngine Failed: bvneg");
         }
     }
 
-    @Override
+    
     public BitVecExpr bvnot(BitVecExpr bv) {
         try {
             return mContext.mkBVNot(bv);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvnot");
+            throw new RuntimeException("FSEngine Failed: bvnot");
         }
     }
 
 
-    @Override
+    
     public BitVecExpr bvadd(BitVecExpr bv1, BitVecExpr bv2) {
         try {
             return mContext.mkBVAdd(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvadd");
+            throw new RuntimeException("FSEngine Failed: bvadd");
         }
     }
 
 
-    @Override
+    
     public BitVecExpr bvmul(BitVecExpr bv1, BitVecExpr bv2) {
         try {
             return mContext.mkBVMul(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvmul");
+            throw new RuntimeException("FSEngine Failed: bvmul");
         }
     }
 
 
-    @Override
+    
     public BitVecExpr bvudiv(BitVecExpr bv1, BitVecExpr bv2) {
         try {
             return mContext.mkBVUDiv(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvudiv");
+            throw new RuntimeException("FSEngine Failed: bvudiv");
         }
     }
 
 
-    @Override
+    
     public BitVecExpr bvurem(BitVecExpr bv1, BitVecExpr bv2) {
         try {
             return mContext.mkBVURem(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvurem");
+            throw new RuntimeException("FSEngine Failed: bvurem");
         }
     }
 
 
-    @Override
+    
     public BoolExpr bvugt(BitVecExpr bv1, BitVecExpr bv2) {
         try {
             return mContext.mkBVUGT(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvugt");
+            throw new RuntimeException("FSEngine Failed: bvugt");
         }
     }
 
-    @Override
+    
     public BoolExpr bvuge(BitVecExpr bv1, BitVecExpr bv2) {
         try {
             return mContext.mkBVUGE(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvuge");
+            throw new RuntimeException("FSEngine Failed: bvuge");
         }
     }
 
-    @Override
+    
     public BoolExpr bvule(BitVecExpr bv1, BitVecExpr bv2) {
         try {
             return mContext.mkBVULE(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvule");
+            throw new RuntimeException("FSEngine Failed: bvule");
         }
     }
 
-    @Override
+    
     public BoolExpr bvult(BitVecExpr bv1, BitVecExpr bv2) {
         try {
             return mContext.mkBVULE(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvult");
+            throw new RuntimeException("FSEngine Failed: bvult");
         }
     }
 
-    @Override
+    
     public BitVecExpr bvshl(BitVecExpr bv1, BitVecExpr bv2) {
         try {
             return mContext.mkBVSHL(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvshl");
+            throw new RuntimeException("FSEngine Failed: bvshl");
         }
     }
 
-    @Override
+    
     public BitVecExpr bvlshr(BitVecExpr bv1, BitVecExpr bv2) {
         try {
             return mContext.mkBVLSHR(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvlshr");
+            throw new RuntimeException("FSEngine Failed: bvlshr");
         }
     }
 
-    @Override
+    
     public BitVecExpr bvashr(BitVecExpr bv1, BitVecExpr bv2) {
         try {
             return mContext.mkBVASHR(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvashr");
+            throw new RuntimeException("FSEngine Failed: bvashr");
         }
     }
 
-    @Override
+    
     public BitVecExpr bvsub(BitVecExpr bv1, BitVecExpr bv2) {
         try {
             return mContext.mkBVASHR(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvsub");
+            throw new RuntimeException("FSEngine Failed: bvsub");
         }
     }
 
-    @Override
+    
     public BitVecExpr bvxor(BitVecExpr bv1, BitVecExpr bv2) {
         try {
             return mContext.mkBVXOR(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvxor");
+            throw new RuntimeException("FSEngine Failed: bvxor");
         }
     }
 
-    @Override
+    
     public BitVecExpr bvor(BitVecExpr bv1, BitVecExpr bv2) {
         try {
             return mContext.mkBVOR(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvor");
+            throw new RuntimeException("FSEngine Failed: bvor");
         }
     }
 
-    @Override
+    
     public BitVecExpr bvand(BitVecExpr bv1, BitVecExpr bv2) {
         try {
             return mContext.mkBVAND(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvand");
+            throw new RuntimeException("FSEngine Failed: bvand");
         }
     }
 
-    @Override
+    
     public BoolExpr implies(BoolExpr b1, BoolExpr b2){
         try {
             return mContext.mkImplies(b1, b2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: implies");
+            throw new RuntimeException("FSEngine Failed: implies");
         }
     }
 
@@ -460,7 +463,7 @@ public class Z3Engine  implements Z3Clauses {
         int threshold = 10;
         int timeout = 30; // 30 minutes
 
-        //		ExecutorService executor = Executors.newFixedThreadPool(threshold);
+        //      ExecutorService executor = Executors.newFixedThreadPool(threshold);
         ExecutorService executor = Executors.newSingleThreadExecutor();
         System.out.println("Number of queries: " + Integer.toString(mQueries.size()));
 
@@ -483,7 +486,7 @@ public class Z3Engine  implements Z3Clauses {
             }
 
             final Future<String> future = executor.submit(new Callable() {
-                @Override
+                
                 public String call() throws Exception {
 
                     Status result = temp.query(q.getQuery());
@@ -514,7 +517,7 @@ public class Z3Engine  implements Z3Clauses {
             mFuncs.add(funcDecl);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: declareRel");
+            throw new RuntimeException("FSEngine Failed: declareRel");
         }
     }
 
@@ -524,7 +527,7 @@ public class Z3Engine  implements Z3Clauses {
             this.declareRel(f);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: declareRel");
+            throw new RuntimeException("FSEngine Failed: declareRel");
         }
     }
 
@@ -533,155 +536,246 @@ public class Z3Engine  implements Z3Clauses {
             Expr var = mContext.mkBound(0, type);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: declareVar");
+            throw new RuntimeException("FSEngine Failed: declareVar");
         }
     }
 
+
     private FuncDecl rPredDef(String c, String m, int pc, int size) {
         try {
+            //TODO: mkBoolSort and mkBitVecSort called at each invocation of rPredDef
             BitVecSort bv64 = mContext.mkBitVecSort(bvSize);
             BoolSort bool = mContext.mkBoolSort();
 
             String funcName = "R_" + c + '_' + m + '_' + Integer.toString(pc);
-            Sort[] domains = new Sort[3 * size];
-            Arrays.fill(domains, 0, size, bv64);
-            Arrays.fill(domains, size, 3 * size, bool);
+            Sort[] domains = new Sort[4 * size + 5 * localHeapSize];
+            Arrays.fill(domains, 0, size, bv64); // argument + register + result register
+            Arrays.fill(domains, size, 4 * size, bool); // high value and local object label and global object label
+            Arrays.fill(domains, 4 * size, 4 * size + localHeapSize, bv64); // local heap entries
+            Arrays.fill(domains, 4 * size + localHeapSize, 4 * size + 5 * localHeapSize, bool); // high value and local object label and global object label and abstract filter
             FuncDecl f = mContext.mkFuncDecl(funcName, domains, mContext.mkBoolSort());
             this.declareRel(f);
-            //            Symbol[] symbols = new Symbol[]{mContext.mkSymbol("interval_relation"),
-            //                                            mContext.mkSymbol("bound_relation")};
-            //            mFixedPoint.setPredicateRepresentation(f, symbols);
             return f;
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: rPredDef");
+            throw new RuntimeException("FSEngine Failed: rPredDef");
         }
     }
 
-    @Override
-    public BoolExpr rPred(final String c, final String m, final int pc, final Map<Integer, BitVecExpr> rUp, final Map<Integer, BoolExpr> rUpL, final Map<Integer, BoolExpr> rUpB, final int numArg, final int numReg) {
+    
+    public BoolExpr rPred(final String c, final String m, final int pc, 
+            final Map<Integer, BitVecExpr> rUp, 
+            final Map<Integer, BoolExpr> rUpHigh,
+            final Map<Integer, BoolExpr> rUpLocal,
+            final Map<Integer, BoolExpr> rUpGlobal,
+            final Map<Integer, BitVecExpr> lHValues,
+            final Map<Integer, BoolExpr> lHHigh,
+            final Map<Integer, BoolExpr> lHLocal,
+            final Map<Integer, BoolExpr> lHGlobal,
+            final Map<Integer, BoolExpr> lHFilter,
+            final int numArg, final int numReg) {
         try {
             int size = numArg + numReg + 1; // include return register
             FuncDecl r = this.rPredDef(c, m, pc, size);
 
-            Expr[] e = new Expr[3 * size];
-            for(int i = 0, j = size, k = 2*size; i < size; i++, j++, k++){
-                e[i] = rUp.get(i); if (e[i] == null) e[i] = var.getV(i);
-                e[j] = rUpL.get(i); if (e[j] == null) e[j] = var.getL(i);
-                e[k] = rUpB.get(i); if (e[k] == null) e[k] = var.getB(i);
-            }
+            Expr[] e = new Expr[4 * size + 5 * this.localHeapSize];
+            for(int i = 0, j = size, k = 2*size, l = 3* size; i < size; i++, j++, k++, l++){
+                //TODO: return the corresponding variables
+                e[i] = rUp.get(i); 
+                if (e[i] == null) {e[i] = var.getV(i);}
+                e[j] = rUpHigh.get(i); 
+                if (e[j] == null) {e[j] = var.getV(i);System.out.println("FSENgine: rPred: Wrong variables : High");};
+                e[k] = rUpLocal.get(i); 
+                if (e[k] == null) {e[k] = var.getV(i);System.out.println("FSENgine: rPred: Wrong variables : Local");};
+                e[l] = rUpGlobal.get(i); 
+                if (e[l] == null) {e[l] = var.getV(i);System.out.println("FSENgine: rPred: Wrong variables : Global");};
+            };
+            for(int i = 4 * size, j = 4 * size + this.localHeapSize, k = 4*size + 2 * this.localHeapSize,
+                    l = 4* size + 3 * this.localHeapSize, n = 4* size + 4 * this.localHeapSize
+                    ; i < this.localHeapSize; i++, j++, k++, l++, n++){
+                //TODO: return the corresponding variables
+                e[i] = lHValues.get(i); 
+                if (e[i] == null) {e[i] = var.getV(i);System.out.println("FSENgine: rPred: Wrong variables : LH Value");}
+                e[j] = lHHigh.get(i);
+                if (e[j] == null) {e[j] = var.getV(i);System.out.println("FSENgine: rPred: Wrong variables : LH High");};
+                e[k] = lHLocal.get(i); 
+                if (e[k] == null) {e[k] = var.getV(i);System.out.println("FSENgine: rPred: Wrong variables : LH Local");};
+                e[l] = lHGlobal.get(i); 
+                if (e[l] == null) {e[l] = var.getV(i);System.out.println("FSENgine: rPred: Wrong variables : LH Global");};
+                e[n] = lHFilter.get(i); 
+                if (e[n] == null) {e[l] = var.getV(i);System.out.println("FSENgine: rPred: Wrong variables : LH Filter");};
+            };
 
             return (BoolExpr) r.apply(e);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: rPred");
+            throw new RuntimeException("FSEngine Failed: rPred");
         }
     }
 
 
-    @Override
-    public BoolExpr rInvokePred(final String c, final String m, final int pc, final Map<Integer, BitVecExpr> rUp, final Map<Integer, BoolExpr> rUpL, final Map<Integer, BoolExpr> rUpB, final int numArg, final int numReg, final int size) {
+    public BoolExpr rInvokPred(final String c, final String m, final int pc, 
+            final Map<Integer, BitVecExpr> rUp, 
+            final Map<Integer, BoolExpr> rUpHigh,
+            final Map<Integer, BoolExpr> rUpLocal,
+            final Map<Integer, BoolExpr> rUpGlobal,
+            final Map<Integer, BitVecExpr> lHValues,
+            final Map<Integer, BoolExpr> lHHigh,
+            final Map<Integer, BoolExpr> lHLocal,
+            final Map<Integer, BoolExpr> lHGlobal,
+            final Map<Integer, BoolExpr> lHFilter,
+            final int numArg, final int numReg) {
         try {
-            int arraySize = numArg + numReg + 1;
-            FuncDecl f = this.rPredDef(c, m, pc, arraySize);
-            //        String name = "R" + '_' + c + '_' + m + '_' + Integer.toString(pc);
+            int size = numArg + numReg + 1; // include return register
+            FuncDecl r = this.rPredDef(c, m, pc, size);
 
-            Expr[] e = new Expr[3 * arraySize];
-            for(int i = 0, j = arraySize, k = 2*arraySize; i < arraySize; i++, j++, k++){
-                e[i] = rUp.get(i); if (e[i] == null) e[i] = this.mkBitVector(0, size);
-                e[j] = rUpL.get(i); if (e[j] == null) e[j] = this.mkFalse();
-                e[k] = rUpB.get(i); if (e[k] == null) e[k] = this.mkFalse();
-            }
+            Expr[] e = new Expr[4 * size + 5 * this.localHeapSize];
+            for(int i = 0, j = size, k = 2*size, l = 3* size; i < size; i++, j++, k++, l++){
+                //TODO: return the corresponding variables
+                e[i] = rUp.get(i); 
+                if (e[i] == null) {e[i] = var.getV(i);}
+                e[j] = rUpHigh.get(i); 
+                if (e[j] == null) {e[j] = var.getV(i);System.out.println("FSENgine: rPred: Wrong variables : High");};
+                e[k] = rUpLocal.get(i); 
+                if (e[k] == null) {e[k] = var.getV(i);System.out.println("FSENgine: rPred: Wrong variables : Local");};
+                e[l] = rUpGlobal.get(i); 
+                if (e[l] == null) {e[l] = var.getV(i);System.out.println("FSENgine: rPred: Wrong variables : Global");};
+            };
+            for(int i = 4 * size, j = 4 * size + this.localHeapSize, k = 4*size + 2 * this.localHeapSize,
+                    l = 4* size + 3 * this.localHeapSize, n = 4* size + 4 * this.localHeapSize
+                    ; i < this.localHeapSize; i++, j++, k++, l++, n++){
+                //TODO: return the corresponding variables
+                e[i] = lHValues.get(i); 
+                if (e[i] == null) {e[i] = var.getV(i);System.out.println("FSENgine: rPred: Wrong variables : LH Value");}
+                e[j] = lHHigh.get(i);
+                if (e[j] == null) {e[j] = var.getV(i);System.out.println("FSENgine: rPred: Wrong variables : LH High");};
+                e[k] = lHLocal.get(i); 
+                if (e[k] == null) {e[k] = var.getV(i);System.out.println("FSENgine: rPred: Wrong variables : LH Local");};
+                e[l] = lHGlobal.get(i); 
+                if (e[l] == null) {e[l] = var.getV(i);System.out.println("FSENgine: rPred: Wrong variables : LH Global");};
+                e[n] = lHFilter.get(i); 
+                if (e[n] == null) {e[l] = var.getV(i);System.out.println("FSENgine: rPred: Wrong variables : LH Filter");};
+            };
 
-            return (BoolExpr) f.apply(e);
+            return (BoolExpr) r.apply(e);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: rInvokePred");
+            throw new RuntimeException("FSEngine Failed: rPredDef");
         }
     }
 
+    
     private FuncDecl resPredDef(String c, String m, int size) {
         try {
             BitVecSort bv64 = mContext.mkBitVecSort(bvSize);
             BoolSort bool = mContext.mkBoolSort();
 
             String funcName = "RES_" + c + '_' + m;
-            Sort[] domains = new Sort[3 * size];
-            Arrays.fill(domains, 0, size, bv64);
-            Arrays.fill(domains, size, 3 * size, bool);
+            Sort[] domains = new Sort[4 * size + 5 * localHeapSize];
+            Arrays.fill(domains, 0, size, bv64); // argument + register + result register
+            Arrays.fill(domains, size, 4 * size, bool); // high value and local object label and global object label
+            Arrays.fill(domains, 4 * size, 4 * size + localHeapSize, bv64); // local heap entries
+            Arrays.fill(domains, 4 * size + localHeapSize, 4 * size + 5 * localHeapSize, bool); // high value and local object label and global object label and abstract filter
+
             FuncDecl f = mContext.mkFuncDecl(funcName, domains, bool);
 
             this.declareRel(f);
-            //            Symbol[] symbols = new Symbol[]{mContext.mkSymbol("interval_relation"),
-            //                                            mContext.mkSymbol("bound_relation")};
-            //            mFixedPoint.setPredicateRepresentation(f, symbols);
             return f;
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: resPredDef");
+            throw new RuntimeException("FSEngine Failed: resPredDef");
         }
     }
 
-    @Override
-    public BoolExpr resPred(final String c, final String m, final Map<Integer, BitVecExpr> rUp, final Map<Integer, BoolExpr> rUpL, final Map<Integer, BoolExpr> rUpB, final int numArg) {
+    
+    public BoolExpr resPred(final String c, final String m, 
+            final Map<Integer, BitVecExpr> rUp, 
+            final Map<Integer, BoolExpr> rUpHigh,
+            final Map<Integer, BoolExpr> rUpLocal,
+            final Map<Integer, BoolExpr> rUpGlobal,
+            final Map<Integer, BitVecExpr> lHValues,
+            final Map<Integer, BoolExpr> lHHigh,
+            final Map<Integer, BoolExpr> lHLocal,
+            final Map<Integer, BoolExpr> lHGlobal,
+            final Map<Integer, BoolExpr> lHFilter,
+            final int numArg) {
         try {
             int size = numArg + 1; // include return register
             FuncDecl res = this.resPredDef(c, m, size);
 
-            Expr[] e = new Expr[3 * size];
-            for(int i = 0, j = size, k = 2*size; i < size; i++, j++, k++) {
-                e[i] = rUp.get(i);
-                if (e[i] == null) e[i] = var.getV(i);
-                e[j] = rUpL.get(i);
-                if (e[j] == null) e[j] = var.getL(i);
-                e[k] = rUpB.get(i);
-                if (e[k] == null) e[k] = var.getB(i);
-            }
+            Expr[] e = new Expr[4 * size + 5 * this.localHeapSize];
+            for(int i = 0, j = size, k = 2*size, l = 3* size; i < size; i++, j++, k++, l++){
+                //TODO: return the corresponding variables
+                e[i] = rUp.get(i); 
+                if (e[i] == null) {e[i] = var.getV(i);}
+                e[j] = rUpHigh.get(i); 
+                if (e[j] == null) {e[j] = var.getV(i);System.out.println("FSENgine: resPred: Wrong variables : High");};
+                e[k] = rUpLocal.get(i); 
+                if (e[k] == null) {e[k] = var.getV(i);System.out.println("FSENgine: resPred: Wrong variables : Local");};
+                e[l] = rUpGlobal.get(i); 
+                if (e[l] == null) {e[l] = var.getV(i);System.out.println("FSENgine: resPred: Wrong variables : Global");};
+            };
+            
+            for(int i = 4 * size, j = 4 * size + this.localHeapSize, k = 4*size + 2 * this.localHeapSize,
+                    l = 4* size + 3 * this.localHeapSize, n = 4* size + 4 * this.localHeapSize
+                    ; i < this.localHeapSize; i++, j++, k++, l++, n++){
+                //TODO: return the corresponding variables
+                e[i] = lHValues.get(i); 
+                if (e[i] == null) {e[i] = var.getV(i);System.out.println("FSENgine: resPred: Wrong variables : LH Value");}
+                e[j] = lHHigh.get(i);
+                if (e[j] == null) {e[j] = var.getV(i);System.out.println("FSENgine: resPred: Wrong variables : LH High");};
+                e[k] = lHLocal.get(i); 
+                if (e[k] == null) {e[k] = var.getV(i);System.out.println("FSENgine: resPred: Wrong variables : LH Local");};
+                e[l] = lHGlobal.get(i); 
+                if (e[l] == null) {e[l] = var.getV(i);System.out.println("FSENgine: resPred: Wrong variables : LH Global");};
+                e[n] = lHFilter.get(i); 
+                if (e[n] == null) {e[l] = var.getV(i);System.out.println("FSENgine: resPred: Wrong variables : LH Filter");};
+            };
 
             return (BoolExpr) res.apply(e);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: resPred");
+            throw new RuntimeException("FSEngine Failed: resPred");
         }
     }
 
-    @Override
+    
     public BoolExpr hPred(BitVecExpr cname, BitVecExpr inst, BitVecExpr element, BitVecExpr value, BoolExpr label, BoolExpr block) {
         try {
             return (BoolExpr) func.getH().apply(cname, inst, element, value, label, block);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: hPred");
+            throw new RuntimeException("FSEngine Failed: hPred");
         }
     }
 
-    @Override
+    
     public BoolExpr hiPred(BitVecExpr cname, BitVecExpr inst, BitVecExpr value, BoolExpr label, BoolExpr block) {
         try {
             return (BoolExpr) func.getHi().apply(cname, inst, value, label, block);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: hiPred");
+            throw new RuntimeException("FSEngine Failed: hiPred");
         }
     }
 
-    @Override
+    
     public BoolExpr iPred(BitVecExpr cname, BitVecExpr inst, BitVecExpr value, BoolExpr label, BoolExpr block) {
         try {
             return (BoolExpr) func.getI().apply(cname, inst, value, label, block);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: iPred");
+            throw new RuntimeException("FSEngine Failed: iPred");
         }
     }
 
-    @Override
+    
     public BoolExpr sPred(IntExpr v1, IntExpr v2, BitVecExpr v3, BoolExpr v4, BoolExpr v5) {
         try {
             return (BoolExpr) func.getS().apply(v1, v2, v3, v4, v5);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: sPred");
+            throw new RuntimeException("FSEngine Failed: sPred");
         }
     }
 
