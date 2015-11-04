@@ -154,13 +154,8 @@ public class Z3Variable {
     public VariableInject getInjectV(final Z3Variable var){
         return new VariableInject() {
             @Override
-            public BitVecExpr getBV(int i) {
+            public BitVecExpr get(int i) {
                 return var.getV(i);
-            }
-
-            @Override
-            public BoolExpr getB(int i) {
-                return null;
             }
         };
     }
@@ -177,12 +172,7 @@ public class Z3Variable {
     public VariableInject getInjectL(final Z3Variable var){
         return new VariableInject() {
             @Override
-            public BitVecExpr getBV(int i) {
-                return null;
-            }
-
-            @Override
-            public BoolExpr getB(int i) {
+            public BoolExpr get(int i) {
                 return var.getL(i);
             }
         };
@@ -200,12 +190,7 @@ public class Z3Variable {
     public VariableInject getInjectB(final Z3Variable var){
         return new VariableInject() {
             @Override
-            public BitVecExpr getBV(int i) {
-                return null;
-            }
-
-            @Override
-            public BoolExpr getB(int i) {
+            public BoolExpr get(int i) {
                 return var.getB(i);
             }
         };
