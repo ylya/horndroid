@@ -1300,9 +1300,9 @@ public class InstructionAnalysis {
                             
                            
 
-        					regUpdate = updateRegBitVec(numRegCall, numArgCall, var.getInjectV(var), false);
-                            regUpdateL = updateRegBool(numRegCall, numArgCall, var.getInjectL(var), false);
-                            regUpdateB = updateRegBool(numRegCall, numArgCall, var.getInjectB(var), false);
+        					regUpdate = updateRegister(numRegCall, numArgCall, BitVecExpr.class, var.getInjectV(var), false);
+                            regUpdateL = updateRegister(numRegCall, numArgCall, BoolExpr.class, var.getInjectL(var), false);
+                            regUpdateB = updateRegister(numRegCall, numArgCall, BoolExpr.class, var.getInjectB(var), false);
 
                             b = z3engine.rInvokePred(Integer.toString(di.getDalvikClass().getType().hashCode()), Integer.toString(di.getMethod().getName().hashCode()), 0,
                                     regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, size);
@@ -1316,9 +1316,9 @@ public class InstructionAnalysis {
         				if (callReturns){
         					for (final DalvikInstance instance: di.getInstances()){
                                 BoolExpr subh = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                                regUpdate = updateResBitVec(numRegCall, numArgCall, var.getInjectV(var), false);
-                                regUpdateL = updateResBool(numRegCall, numArgCall, var.getInjectL(var), false);
-                                regUpdateB = updateResBool(numRegCall, numArgCall, var.getInjectB(var), false);                              
+                                regUpdate = updateResult(numRegCall, numArgCall, BitVecExpr.class, var.getInjectV(var), false);
+                                regUpdateL = updateResult(numRegCall, numArgCall, BoolExpr.class, var.getInjectL(var), false);
+                                regUpdateB = updateResult(numRegCall, numArgCall, BoolExpr.class, var.getInjectB(var), false);
                                 regUpdate.put(numArgCall, var.getRez());
                                 regUpdateL.put(numArgCall, var.getLrez());
                                 regUpdateB.put(numArgCall, var.getBrez());
@@ -1499,9 +1499,9 @@ public class InstructionAnalysis {
                 		regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
 
                 		h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                        regUpdate = updateRegBitVec(numRegCall, numArgCall, var.getInjectV(var), false);
-                        regUpdateL = updateRegBool(numRegCall, numArgCall, var.getInjectL(var), false);
-                        regUpdateB = updateRegBool(numRegCall, numArgCall, var.getInjectB(var), false);
+                        regUpdate = updateRegister(numRegCall, numArgCall, BitVecExpr.class, var.getInjectV(var), false);
+                        regUpdateL = updateRegister(numRegCall, numArgCall, BoolExpr.class, var.getInjectL(var), false);
+                        regUpdateB = updateRegister(numRegCall, numArgCall, BoolExpr.class, var.getInjectB(var), false);
                         b = z3engine.rInvokePred(referenceStringClassIndex, referenceIndex, 0, regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, size);
                         z3engine.addRule(z3engine.implies(h, b), null);
 
@@ -1510,9 +1510,9 @@ public class InstructionAnalysis {
                 		if (callReturns){
                             BoolExpr subh = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
 //                			head = "(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen);
-                            regUpdate = updateResBitVec(numRegCall, numArgCall, var.getInjectV(var), false);
-                            regUpdateL = updateResBool(numRegCall, numArgCall, var.getInjectL(var), false);
-                            regUpdateB = updateResBool(numRegCall, numArgCall, var.getInjectB(var), false);
+                            regUpdate = updateResult(numRegCall, numArgCall, BitVecExpr.class, var.getInjectV(var), false);
+                            regUpdateL = updateResult(numRegCall, numArgCall, BoolExpr.class, var.getInjectL(var), false);
+                            regUpdateB = updateResult(numRegCall, numArgCall, BoolExpr.class, var.getInjectB(var), false);
                             regUpdate.put(numArgCall, var.getRez());
                 			regUpdateL.put(numArgCall, var.getLrez());
                 			regUpdateB.put(numArgCall, var.getBrez());
@@ -1678,9 +1678,9 @@ public class InstructionAnalysis {
                                     )
                             );
 
-                            regUpdate = updateRegBitVec(numRegCall, numArgCall, var.getInjectV(var), true);
-                            regUpdateL = updateRegBool(numRegCall, numArgCall, var.getInjectL(var), true);
-                            regUpdateB = updateRegBool(numRegCall, numArgCall, var.getInjectB(var), true);
+                            regUpdate = updateRegister(numRegCall, numArgCall, BitVecExpr.class, var.getInjectV(var), true);
+                            regUpdateL = updateRegister(numRegCall, numArgCall, BoolExpr.class, var.getInjectL(var), true);
+                            regUpdateB = updateRegister(numRegCall, numArgCall, BoolExpr.class, var.getInjectB(var), true);
 
                             b = z3engine.rInvokePred(Integer.toString(di.getDalvikClass().getType().hashCode()), Integer.toString(di.getMethod().getName().hashCode()), 0,
                                     regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, size);
@@ -1693,9 +1693,9 @@ public class InstructionAnalysis {
         				if (callReturns){
         					for (final DalvikInstance instance: di.getInstances()){
                                 BoolExpr temph = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                                regUpdate = updateResBitVec(numRegCall, numArgCall, var.getInjectV(var), true);
-                                regUpdateL = updateResBool(numRegCall, numArgCall, var.getInjectL(var), true);
-                                regUpdateB = updateResBool(numRegCall, numArgCall, var.getInjectB(var), true);
+                                regUpdate = updateResult(numRegCall, numArgCall, BitVecExpr.class, var.getInjectV(var), true);
+                                regUpdateL = updateResult(numRegCall, numArgCall, BoolExpr.class,var.getInjectL(var), true);
+                                regUpdateB = updateResult(numRegCall, numArgCall, BoolExpr.class, var.getInjectB(var), true);
                                 regUpdate.put(numArgCall, var.getRez());
                                 regUpdateL.put(numArgCall, var.getLrez());
                                 regUpdateB.put(numArgCall, var.getBrez());
@@ -1835,9 +1835,13 @@ public class InstructionAnalysis {
 
                 		h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
 
-                        regUpdate = updateRegBitVec(numRegCall, numArgCall, var.getInjectV(var), true);
-                        regUpdateL = updateRegBool(numRegCall, numArgCall, var.getInjectL(var), true);
-                        regUpdateB = updateRegBool(numRegCall, numArgCall, var.getInjectB(var), true);
+//                        regUpdate = updateRegBitVec(numRegCall, numArgCall, var.getInjectV(var), true);
+//                        regUpdateL = updateRegBool(numRegCall, numArgCall, var.getInjectL(var), true);
+//                        regUpdateB = updateRegBool(numRegCall, numArgCall, var.getInjectB(var), true);
+
+                        regUpdate = updateRegister(numRegCall, numArgCall, BitVecExpr.class, var.getInjectV(var), true);
+                        regUpdateL = updateRegister(numRegCall, numArgCall, BoolExpr.class, var.getInjectL(var), true);
+                        regUpdateB = updateRegister(numRegCall, numArgCall, BoolExpr.class, var.getInjectB(var), true);
 
                         b = z3engine.rInvokePred(referenceStringClassIndex, referenceIndex, 0, regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, size);
 
@@ -1850,9 +1854,9 @@ public class InstructionAnalysis {
                         if (callReturns){
 //                			head = "(and " + Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen);
                             subh = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                            regUpdate = updateResBitVec(numRegCall, numArgCall, var.getInjectV(var), true);
-                            regUpdateL = updateResBool(numRegCall, numArgCall, var.getInjectL(var), true);
-                            regUpdateB = updateResBool(numRegCall, numArgCall, var.getInjectB(var), true);
+                            regUpdate = updateResult(numRegCall, numArgCall, BitVecExpr.class, var.getInjectV(var), true);
+                            regUpdateL = updateResult(numRegCall, numArgCall, BoolExpr.class, var.getInjectL(var), true);
+                            regUpdateB = updateResult(numRegCall, numArgCall, BoolExpr.class, var.getInjectB(var), true);
                             regUpdate.put(numArgCall, var.getRez());
                 			regUpdateL.put(numArgCall, var.getLrez());
                 			regUpdateB.put(numArgCall, var.getBrez());
@@ -3248,111 +3252,50 @@ public class InstructionAnalysis {
     	return regUpdate;
     }
 
-    private Map<Integer, BitVecExpr> updateRegBitVec(final int numReg, final int numArg, final VariableInject var, final boolean range){
-    	Map<Integer, BitVecExpr> regUpdate = new HashMap<>();
-    	if (! range){
-        	FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
-    			switch (numArg) {
-                case 1:
-                	regUpdate.put(numReg - numArg + 0, var.getBV(instruction.getRegisterC()));
-                	regUpdate.put(numReg + 1 + 0, var.getBV(instruction.getRegisterC()));
-                	break;
-                case 2:
-                	regUpdate.put(numReg - numArg + 0, var.getBV(instruction.getRegisterC()));
-                	regUpdate.put(numReg - numArg + 1, var.getBV(instruction.getRegisterD()));
-                	regUpdate.put(numReg + 1 + 0, var.getBV(instruction.getRegisterC()));
-                	regUpdate.put(numReg + 1 + 1, var.getBV(instruction.getRegisterD()));
-                	break;
-                case 3:
-                	regUpdate.put(numReg - numArg + 0, var.getBV(instruction.getRegisterC()));
-                	regUpdate.put(numReg - numArg + 1, var.getBV(instruction.getRegisterD()));
-                	regUpdate.put(numReg - numArg + 2, var.getBV(instruction.getRegisterE()));
-                	regUpdate.put(numReg + 1 + 0, var.getBV(instruction.getRegisterC()));
-                	regUpdate.put(numReg + 1 + 1, var.getBV(instruction.getRegisterD()));
-                	regUpdate.put(numReg + 1 + 2, var.getBV(instruction.getRegisterE()));
-                	break;
-                case 4:
-                	regUpdate.put(numReg - numArg + 0, var.getBV(instruction.getRegisterC()));
-                	regUpdate.put(numReg - numArg + 1, var.getBV(instruction.getRegisterD()));
-                	regUpdate.put(numReg - numArg + 2, var.getBV(instruction.getRegisterE()));
-                	regUpdate.put(numReg - numArg + 3, var.getBV(instruction.getRegisterF()));
-                	regUpdate.put(numReg + 1 + 0, var.getBV(instruction.getRegisterC()));
-                	regUpdate.put(numReg + 1 + 1, var.getBV(instruction.getRegisterD()));
-                	regUpdate.put(numReg + 1 + 2, var.getBV(instruction.getRegisterE()));
-                	regUpdate.put(numReg + 1 + 3, var.getBV(instruction.getRegisterF()));
-                	break;
-                case 5:
-                	regUpdate.put(numReg - numArg + 0, var.getBV(instruction.getRegisterC()));
-                	regUpdate.put(numReg - numArg + 1, var.getBV(instruction.getRegisterD()));
-                	regUpdate.put(numReg - numArg + 2, var.getBV(instruction.getRegisterE()));
-                	regUpdate.put(numReg - numArg + 3, var.getBV(instruction.getRegisterF()));
-                	regUpdate.put(numReg - numArg + 4, var.getBV(instruction.getRegisterG()));
-                	regUpdate.put(numReg + 1 +  0, var.getBV(instruction.getRegisterC()));
-                	regUpdate.put(numReg + 1 +  1, var.getBV(instruction.getRegisterD()));
-                	regUpdate.put(numReg + 1 +  2, var.getBV(instruction.getRegisterE()));
-                	regUpdate.put(numReg + 1 +  3, var.getBV(instruction.getRegisterF()));
-                	regUpdate.put(numReg + 1 +  4, var.getBV(instruction.getRegisterG()));
-                	break;
-    			}
-    		} else {
-    	        RegisterRangeInstruction instruction = (RegisterRangeInstruction)this.instruction;
-    			int startRegister = instruction.getStartRegister();
-            	int endRegister   =   startRegister+numReg-1;
-            	int count = 0;
-                for (int reg = startRegister; reg <= endRegister; reg++ ) {
-                	regUpdate.put(reg, var.getBV(count));
-                	regUpdate.put(numReg + 1 + count, var.getBV(count));
-                    count ++;
-                }
-    		}
-
-    	return regUpdate;
-    }
-    //TODO: do better than copy
-    private Map<Integer, BoolExpr> updateRegBool(final int numReg, final int numArg, final VariableInject var, final boolean range){
-        Map<Integer, BoolExpr> regUpdate = new HashMap<>();
+    private <T extends Expr> Map<Integer, T> updateRegister(final int numReg, final int numArg, final Class<T> type, final VariableInject var, final boolean range){
+        Map<Integer, T> regUpdate = new HashMap<>();
         if (! range){
             FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
             switch (numArg) {
                 case 1:
-                    regUpdate.put(numReg - numArg + 0, var.getB(instruction.getRegisterC()));
-                    regUpdate.put(numReg + 1 + 0, var.getB(instruction.getRegisterC()));
+                    regUpdate.put(numReg - numArg + 0, type.cast(var.get(instruction.getRegisterC())));
+                    regUpdate.put(numReg + 1 + 0, type.cast(var.get(instruction.getRegisterC())));
                     break;
                 case 2:
-                    regUpdate.put(numReg - numArg + 0, var.getB(instruction.getRegisterC()));
-                    regUpdate.put(numReg - numArg + 1, var.getB(instruction.getRegisterD()));
-                    regUpdate.put(numReg + 1 + 0, var.getB(instruction.getRegisterC()));
-                    regUpdate.put(numReg + 1 + 1, var.getB(instruction.getRegisterD()));
+                    regUpdate.put(numReg - numArg + 0, type.cast(var.get(instruction.getRegisterC())));
+                    regUpdate.put(numReg - numArg + 1, type.cast(var.get(instruction.getRegisterD())));
+                    regUpdate.put(numReg + 1 + 0, type.cast(var.get(instruction.getRegisterC())));
+                    regUpdate.put(numReg + 1 + 1, type.cast(var.get(instruction.getRegisterD())));
                     break;
                 case 3:
-                    regUpdate.put(numReg - numArg + 0, var.getB(instruction.getRegisterC()));
-                    regUpdate.put(numReg - numArg + 1, var.getB(instruction.getRegisterD()));
-                    regUpdate.put(numReg - numArg + 2, var.getB(instruction.getRegisterE()));
-                    regUpdate.put(numReg + 1 + 0, var.getB(instruction.getRegisterC()));
-                    regUpdate.put(numReg + 1 + 1, var.getB(instruction.getRegisterD()));
-                    regUpdate.put(numReg + 1 + 2, var.getB(instruction.getRegisterE()));
+                    regUpdate.put(numReg - numArg + 0, type.cast(var.get(instruction.getRegisterC())));
+                    regUpdate.put(numReg - numArg + 1, type.cast(var.get(instruction.getRegisterD())));
+                    regUpdate.put(numReg - numArg + 2, type.cast(var.get(instruction.getRegisterE())));
+                    regUpdate.put(numReg + 1 + 0, type.cast(var.get(instruction.getRegisterC())));
+                    regUpdate.put(numReg + 1 + 1, type.cast(var.get(instruction.getRegisterD())));
+                    regUpdate.put(numReg + 1 + 2, type.cast(var.get(instruction.getRegisterE())));
                     break;
                 case 4:
-                    regUpdate.put(numReg - numArg + 0, var.getB(instruction.getRegisterC()));
-                    regUpdate.put(numReg - numArg + 1, var.getB(instruction.getRegisterD()));
-                    regUpdate.put(numReg - numArg + 2, var.getB(instruction.getRegisterE()));
-                    regUpdate.put(numReg - numArg + 3, var.getB(instruction.getRegisterF()));
-                    regUpdate.put(numReg + 1 + 0, var.getB(instruction.getRegisterC()));
-                    regUpdate.put(numReg + 1 + 1, var.getB(instruction.getRegisterD()));
-                    regUpdate.put(numReg + 1 + 2, var.getB(instruction.getRegisterE()));
-                    regUpdate.put(numReg + 1 + 3, var.getB(instruction.getRegisterF()));
+                    regUpdate.put(numReg - numArg + 0, type.cast(var.get(instruction.getRegisterC())));
+                    regUpdate.put(numReg - numArg + 1, type.cast(var.get(instruction.getRegisterD())));
+                    regUpdate.put(numReg - numArg + 2, type.cast(var.get(instruction.getRegisterE())));
+                    regUpdate.put(numReg - numArg + 3, type.cast(var.get(instruction.getRegisterF())));
+                    regUpdate.put(numReg + 1 + 0, type.cast(var.get(instruction.getRegisterC())));
+                    regUpdate.put(numReg + 1 + 1, type.cast(var.get(instruction.getRegisterD())));
+                    regUpdate.put(numReg + 1 + 2, type.cast(var.get(instruction.getRegisterE())));
+                    regUpdate.put(numReg + 1 + 3, type.cast(var.get(instruction.getRegisterF())));
                     break;
                 case 5:
-                    regUpdate.put(numReg - numArg + 0, var.getB(instruction.getRegisterC()));
-                    regUpdate.put(numReg - numArg + 1, var.getB(instruction.getRegisterD()));
-                    regUpdate.put(numReg - numArg + 2, var.getB(instruction.getRegisterE()));
-                    regUpdate.put(numReg - numArg + 3, var.getB(instruction.getRegisterF()));
-                    regUpdate.put(numReg - numArg + 4, var.getB(instruction.getRegisterG()));
-                    regUpdate.put(numReg + 1 +  0, var.getB(instruction.getRegisterC()));
-                    regUpdate.put(numReg + 1 +  1, var.getB(instruction.getRegisterD()));
-                    regUpdate.put(numReg + 1 +  2, var.getB(instruction.getRegisterE()));
-                    regUpdate.put(numReg + 1 +  3, var.getB(instruction.getRegisterF()));
-                    regUpdate.put(numReg + 1 +  4, var.getB(instruction.getRegisterG()));
+                    regUpdate.put(numReg - numArg + 0, type.cast(var.get(instruction.getRegisterC())));
+                    regUpdate.put(numReg - numArg + 1, type.cast(var.get(instruction.getRegisterD())));
+                    regUpdate.put(numReg - numArg + 2, type.cast(var.get(instruction.getRegisterE())));
+                    regUpdate.put(numReg - numArg + 3, type.cast(var.get(instruction.getRegisterF())));
+                    regUpdate.put(numReg - numArg + 4, type.cast(var.get(instruction.getRegisterG())));
+                    regUpdate.put(numReg + 1 +  0, type.cast(var.get(instruction.getRegisterC())));
+                    regUpdate.put(numReg + 1 +  1, type.cast(var.get(instruction.getRegisterD())));
+                    regUpdate.put(numReg + 1 +  2, type.cast(var.get(instruction.getRegisterE())));
+                    regUpdate.put(numReg + 1 +  3, type.cast(var.get(instruction.getRegisterF())));
+                    regUpdate.put(numReg + 1 +  4, type.cast(var.get(instruction.getRegisterG())));
                     break;
             }
         } else {
@@ -3361,8 +3304,8 @@ public class InstructionAnalysis {
             int endRegister   =   startRegister+numReg-1;
             int count = 0;
             for (int reg = startRegister; reg <= endRegister; reg++ ) {
-                regUpdate.put(reg, var.getB(count));
-                regUpdate.put(numReg + 1 + count, var.getB(count));
+                regUpdate.put(reg, type.cast(var.get(count)));
+                regUpdate.put(numReg + 1 + count, type.cast(var.get(count)));
                 count ++;
             }
         }
@@ -3370,83 +3313,35 @@ public class InstructionAnalysis {
         return regUpdate;
     }
 
-    private Map<Integer, BitVecExpr> updateResBitVec(final int numReg, final int numArg, final VariableInject var, final boolean range){
-    	Map<Integer, BitVecExpr> regUpdate = new HashMap<>();
-    	if (! range){
-        	FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
-    			switch (numArg) {
-                case 1:
-                	regUpdate.put(0, var.getBV(instruction.getRegisterC()));
-                	break;
-                case 2:
-                	regUpdate.put(0, var.getBV(instruction.getRegisterC()));
-                	regUpdate.put(1, var.getBV(instruction.getRegisterD()));
-                	break;
-                case 3:
-                	regUpdate.put(0, var.getBV(instruction.getRegisterC()));
-                	regUpdate.put(1, var.getBV(instruction.getRegisterD()));
-                	regUpdate.put(2, var.getBV(instruction.getRegisterE()));
-                	break;
-                case 4:
-                	regUpdate.put(0, var.getBV(instruction.getRegisterC()));
-                	regUpdate.put(1, var.getBV(instruction.getRegisterD()));
-                	regUpdate.put(2, var.getBV(instruction.getRegisterE()));
-                	regUpdate.put(3, var.getBV(instruction.getRegisterF()));
-                	break;
-                case 5:
-                	regUpdate.put(0, var.getBV(instruction.getRegisterC()));
-                	regUpdate.put(1, var.getBV(instruction.getRegisterD()));
-                	regUpdate.put(2, var.getBV(instruction.getRegisterE()));
-                	regUpdate.put(3, var.getBV(instruction.getRegisterF()));
-                	regUpdate.put(4, var.getBV(instruction.getRegisterG()));
-                	break;
-    			}
-    		}
-    		else{
-    	        RegisterRangeInstruction instruction = (RegisterRangeInstruction)this.instruction;
-    			int startRegister = instruction.getStartRegister();
-            	int endRegister   =   startRegister+numReg-1;
-            	int count = 0;
-                for (int reg = startRegister; reg <= endRegister; reg++ )
-                {
-                	regUpdate.put(count, var.getBV(count));
-                    count ++;
-                }
-    		}
-
-    	return regUpdate;
-    }
-
-    //TODO: do better than copy
-    private Map<Integer, BoolExpr> updateResBool(final int numReg, final int numArg, final VariableInject var, final boolean range){
-        Map<Integer, BoolExpr> regUpdate = new HashMap<>();
+    private <T extends Expr> Map<Integer, T> updateResult(final int numReg, final int numArg, final Class<T> type, final VariableInject var, final boolean range){
+        Map<Integer, T> regUpdate = new HashMap<>();
         if (! range){
             FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
             switch (numArg) {
                 case 1:
-                    regUpdate.put(0, var.getB(instruction.getRegisterC()));
+                    regUpdate.put(0, type.cast(var.get(instruction.getRegisterC())));
                     break;
                 case 2:
-                    regUpdate.put(0, var.getB(instruction.getRegisterC()));
-                    regUpdate.put(1, var.getB(instruction.getRegisterD()));
+                    regUpdate.put(0, type.cast(var.get(instruction.getRegisterC())));
+                    regUpdate.put(1, type.cast(var.get(instruction.getRegisterD())));
                     break;
                 case 3:
-                    regUpdate.put(0, var.getB(instruction.getRegisterC()));
-                    regUpdate.put(1, var.getB(instruction.getRegisterD()));
-                    regUpdate.put(2, var.getB(instruction.getRegisterE()));
+                    regUpdate.put(0, type.cast(var.get(instruction.getRegisterC())));
+                    regUpdate.put(1, type.cast(var.get(instruction.getRegisterD())));
+                    regUpdate.put(2, type.cast(var.get(instruction.getRegisterE())));
                     break;
                 case 4:
-                    regUpdate.put(0, var.getB(instruction.getRegisterC()));
-                    regUpdate.put(1, var.getB(instruction.getRegisterD()));
-                    regUpdate.put(2, var.getB(instruction.getRegisterE()));
-                    regUpdate.put(3, var.getB(instruction.getRegisterF()));
+                    regUpdate.put(0, type.cast(var.get(instruction.getRegisterC())));
+                    regUpdate.put(1, type.cast(var.get(instruction.getRegisterD())));
+                    regUpdate.put(2, type.cast(var.get(instruction.getRegisterE())));
+                    regUpdate.put(3, type.cast(var.get(instruction.getRegisterF())));
                     break;
                 case 5:
-                    regUpdate.put(0, var.getB(instruction.getRegisterC()));
-                    regUpdate.put(1, var.getB(instruction.getRegisterD()));
-                    regUpdate.put(2, var.getB(instruction.getRegisterE()));
-                    regUpdate.put(3, var.getB(instruction.getRegisterF()));
-                    regUpdate.put(4, var.getB(instruction.getRegisterG()));
+                    regUpdate.put(0, type.cast(var.get(instruction.getRegisterC())));
+                    regUpdate.put(1, type.cast(var.get(instruction.getRegisterD())));
+                    regUpdate.put(2, type.cast(var.get(instruction.getRegisterE())));
+                    regUpdate.put(3, type.cast(var.get(instruction.getRegisterF())));
+                    regUpdate.put(4, type.cast(var.get(instruction.getRegisterG())));
                     break;
             }
         }
@@ -3457,13 +3352,14 @@ public class InstructionAnalysis {
             int count = 0;
             for (int reg = startRegister; reg <= endRegister; reg++ )
             {
-                regUpdate.put(count, var.getB(count));
+                regUpdate.put(count, type.cast(var.get(count)));
                 count ++;
             }
         }
 
         return regUpdate;
     }
+
 
     private boolean processIntent(final Z3Engine z3engine, final int ci, final int mi, final int numParLoc, final int numRegLoc, final int nextCode, final int c, final int m, final String shortMethodName,
    		 final int size){

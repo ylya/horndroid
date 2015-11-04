@@ -16,6 +16,8 @@ import java.util.concurrent.*;
 
 public class Z3Engine implements Z3Clauses {
 
+    final private boolean QUERY_IS_COMPACT = false;
+
     private Context mContext;
 //    private Fixedpoint mFixedPoint;
     private ArrayList<BoolExpr> mRules;
@@ -446,15 +448,15 @@ public class Z3Engine implements Z3Clauses {
     }
 
     public void addQuery(Z3Query query){
-        boolean askCompactQuery = true;
+
 
         boolean sameAsCurrentQuery =
-                askCompactQuery
-                        && mCurrentQuery != null
-                        && mCurrentQuery.getClassName().equals(query.getClassName())
-                        && mCurrentQuery.getMethodName().equals(query.getMethodName())
-                        && mCurrentQuery.getPc().equals(query.getPc())
-                        && mCurrentQuery.getSinkName().equals(query.getSinkName());
+                QUERY_IS_COMPACT
+                && mCurrentQuery != null
+                && mCurrentQuery.getClassName().equals(query.getClassName())
+                && mCurrentQuery.getMethodName().equals(query.getMethodName())
+                && mCurrentQuery.getPc().equals(query.getPc())
+                && mCurrentQuery.getSinkName().equals(query.getSinkName());
 
         if( sameAsCurrentQuery ){
             // merge by or-ing queries
