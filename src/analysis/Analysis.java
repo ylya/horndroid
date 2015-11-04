@@ -202,6 +202,12 @@ public class Analysis {
     public Set<SparseSwitch> getSparseSwitch(){
         return sparseSwitchPayload;
     }
+    public FSEngine getFSEngine(){
+        if (!fsengine.isInitialized()) throw new RuntimeException("Analysis.getFSEngine:FSEngine not initialized");
+        return fsengine;
+    }
+    
+    
     public Integer staticFieldsLookup(final GeneralClass ci, final int fi, final Set<Integer> visited){
         if (!visited.isEmpty())
         {

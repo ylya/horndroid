@@ -40,7 +40,9 @@ import z3.*;
 
 public class FSInstructionAnalysis{
     final private Analysis analysis;
+    //TODO: remove the z3engine
     final private Z3Engine z3engine;
+    final private FSEngine fsengine;
     final private Instruction instruction;
     final private DalvikClass dc;
     final private DalvikMethod dm;
@@ -51,6 +53,7 @@ public class FSInstructionAnalysis{
     public FSInstructionAnalysis(final Analysis analysis, final Instruction instruction, final DalvikClass dc, final DalvikMethod dm, final int codeAddress){
         this.analysis = analysis;
         this.z3engine = analysis.getZ3Engine();
+        this.fsengine = analysis.getFSEngine();
         this.instruction = instruction;
         this.dc = dc;
         this.c = dc.getType().hashCode();
@@ -69,6 +72,7 @@ public class FSInstructionAnalysis{
         //        final Gen gen = analysis.getGen();
 
         // Adrien: this seems useless, the engine is already in the InstructionAnalysis private fields
+        // and it seems to be stateless to me
         //final Z3Engine z3engine = analysis.getZ3Engine();
 
         final Z3Variable var = z3engine.getVars();
