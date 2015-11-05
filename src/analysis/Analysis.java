@@ -91,6 +91,7 @@ public class Analysis {
     private Map<Integer, Integer> allocationPointNumbers = Collections.synchronizedMap(new HashMap <Integer, Integer>());
     private Map<Integer, Integer> allocationPointSize = Collections.synchronizedMap(new HashMap <Integer, Integer>());
     private Map<Integer, Integer> allocationPointOffset = Collections.synchronizedMap(new HashMap <Integer, Integer>());
+    private Map<Integer, String> allocationPointClass = Collections.synchronizedMap(new HashMap <Integer, String>());
     private Integer localHeapNumberEntries;
     private Integer localHeapSize;
 
@@ -207,6 +208,10 @@ public class Analysis {
         return fsengine;
     }
     
+    public Set<Integer> getAllocationPoints(){
+        return allocationPointOffset.keySet();
+    }
+    
     
     public Integer staticFieldsLookup(final GeneralClass ci, final int fi, final Set<Integer> visited){
         if (!visited.isEmpty())
@@ -292,6 +297,7 @@ public class Analysis {
             }
             Set<Integer> fields = this.getClassFields(referenceString, instanceNum).keySet();
                         
+            allocationPointClass.put(instanceNum,referenceString);
             allocationPointNumbers.put(instanceNum, itNumber);
             allocationPointSize.put(instanceNum, fields.size());
             allocationPointOffset.put(instanceNum, offset);
@@ -300,6 +306,10 @@ public class Analysis {
         }
         localHeapSize = offset;
         localHeapNumberEntries = itNumber;
+    }
+    
+    public String getAllocationPointClass(int instanceNum){
+        return new String(allocationPointClass.get(instanceNum));
     }
     
     public Map<Integer, Boolean> getClassFields(final String className, final int instanceNum){
@@ -436,7 +446,7 @@ public class Analysis {
 
             int codeAddress = 0;
             for (final Instruction instruction: m.getInstructions()){
-                SimpleInstructionAnalysis ia = new SimpleInstructionAnalysis(this, instruction, dc, m, codeAddress);
+                InstructionAnalysis ia = new InstructionAnalysis(this, instruction, dc, m, codeAddress);
                 ia.CreateHornClauses();
                 codeAddress += instruction.getCodeUnits();
             }
@@ -564,7 +574,7 @@ public class Analysis {
         // Initialize allocationPointOffset,allocationPointNumbers and allocationPointSize
         initializeAllocationMapping();
         // Correctly set the corresponding fields in the FSEngine
-        fsengine.initialize(localHeapNumberEntries, localHeapSize);
+        fsengine.initialize(localHeapNumberEntries, localHeapSize, allocationPointOffset, allocationPointSize);
         
         for (final GeneralClass c: classes){
             if ((c instanceof DalvikClass) && (!c.getType().contains("Landroid"))){
@@ -676,6 +686,10 @@ public class Analysis {
         }
     }
 
+    public int getLocalHeapSize(){
+        return localHeapSize;
+    }
+    
     public Set<DalvikImplementation> getImplementations(final int ci, final int mi){
         if (!isNotImpl.isEmpty()){
             if (isNotImpl.contains(new CMPair(ci, mi)))

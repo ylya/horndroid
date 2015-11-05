@@ -9,6 +9,9 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public class FSEngine {
+
+    final private boolean QUERY_IS_COMPACT = false;
+
     private Context mContext;
     private Boolean initialized = false;
     // private Fixedpoint mFixedPoint;
@@ -24,11 +27,15 @@ public class FSEngine {
 
     private Integer localHeapNumberEntries;
     private Integer localHeapSize;
+
+    private Map<Integer, Integer> allocationPointOffset;
     // legacy
     // private int biggestRegisterNumber;
     // public void updateBiggestRegister(final int i){
     // if (i > this.biggestRegisterNumber) biggestRegisterNumber = i;
     // }
+
+    private Map<Integer, Integer> allocationPointSize;
 
     public FSEngine(options options) {
         try {
@@ -74,11 +81,13 @@ public class FSEngine {
         }
     }
 
-    public void initialize(Integer localHeapNumberEntries, Integer localHeapSize) {
+    public void initialize(Integer localHeapNumberEntries, Integer localHeapSize, Map<Integer,Integer> allocationPointOffset, Map<Integer,Integer> allocationPointSize) {
         if (this.initialized)
             throw new RuntimeException("FSEngine Failed: initialized twice");
         this.localHeapNumberEntries = localHeapNumberEntries;
         this.localHeapSize = localHeapSize;
+        this.allocationPointOffset = allocationPointOffset;
+        this.allocationPointSize = allocationPointSize;
         // this.var.initialize(localHeapNumberEntries,localHeapSize);
         this.initialized = true;
     }
@@ -87,6 +96,12 @@ public class FSEngine {
         return initialized;
     }
 
+    public Integer getOffset(int instanceNumber){
+        return allocationPointOffset.get(instanceNumber);
+    }
+    public Integer getSize(int instanceNumber){
+        return allocationPointSize.get(instanceNumber);
+    }
     public Context getContext() {
         return mContext;
     }
@@ -227,6 +242,15 @@ public class FSEngine {
         }
     }
 
+    public BoolExpr neq(BitVecExpr bv1, BitVecExpr bv2) {
+        try {
+            return mContext.mkNot(mContext.mkEq(bv1, bv2));
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: eq");
+        }
+    }
+    
     public Expr ite(BoolExpr b, Expr e1, Expr e2) {
         try {
             return mContext.mkITE(b, e1, e2);
@@ -399,9 +423,7 @@ public class FSEngine {
     }
 
     public void addQuery(Z3Query query) {
-        boolean askCompactQuery = true;
-
-        boolean sameAsCurrentQuery = askCompactQuery && mCurrentQuery != null
+        boolean sameAsCurrentQuery = QUERY_IS_COMPACT && mCurrentQuery != null
                 && mCurrentQuery.getClassName().equals(query.getClassName())
                 && mCurrentQuery.getMethodName().equals(query.getMethodName())
                 && mCurrentQuery.getPc().equals(query.getPc())
@@ -511,27 +533,14 @@ public class FSEngine {
 
             String funcName = "R_" + c + '_' + m + '_' + Integer.toString(pc);
             Sort[] domains = new Sort[4 * size + 5 * localHeapSize];
-            Arrays.fill(domains, 0, size, bv64); // argument + register + result
-                                                 // register
-            Arrays.fill(domains, size, 4 * size, bool); // high value and local
-                                                        // object label and
-                                                        // global object label
-            Arrays.fill(domains, 4 * size, 4 * size + localHeapSize, bv64); // local
-                                                                            // heap
-                                                                            // entries
-            Arrays.fill(domains, 4 * size + localHeapSize, 4 * size + 5 * localHeapSize, bool); // high
-                                                                                                // value
-                                                                                                // and
-                                                                                                // local
-                                                                                                // object
-                                                                                                // label
-                                                                                                // and
-                                                                                                // global
-                                                                                                // object
-                                                                                                // label
-                                                                                                // and
-                                                                                                // abstract
-                                                                                                // filter
+            // argument + register + result register
+            Arrays.fill(domains, 0, size, bv64); 
+            // high value and local object label and global object label
+            Arrays.fill(domains, size, 4 * size, bool);             
+            // local heap entries
+            Arrays.fill(domains, 4 * size, 4 * size + localHeapSize, bv64); 
+            // high value and local object label and global object label and abstract filter
+            Arrays.fill(domains, 4 * size + localHeapSize, 4 * size + 5 * localHeapSize, bool); 
             FuncDecl f = mContext.mkFuncDecl(funcName, domains, mContext.mkBoolSort());
             this.declareRel(f);
             return f;
@@ -694,27 +703,12 @@ public class FSEngine {
 
             String funcName = "RES_" + c + '_' + m;
             Sort[] domains = new Sort[4 * size + 5 * localHeapSize];
-            Arrays.fill(domains, 0, size, bv64); // argument + register + result
-                                                 // register
-            Arrays.fill(domains, size, 4 * size, bool); // high value and local
-                                                        // object label and
-                                                        // global object label
-            Arrays.fill(domains, 4 * size, 4 * size + localHeapSize, bv64); // local
-                                                                            // heap
-                                                                            // entries
-            Arrays.fill(domains, 4 * size + localHeapSize, 4 * size + 5 * localHeapSize, bool); // high
-                                                                                                // value
-                                                                                                // and
-                                                                                                // local
-                                                                                                // object
-                                                                                                // label
-                                                                                                // and
-                                                                                                // global
-                                                                                                // object
-                                                                                                // label
-                                                                                                // and
-                                                                                                // abstract
-                                                                                                // filter
+            Arrays.fill(domains, 0, size, bv64); // argument + register + result register
+            Arrays.fill(domains, size, 4 * size, bool); // high value + local object label + global object label
+            Arrays.fill(domains, 4 * size, 4 * size + localHeapSize, bv64);
+            // local + heap + entries
+            Arrays.fill(domains, 4 * size + localHeapSize, 4 * size + 5 * localHeapSize, bool);
+            // high value and local object label and global object label and abstract filter
 
             FuncDecl f = mContext.mkFuncDecl(funcName, domains, bool);
 
@@ -737,7 +731,6 @@ public class FSEngine {
 
             Expr[] e = new Expr[4 * size + 5 * this.localHeapSize];
             for (int i = 0, j = size, k = 2 * size, l = 3 * size; i < size; i++, j++, k++, l++) {
-                // TODO: return the corresponding variables
                 e[i] = rUp.get(i);
                 if (e[i] == null) {
                     e[i] = var.getV(i);
@@ -745,50 +738,41 @@ public class FSEngine {
                 e[j] = rUpHigh.get(i);
                 if (e[j] == null) {
                     e[j] = var.getH(i);
-                } // ;System.out.println("FSENgine: resPred: Wrong variables :
-                  // High");};
+                } 
                 e[k] = rUpLocal.get(i);
                 if (e[k] == null) {
                     e[k] = var.getL(i);
-                } // ;System.out.println("FSENgine: resPred: Wrong variables :
-                  // Local");};
+                } 
                 e[l] = rUpGlobal.get(i);
                 if (e[l] == null) {
                     e[l] = var.getG(i);
-                } // ;System.out.println("FSENgine: resPred: Wrong variables :
-                  // Global");};
+                }
             }
             ;
 
             for (int i = 4 * size, j = 4 * size + this.localHeapSize, k = 4 * size
                     + 2 * this.localHeapSize, l = 4 * size + 3 * this.localHeapSize, n = 4 * size
                             + 4 * this.localHeapSize; i < this.localHeapSize; i++, j++, k++, l++, n++) {
-                // TODO: return the corresponding variables
                 e[i] = lHValues.get(i);
                 if (e[i] == null) {
                     e[i] = var.getLHV(i);
-                } // ;System.out.println("FSENgine: resPred: Wrong variables :
-                  // LH Value");}
+                } 
                 e[j] = lHHigh.get(i);
                 if (e[j] == null) {
                     e[j] = var.getLHH(i);
-                } // ;System.out.println("FSENgine: resPred: Wrong variables :
-                  // LH High");};
+                } 
                 e[k] = lHLocal.get(i);
                 if (e[k] == null) {
                     e[k] = var.getLHL(i);
-                } // ;System.out.println("FSENgine: resPred: Wrong variables :
-                  // LH Local");};
+                } 
                 e[l] = lHGlobal.get(i);
                 if (e[l] == null) {
                     e[l] = var.getLHG(i);
-                } // ;System.out.println("FSENgine: resPred: Wrong variables :
-                  // LH Global");};
+                } 
                 e[n] = lHFilter.get(i);
                 if (e[n] == null) {
                     e[n] = var.getLHF(i);
-                } // ;System.out.println("FSENgine: resPred: Wrong variables :
-                  // LH Filter");};
+                } 
             }
             ;
 

@@ -19,6 +19,7 @@ public class FSVariable {
     private final BoolSort bool;
     private final BitVecSort bv64;
 
+    //TODO: Those variables are not the correct one for the FS analysis!
     private final BitVecExpr rez, rezp, buf, bufp, f, fpp, vfp, cn, val;
     private final BoolExpr lrez, brez, lrezp, lbuf, lbufp, lfp, bfp, lf, bf, lval, bval;
     private final IntExpr fnum, cnum;
@@ -165,13 +166,8 @@ public class FSVariable {
     public VariableInject getInjectV(final FSVariable var) {
         return new VariableInject() {
             @Override
-            public BitVecExpr getBV(int i) {
+            public BitVecExpr get(int i) {
                 return var.getV(i);
-            }
-
-            @Override
-            public BoolExpr getB(int i) {
-                return null;
             }
         };
     }
@@ -188,12 +184,7 @@ public class FSVariable {
     public VariableInject getInjectH(final FSVariable var) {
         return new VariableInject() {
             @Override
-            public BitVecExpr getBV(int i) {
-                return null;
-            }
-
-            @Override
-            public BoolExpr getB(int i) {
+            public BoolExpr get(int i) {
                 return var.getH(i);
             }
         };
@@ -211,12 +202,7 @@ public class FSVariable {
     public VariableInject getInjectL(final FSVariable var) {
         return new VariableInject() {
             @Override
-            public BitVecExpr getBV(int i) {
-                return null;
-            }
-
-            @Override
-            public BoolExpr getB(int i) {
+            public BoolExpr get(int i) {
                 return var.getL(i);
             }
         };
@@ -234,12 +220,7 @@ public class FSVariable {
     public VariableInject getInjectG(final FSVariable var) {
         return new VariableInject() {
             @Override
-            public BitVecExpr getBV(int i) {
-                return null;
-            }
-
-            @Override
-            public BoolExpr getB(int i) {
+            public BoolExpr get(int i) {
                 return var.getG(i);
             }
         };
@@ -259,13 +240,8 @@ public class FSVariable {
     public VariableInject GetInjectLHV(final FSVariable var) {
         return new VariableInject() {
             @Override
-            public BitVecExpr getBV(int i) {
+            public BitVecExpr get(int i) {
                 return var.getLHV(i);
-            }
-
-            @Override
-            public BoolExpr getB(int i) {
-                return null;
             }
         };
     }
@@ -282,12 +258,7 @@ public class FSVariable {
     public VariableInject GetInjectLHH(final FSVariable var) {
         return new VariableInject() {
             @Override
-            public BitVecExpr getBV(int i) {
-                return null;
-            }
-
-            @Override
-            public BoolExpr getB(int i) {
+            public BoolExpr get(int i) {
                 return var.getLHH(i);
             }
         };
@@ -305,12 +276,7 @@ public class FSVariable {
     public VariableInject GetInjectLHL(final FSVariable var) {
         return new VariableInject() {
             @Override
-            public BitVecExpr getBV(int i) {
-                return null;
-            }
-
-            @Override
-            public BoolExpr getB(int i) {
+            public BoolExpr get(int i) {
                 return var.getLHL(i);
             }
         };
@@ -328,12 +294,7 @@ public class FSVariable {
     public VariableInject GetInjectLHG(final FSVariable var) {
         return new VariableInject() {
             @Override
-            public BitVecExpr getBV(int i) {
-                return null;
-            }
-
-            @Override
-            public BoolExpr getB(int i) {
+            public BoolExpr get(int i) {
                 return var.getLHG(i);
             }
         };
@@ -351,12 +312,7 @@ public class FSVariable {
     public VariableInject GetInjectLHF(final FSVariable var) {
         return new VariableInject() {
             @Override
-            public BitVecExpr getBV(int i) {
-                return null;
-            }
-
-            @Override
-            public BoolExpr getB(int i) {
+            public BoolExpr get(int i) {
                 return var.getLHF(i);
             }
         };
