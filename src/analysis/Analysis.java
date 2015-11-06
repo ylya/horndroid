@@ -284,7 +284,6 @@ public class Analysis {
             Instruction instruction = instructions.get(i.getPC());   
             
             String referenceString = null;
-            
             if (instruction instanceof ReferenceInstruction) {
                 ReferenceInstruction referenceInstruction = (ReferenceInstruction)instruction;
                 Reference reference = referenceInstruction.getReference();
@@ -296,7 +295,7 @@ public class Analysis {
                 throw new RuntimeException("initializeAllocationMapping: Failed");
             }
             Set<Integer> fields = this.getClassFields(referenceString, instanceNum).keySet();
-                        
+            
             allocationPointClass.put(instanceNum,referenceString);
             allocationPointNumbers.put(instanceNum, itNumber);
             allocationPointSize.put(instanceNum, fields.size());
@@ -306,6 +305,18 @@ public class Analysis {
         }
         localHeapSize = offset;
         localHeapNumberEntries = itNumber;
+    }
+    
+    public int getFieldOffset(int allocationPoint, int fieldIntReference){
+        Set<Integer> fields = this.getClassFields(allocationPointClass.get(allocationPoint), allocationPoint).keySet();
+        int i = 0;
+        for (int field : fields){
+            if (field == fieldIntReference){
+                return i;
+            }
+            i++;
+        }
+        throw new RuntimeException("Analysis: getOffset: field does not exist");
     }
     
     public String getAllocationPointClass(int instanceNum){
@@ -548,27 +559,6 @@ public class Analysis {
         return Integer.toString(c.getType().hashCode()) + "_" + Integer.toString(m.getName().hashCode()) + "_" + Integer.toString(pc);
     }
     
-    // count the number of allocation points and compute the allocationPoints set
-    /*
-      private void countAllocationPoints(){
-     
-        for (final GeneralClass c: classes){
-            if ((c instanceof DalvikClass) && (!c.getType().contains("Landroid"))){
-                final DalvikClass dc = (DalvikClass) c;
-                for (final DalvikMethod m : dc.getMethods()){
-                    int codeAddress = 0;
-                    for (final Instruction instruction: m.getInstructions()){
-                        if (instruction.getOpcode() == Opcode.NEW_INSTANCE) {
-                            allocationsPoints.put(numberAllocationPoints,this.mkLabel(dc,m,codeAddress));
-                            numberAllocationPoints += 1;
-                            codeAddress += instruction.getCodeUnits();
-                        }
-                    }
-                }
-            }
-        }
-    }
-    */
     
     public void createHornClauses(){
         // Initialize allocationPointOffset,allocationPointNumbers and allocationPointSize
