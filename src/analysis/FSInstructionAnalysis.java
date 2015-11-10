@@ -57,6 +57,9 @@ public class FSInstructionAnalysis{
     private int numParLoc;
     int instanceNum;
     int nextCode;
+    
+    private Z3Variable var;
+    private FSVariable fsvar;
 
     
     private Map<Integer, BitVecExpr> regUpdate ;
@@ -72,12 +75,20 @@ public class FSInstructionAnalysis{
     private Map<Integer, BoolExpr> regUpLHL ;
     private Map<Integer, BoolExpr> regUpLHG ;
     private Map<Integer, BoolExpr> regUpLHF ;
+    
+    private Map<Integer, BitVecExpr> regUpLHCV ;
+    private Map<Integer, BoolExpr> regUpLHCH ;
+    private Map<Integer, BoolExpr> regUpLHCL ;
+    private Map<Integer, BoolExpr> regUpLHCG ;
+    private Map<Integer, BoolExpr> regUpLHCF ;
 
     public FSInstructionAnalysis(final Analysis analysis, final Instruction instruction, final DalvikClass dc, final DalvikMethod dm, final int codeAddress){
         this.analysis = analysis;
         //TODO: get rid of the z3engine
         this.z3engine = analysis.getZ3Engine();
         this.fsengine = analysis.getFSEngine();
+        this.var = z3engine.getVars();
+        this.fsvar = fsengine.getVars();
         this.instruction = instruction;
         this.dc = dc;
         this.c = dc.getType().hashCode();
@@ -98,8 +109,30 @@ public class FSInstructionAnalysis{
         this.regUpLHL = new HashMap<>();
         this.regUpLHG = new HashMap<>();
         this.regUpLHF = new HashMap<>();
+        
+        this.regUpLHCV = new HashMap<>();
+        this.regUpLHCH = new HashMap<>();
+        this.regUpLHCL = new HashMap<>();
+        this.regUpLHCG = new HashMap<>();
+        this.regUpLHCF = new HashMap<>();
     }
 
+    private void initializeLHC(){
+        regUpLHCV.clear();
+        regUpLHCH.clear();
+        regUpLHCL.clear();
+        regUpLHCG.clear();
+        regUpLHCF.clear();
+        
+        for (int i = 0; i < analysis.getLocalHeapSize(); i++){
+            regUpLHCV.put(i, fsvar.getLHCV(i));
+            regUpLHCH.put(i, fsvar.getLHCH(i));
+            regUpLHCL.put(i, fsvar.getLHCL(i));
+            regUpLHCG.put(i, fsvar.getLHCG(i));
+            regUpLHCF.put(i, fsvar.getLHCF(i));
+        }
+    }
+    
     public void CreateHornClauses(){
         boolean modRes;
         Integer staticFieldClassName;
@@ -108,8 +141,8 @@ public class FSInstructionAnalysis{
         DalvikMethod dmc;
         final int size = analysis.getSize();
         //TODO: get rid of the Z3Variable
-        final Z3Variable var = z3engine.getVars();
-        final FSVariable fsvar = fsengine.getVars();
+        var = z3engine.getVars();
+        fsvar = fsengine.getVars();
         BoolExpr negationString = null;
         boolean moreToNegate = false;
         int jump = 0;
@@ -163,22 +196,6 @@ public class FSInstructionAnalysis{
         numParLoc = dm.getNumArg();
         String head = "";
         BoolExpr returnLabel;
-        //TODO: remove when done
-        /*
-        Map<Integer, BitVecExpr> regUpdate = new HashMap<>();
-        Map<Integer, BoolExpr> regUpdateL = new HashMap<>();
-        Map<Integer, BoolExpr> regUpdateB = new HashMap<>();
-        
-        Map<Integer, BitVecExpr> regUpV = new HashMap<>();
-        Map<Integer, BoolExpr> regUpH = new HashMap<>();
-        Map<Integer, BoolExpr> regUpL = new HashMap<>();
-        Map<Integer, BoolExpr> regUpG = new HashMap<>();
-        Map<Integer, BitVecExpr> regUpLHV = new HashMap<>();
-        Map<Integer, BoolExpr> regUpLHH = new HashMap<>();
-        Map<Integer, BoolExpr> regUpLHL = new HashMap<>();
-        Map<Integer, BoolExpr> regUpLHG = new HashMap<>();
-        Map<Integer, BoolExpr> regUpLHF = new HashMap<>();
-         */
 
         BoolExpr h, b, htob;
         switch (opcode){
@@ -354,8 +371,8 @@ public class FSInstructionAnalysis{
             h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
             regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(), fsvar.getF());
             regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(), fsvar.getLf());
-            regUpL.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkFalse());
-            regUpG.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkFalse());
+            regUpL.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkFalse());
+            regUpG.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkFalse());
             b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
             htob = fsengine.implies(h, b);
             fsengine.addRule(htob, null);
@@ -1238,16 +1255,22 @@ public class FSInstructionAnalysis{
             if (staticFieldClassName == null){
                 staticFieldClassName = referenceClassIndex;
             }
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
+            h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+            b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+            fsengine.addRule(fsengine.implies(h, b), null);
 
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            b = z3engine.sPred(z3engine.mkInt(staticFieldClassName), z3engine.mkInt(referenceIntIndex),
-                    var.getV(((OneRegisterInstruction)instruction).getRegisterA()),
-                    var.getL(((OneRegisterInstruction)instruction).getRegisterA()),
-                    var.getB(((OneRegisterInstruction)instruction).getRegisterA()));
-            z3engine.addRule(z3engine.implies(h, b), null);
+            h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+            b = fsengine.sPred(fsengine.mkInt(staticFieldClassName), fsengine.mkInt(referenceIntIndex),
+                    fsvar.getV(((OneRegisterInstruction)instruction).getRegisterA()),
+                    fsvar.getH(((OneRegisterInstruction)instruction).getRegisterA()),
+                    fsengine.and(fsvar.getL(((OneRegisterInstruction)instruction).getRegisterA()),fsvar.getG(((OneRegisterInstruction)instruction).getRegisterA())));
+            fsengine.addRule(fsengine.implies(h, b), null);
+            
+            // if the value moved to the static heap contains a local pointer then we lift
+            h = fsengine.and(
+                    fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
+                    fsengine.eq(fsvar.getL(((OneRegisterInstruction)instruction).getRegisterA()), fsengine.mkTrue()));
+            this.liftIfLocal(h, null, analysis);
             break;//((short)0x6d, "sput-short", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
 
 
@@ -1306,89 +1329,87 @@ public class FSInstructionAnalysis{
                     numRegCall = di.getMethod().getNumReg();
                     numArgCall = di.getMethod().getNumArg();
                     if (analysis.isSink(di.getDalvikClass().getType().hashCode(), referenceIntIndex))
-                        addQuery(z3engine, z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
+                        addQuery(fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
                                 className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
                     referenceReg = instr.getRegisterC();
 
                     for (final DalvikInstance instance: di.getInstances()){
-                        h = z3engine.and(
-                                z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                                z3engine.eq(
-                                        var.getV(referenceReg),
-                                        z3engine.mkBitVector(instance.hashCode(), size)
+                        h = fsengine.and(
+                                h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
+                                fsengine.eq(
+                                        fsvar.getV(referenceReg),
+                                        fsengine.mkBitVector(instance.hashCode(), size)
+                                        )
+                                );
+                        regUpV = updateRegister(numRegCall, numArgCall,BitVecExpr.class, fsvar.getInjectV(fsvar), false);
+                        regUpH = updateRegister(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectH(fsvar), false);
+                        regUpL = updateRegister(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectL(fsvar), false);
+                        regUpG = updateRegister(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectG(fsvar), false);
+
+                        b = fsengine.rPredInvok(Integer.toString(di.getDalvikClass().getType().hashCode()), Integer.toString(di.getMethod().getName().hashCode()), 0,
+                                regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numArgCall, numRegCall, size);
+
+                        fsengine.addRule(fsengine.implies(h, b), null);
+
+
+                        regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
+                    }
+
+                    for (final DalvikInstance instance: di.getInstances()){
+                        BoolExpr subh = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+                        regUpV = updateResult(numRegCall, numArgCall,BitVecExpr.class, fsvar.getInjectV(fsvar), false);
+                        regUpH = updateResult(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectH(fsvar), false);
+                        regUpL = updateResult(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectL(fsvar), false);
+                        regUpG = updateResult(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectG(fsvar), false);
+                        regUpV.put(numArgCall, fsvar.getRez());
+                        regUpH.put(numArgCall, fsvar.getHrez());
+                        regUpL.put(numArgCall, fsvar.getLrez());
+                        regUpG.put(numArgCall, fsvar.getGrez());
+
+                        this.initializeLHC();
+
+                        h = fsengine.and(
+                                subh,
+                                fsengine.resPred(Integer.toString(di.getDalvikClass().getType().hashCode()), Integer.toString(referenceIntIndex),
+                                        regUpV, regUpH, regUpL, regUpG, regUpLHCV, regUpLHCH, regUpLHCL, regUpLHCG, regUpLHCF, numArgCall),
+                                fsengine.eq(
+                                        fsvar.getV(referenceReg),
+                                        fsengine.mkBitVector(instance.hashCode(), size)
                                         )
                                 );
 
+                        regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
 
+                        returnLabel = analysis.isSource(di.getDalvikClass().getType().hashCode(), referenceIntIndex) ? fsengine.mkTrue() : fsvar.getHrez();
 
-                        regUpdate = updateRegister(numRegCall, numArgCall,BitVecExpr.class, var.getInjectV(var), false);
-                        regUpdateL = updateRegister(numRegCall, numArgCall,BoolExpr.class, var.getInjectL(var), false);
-                        regUpdateB = updateRegister(numRegCall, numArgCall,BoolExpr.class, var.getInjectB(var), false);
+                        this.liftLi();
 
-                        b = z3engine.rInvokePred(Integer.toString(di.getDalvikClass().getType().hashCode()), Integer.toString(di.getMethod().getName().hashCode()), 0,
-                                regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, size);
-
-                        z3engine.addRule(z3engine.implies(h, b), null);
-
-
-                        regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
-                    }
-
-                    if (callReturns){
-                        for (final DalvikInstance instance: di.getInstances()){
-                            BoolExpr subh = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                            regUpdate = updateResult(numRegCall, numArgCall,BitVecExpr.class, var.getInjectV(var), false);
-                            regUpdateL = updateResult(numRegCall, numArgCall,BoolExpr.class, var.getInjectL(var), false);
-                            regUpdateB = updateResult(numRegCall, numArgCall,BoolExpr.class, var.getInjectB(var), false);                              
-                            regUpdate.put(numArgCall, var.getRez());
-                            regUpdateL.put(numArgCall, var.getLrez());
-                            regUpdateB.put(numArgCall, var.getBrez());
-                            h = z3engine.and(
-                                    subh,
-                                    z3engine.resPred(Integer.toString(di.getDalvikClass().getType().hashCode()), Integer.toString(referenceIntIndex), regUpdate, regUpdateL, regUpdateB, numArgCall),
-                                    z3engine.eq(
-                                            var.getV(referenceReg),
-                                            z3engine.mkBitVector(instance.hashCode(), size)
-                                            )
-                                    );
-
-                            regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
-
-                            returnLabel = analysis.isSource(di.getDalvikClass().getType().hashCode(), referenceIntIndex)
-                                    ? z3engine.mkTrue()
-                                            : var.getLrez();
-                                    if (callReturns) {
-                                        regUpdate.put(numRegLoc, var.getRez());
-                                        regUpdateL.put(numRegLoc, returnLabel);
-                                    }
-                                    b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-
-                                    z3engine.addRule(z3engine.implies(h, b), null);
-
-                                    regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
+                        if (callReturns) {
+                            regUpV.put(numRegLoc, fsvar.getRez());
+                            regUpH.put(numRegLoc, returnLabel);
+                            regUpL.put(numRegLoc, fsvar.getLrez());
+                            regUpG.put(numRegLoc, fsvar.getGrez());
                         }
-                    } else {
-                        h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
 
-                        regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
+                        Map<Integer,BoolExpr> regResLHF = new HashMap<Integer, BoolExpr>();
 
-                        returnLabel = analysis.isSource(di.getDalvikClass().getType().hashCode(), referenceIntIndex)
-                                ? z3engine.mkTrue()
-                                        : var.getLrez();
-                                if (callReturns) {
-                                    regUpdate.put(numRegLoc, var.getRez());
-                                    regUpdateL.put(numRegLoc, returnLabel);
-                                }
-                                b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                                z3engine.addRule(z3engine.implies(h, b), null);
+                        for (int i = 0; i < analysis.getLocalHeapSize(); i++){
+                            regResLHF.put(i, fsengine.or(regUpLHF.get(i), regUpLHCF.get(i)));
+                        }
 
-                                regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
+                        b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHCV, regUpLHCH, regUpLHCL, regUpLHCG, regResLHF, numParLoc, numRegLoc);
+
+                        fsengine.addRule(fsengine.implies(h, b), null);
+
+                        regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
                     }
-
                 }
-            } else {
+            }
+            
+            
+            else {
                 if (analysis.isSink(referenceClassIndex, referenceIntIndex)){
-                    addQuery(z3engine, z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
+                    addQuery(fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
                             className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
                 }
                 if (processIntent(z3engine, ci, mi, numParLoc, numRegLoc, nextCode, referenceClassIndex, referenceIntIndex, referenceString, size))
@@ -1397,14 +1418,13 @@ public class FSInstructionAnalysis{
 
                 BoolExpr subh = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
 
-                returnLabel = analysis.isSource(referenceClassIndex, referenceIntIndex)
-                        ? z3engine.mkTrue()
-                                : getLabels();
+                returnLabel = analysis.isSource(referenceClassIndex, referenceIntIndex) ? fsengine.mkTrue() : getLabels();
 
                         if (returnType.hashCode() == "Ljava/lang/String;".hashCode()){
-                            regUpdate.put(numRegLoc, var.getF());
-                            regUpdateL.put(numRegLoc, returnLabel);
-                            regUpdateB.put(numRegLoc, z3engine.mkTrue());
+                            regUpV.put(numRegLoc, fsvar.getF());
+                            regUpH.put(numRegLoc, returnLabel);
+                            regUpL.put(numRegLoc, fsengine.mkFalse());
+                            regUpG.put(numRegLoc, fsengine.mkTrue());
                         } else {
                             if ((returnType.charAt(0) != '[') && (returnType.charAt(returnType.length() -1) == ';' )){
                                 instanceNum = analysis.getInstNum(ci, mi, codeAddress);
@@ -1451,7 +1471,7 @@ public class FSInstructionAnalysis{
                                 }
                             }
                         }
-                        regUpdateL = highReg(false, regUpdateL, z3engine);
+                        regUpdateL = highReg(false, regUpdateL);
 
                         BoolExpr subb = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                         z3engine.addRule(z3engine.implies(subh, subb), null);
@@ -1513,7 +1533,7 @@ public class FSInstructionAnalysis{
                     numRegCall = definition.getValue().getNumReg();
                     numArgCall = definition.getValue().getNumArg();
                     if (analysis.isSink(referenceClassIndex, referenceIntIndex))
-                        addQuery(z3engine, z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
+                        addQuery(z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                                 className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
                     regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
 
@@ -1558,13 +1578,11 @@ public class FSInstructionAnalysis{
                 }
             } else {
                 if (analysis.isSink(referenceClassIndex, referenceIntIndex))
-                    addQuery(z3engine, z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
+                    addQuery(z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                             className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
                 if (processIntent(z3engine, ci, mi, numParLoc, numRegLoc, nextCode, referenceClassIndex, referenceIntIndex, referenceString, size))
                     break;
 
-                //                    head = Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen);
-                //                    cl.appendHead(head);
                 BoolExpr subh = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
 
 
@@ -1620,7 +1638,7 @@ public class FSInstructionAnalysis{
                                 }
                             }
                         }
-                        regUpdateL = highReg(false, regUpdateL, z3engine);
+                        regUpdateL = highReg(false, regUpdateL);
                         BoolExpr subb = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                         z3engine.addRule(z3engine.implies(subh, subb), null);
             }
@@ -1828,7 +1846,7 @@ public class FSInstructionAnalysis{
                                 }
                             }
                         }
-                        regUpdateL = highReg(true, regUpdateL, z3engine);
+                        regUpdateL = highReg(true, regUpdateL);
                         BoolExpr subb = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                         z3engine.addRule(z3engine.implies(subh, subb), null);
             }
@@ -1955,36 +1973,27 @@ public class FSInstructionAnalysis{
                                 }
                             }
                         }
-                        regUpdateL = highReg(true, regUpdateL, z3engine);
+                        regUpdateL = highReg(true, regUpdateL);
                         BoolExpr subb = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                         z3engine.addRule(z3engine.implies(subh, subb), null);
             }
             break;//((short)0x74, "invoke-virtual/range", ReferenceType.METHOD, Format.Format3rc, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_RESULT),
 
+            //TODO: remove this TODO
 
         case NEG_INT://((short)0x7b, "neg-int", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case NEG_LONG://((short)0x7d, "neg-long", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
         case NEG_FLOAT://((short)0x7f, "neg-float", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case NEG_DOUBLE:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvneg(var.getV(((TwoRegisterInstruction)instruction).getRegisterB()))
-                    );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getL(((TwoRegisterInstruction)instruction).getRegisterB()));
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
+            BitVecExpr bv = fsengine.bvneg(fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB()));
+            this.unaryOp(bv);
             break;//((short)0x80, "neg-double", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
 
         case NOT_INT://((short)0x7c, "not-int", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case NOT_LONG:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvnot(var.getV(((TwoRegisterInstruction)instruction).getRegisterB()))
-                    );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getL(((TwoRegisterInstruction)instruction).getRegisterB()));
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
+            bv = fsengine.bvnot(fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB()));
+            this.unaryOp(bv);
             break;//((short)0x7e, "not-long", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
 
@@ -2003,9 +2012,7 @@ public class FSInstructionAnalysis{
         case INT_TO_BYTE://((short)0x8d, "int-to-byte", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case INT_TO_CHAR://((short)0x8e, "int-to-char", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case INT_TO_SHORT:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
+            this.propagate();
             break;//((short)0x8f, "int-to-short", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
 
 
@@ -2013,221 +2020,111 @@ public class FSInstructionAnalysis{
         case ADD_LONG://((short)0x9b, "add-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
         case ADD_FLOAT://((short)0xa6, "add-float", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case ADD_DOUBLE:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvadd(
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getV(((ThreeRegisterInstruction)instruction).getRegisterC())
-                            )
+            bv = fsengine.bvadd(
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
+                    fsvar.getV(((ThreeRegisterInstruction)instruction).getRegisterC())
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.or(
-                            var.getL(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getL(((ThreeRegisterInstruction)instruction).getRegisterC())
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
+            this.binaryOpC(bv);
             break;//((short)0xab, "add-double", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
         case SUB_INT://((short)0x91, "sub-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case SUB_LONG://((short)0x9c, "sub-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
         case SUB_FLOAT://((short)0xa7, "sub-float", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case SUB_DOUBLE:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvsub(
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getV(((ThreeRegisterInstruction)instruction).getRegisterC())
-                            )
+            bv = fsengine.bvsub(
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
+                    fsvar.getV(((ThreeRegisterInstruction)instruction).getRegisterC())
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.or(
-                            var.getL(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getL(((ThreeRegisterInstruction)instruction).getRegisterC())
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
+            this.binaryOpC(bv);
             break;//((short)0xac, "sub-double", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
         case MUL_INT://((short)0x92, "mul-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case MUL_LONG://((short)0x9d, "mul-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
         case MUL_FLOAT://((short)0xa8, "mul-float", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case MUL_DOUBLE:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvmul(
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getV(((ThreeRegisterInstruction)instruction).getRegisterC())
-                            )
+            bv = fsengine.bvmul(
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
+                    fsvar.getV(((ThreeRegisterInstruction)instruction).getRegisterC())
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.or(
-                            var.getL(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getL(((ThreeRegisterInstruction)instruction).getRegisterC())
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
+            this.binaryOpC(bv);
             break;//((short)0xad, "mul-double", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
         case DIV_INT://((short)0x93, "div-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case DIV_LONG://((short)0x9e, "div-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
         case DIV_FLOAT://((short)0xa9, "div-float", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case DIV_DOUBLE:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvudiv(
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getV(((ThreeRegisterInstruction)instruction).getRegisterC())
-                            )
+            bv = fsengine.bvudiv(
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
+                    fsvar.getV(((ThreeRegisterInstruction)instruction).getRegisterC())
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.or(
-                            var.getL(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getL(((ThreeRegisterInstruction)instruction).getRegisterC())
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
+            this.binaryOpC(bv);
             break;//((short)0xae, "div-double", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
         case REM_INT://((short)0x94, "rem-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case REM_LONG://((short)0x9f, "rem-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
         case REM_FLOAT://((short)0xaa, "rem-float", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case REM_DOUBLE:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvurem(
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getV(((ThreeRegisterInstruction)instruction).getRegisterC())
-                            )
+            bv = fsengine.bvudiv(
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
+                    fsvar.getV(((ThreeRegisterInstruction)instruction).getRegisterC())
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.or(
-                            var.getL(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getL(((ThreeRegisterInstruction)instruction).getRegisterC())
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
+            this.binaryOpC(bv);
             break;//((short)0xaf, "rem-double", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
         case AND_INT://((short)0x95, "and-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case AND_LONG:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvand(
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getV(((ThreeRegisterInstruction)instruction).getRegisterC())
-                            )
+            bv = fsengine.bvand(
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
+                    fsvar.getV(((ThreeRegisterInstruction)instruction).getRegisterC())
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.or(
-                            var.getL(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getL(((ThreeRegisterInstruction)instruction).getRegisterC())
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
+            this.binaryOpC(bv);
             break;//((short)0xa0, "and-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
         case OR_INT://((short)0x96, "or-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case OR_LONG:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvor(
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getV(((ThreeRegisterInstruction)instruction).getRegisterC())
-                            )
+            bv = fsengine.bvor(
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
+                    fsvar.getV(((ThreeRegisterInstruction)instruction).getRegisterC())
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.or(
-                            var.getL(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getL(((ThreeRegisterInstruction)instruction).getRegisterC())
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
+            this.binaryOpC(bv);
             break;//((short)0xa1, "or-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
         case XOR_INT://((short)0x97, "xor-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case XOR_LONG:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvxor(
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getV(((ThreeRegisterInstruction)instruction).getRegisterC())
-                            )
+            bv = fsengine.bvxor(
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
+                    fsvar.getV(((ThreeRegisterInstruction)instruction).getRegisterC())
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.or(
-                            var.getL(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getL(((ThreeRegisterInstruction)instruction).getRegisterC())
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
+            this.binaryOpC(bv);
             break;//((short)0xa2, "xor-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
         case SHL_INT://((short)0x98, "shl-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case SHL_LONG:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvshl(
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getV(((ThreeRegisterInstruction)instruction).getRegisterC())
-                            )
+            bv = fsengine.bvxor(
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
+                    fsvar.getV(((ThreeRegisterInstruction)instruction).getRegisterC())
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.or(
-                            var.getL(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getL(((ThreeRegisterInstruction)instruction).getRegisterC())
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
+            this.binaryOpC(bv);
             break;//((short)0xa3, "shl-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
 
         case SHR_LONG://((short)0xa4, "shr-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
         case SHR_INT:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvashr(
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getV(((ThreeRegisterInstruction)instruction).getRegisterC())
-                            )
+            bv = fsengine.bvashr(
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
+                    fsvar.getV(((ThreeRegisterInstruction)instruction).getRegisterC())
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.or(
-                            var.getL(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getL(((ThreeRegisterInstruction)instruction).getRegisterC())
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
+            this.binaryOpC(bv);
             break;//((short)0x99, "shr-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
 
 
         case USHR_INT://((short)0x9a, "ushr-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case USHR_LONG:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvlshr(
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getV(((ThreeRegisterInstruction)instruction).getRegisterC())
-                            )
+            bv = fsengine.bvlshr(
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
+                    fsvar.getV(((ThreeRegisterInstruction)instruction).getRegisterC())
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.or(
-                            var.getL(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getL(((ThreeRegisterInstruction)instruction).getRegisterC())
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
+            this.binaryOpC(bv);
             break;//((short)0xa5, "ushr-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
 
@@ -2235,21 +2132,11 @@ public class FSInstructionAnalysis{
         case ADD_LONG_2ADDR://((short)0xc0, "and-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
         case ADD_FLOAT_2ADDR://((short)0xc6, "add-float/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case ADD_DOUBLE_2ADDR:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvadd(
-                            var.getV(((OneRegisterInstruction)instruction).getRegisterA()),
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB())
-                            )
+            bv = fsengine.bvadd(
+                    fsvar.getV(((OneRegisterInstruction)instruction).getRegisterA()),
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB())
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.or(
-                            var.getL(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getL(((OneRegisterInstruction)instruction).getRegisterA())
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
+            this.binaryOp(bv);
             break;//((short)0xcb, "add-double/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
 
@@ -2257,373 +2144,205 @@ public class FSInstructionAnalysis{
         case SUB_LONG_2ADDR://((short)0xbc, "sub-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
         case SUB_FLOAT_2ADDR://((short)0xc7, "sub-float/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case SUB_DOUBLE_2ADDR:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvsub(
-                            var.getV(((OneRegisterInstruction)instruction).getRegisterA()),
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB())
-                            )
+            bv = fsengine.bvsub(
+                    fsvar.getV(((OneRegisterInstruction)instruction).getRegisterA()),
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB())
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.or(
-                            var.getL(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getL(((OneRegisterInstruction)instruction).getRegisterA())
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
+            this.binaryOp(bv);
             break;//((short)0xcc, "sub-double/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
         case MUL_INT_2ADDR://((short)0xb2, "mul-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case MUL_LONG_2ADDR://((short)0xbd, "mul-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
         case MUL_FLOAT_2ADDR://((short)0xc8, "mul-float/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case MUL_DOUBLE_2ADDR:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvmul(
-                            var.getV(((OneRegisterInstruction)instruction).getRegisterA()),
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB())
-                            )
+            bv = fsengine.bvmul(
+                    fsvar.getV(((OneRegisterInstruction)instruction).getRegisterA()),
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB())
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.or(
-                            var.getL(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getL(((OneRegisterInstruction)instruction).getRegisterA())
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
+            this.binaryOp(bv);
             break;//((short)0xcd, "mul-double/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
         case DIV_INT_2ADDR://((short)0xb3, "div-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case DIV_LONG_2ADDR://((short)0xbe, "div-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
         case DIV_FLOAT_2ADDR://((short)0xc9, "div-float/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case DIV_DOUBLE_2ADDR:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvudiv(
-                            var.getV(((OneRegisterInstruction)instruction).getRegisterA()),
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB())
-                            )
+            bv = fsengine.bvudiv(
+                    fsvar.getV(((OneRegisterInstruction)instruction).getRegisterA()),
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB())
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.or(
-                            var.getL(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getL(((OneRegisterInstruction)instruction).getRegisterA())
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
+            this.binaryOp(bv);
             break;//((short)0xce, "div-double/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
         case REM_INT_2ADDR://((short)0xb4, "rem-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case REM_LONG_2ADDR://((short)0xbf, "rem-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
         case REM_FLOAT_2ADDR://((short)0xca, "rem-float/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case REM_DOUBLE_2ADDR:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvurem(
-                            var.getV(((OneRegisterInstruction)instruction).getRegisterA()),
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB())
-                            )
+            bv = fsengine.bvurem(
+                    fsvar.getV(((OneRegisterInstruction)instruction).getRegisterA()),
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB())
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.or(
-                            var.getL(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getL(((OneRegisterInstruction)instruction).getRegisterA())
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
+            this.binaryOp(bv);
             break;//((short)0xcf, "rem-double/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
         case AND_INT_2ADDR://((short)0xb5, "and-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case AND_LONG_2ADDR:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvand(
-                            var.getV(((OneRegisterInstruction)instruction).getRegisterA()),
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB())
-                            )
+            bv = fsengine.bvand(
+                    fsvar.getV(((OneRegisterInstruction)instruction).getRegisterA()),
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB())
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.or(
-                            var.getL(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getL(((OneRegisterInstruction)instruction).getRegisterA())
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
+            this.binaryOp(bv);
             break;//((short)0xbb, "add-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
         case OR_INT_2ADDR://((short)0xb6, "or-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case OR_LONG_2ADDR:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvor(
-                            var.getV(((OneRegisterInstruction)instruction).getRegisterA()),
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB())
-                            )
+            bv = fsengine.bvor(
+                    fsvar.getV(((OneRegisterInstruction)instruction).getRegisterA()),
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB())
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.or(
-                            var.getL(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getL(((OneRegisterInstruction)instruction).getRegisterA())
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
+            this.binaryOp(bv);
             break;//((short)0xc1, "or-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
         case XOR_INT_2ADDR://((short)0xb7, "xor-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case XOR_LONG_2ADDR:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvxor(
-                            var.getV(((OneRegisterInstruction)instruction).getRegisterA()),
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB())
-                            )
+            bv = fsengine.bvxor(
+                    fsvar.getV(((OneRegisterInstruction)instruction).getRegisterA()),
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB())
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.or(
-                            var.getL(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getL(((OneRegisterInstruction)instruction).getRegisterA())
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
+            this.binaryOp(bv);
             break;//((short)0xc2, "xor-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
         case SHL_INT_2ADDR://((short)0xb8, "shl-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case SHL_LONG_2ADDR:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvshl(
-                            var.getV(((OneRegisterInstruction)instruction).getRegisterA()),
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB())
-                            )
+            bv = fsengine.bvshl(
+                    fsvar.getV(((OneRegisterInstruction)instruction).getRegisterA()),
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB())
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.or(
-                            var.getL(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getL(((OneRegisterInstruction)instruction).getRegisterA())
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
+            this.binaryOp(bv);
+
             break;//((short)0xc3, "shl-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
         case SHR_INT_2ADDR://((short)0xb9, "shr-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case SHR_LONG_2ADDR:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvashr(
-                            var.getV(((OneRegisterInstruction)instruction).getRegisterA()),
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB())
-                            )
+            bv = fsengine.bvashr(
+                    fsvar.getV(((OneRegisterInstruction)instruction).getRegisterA()),
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB())
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.or(
-                            var.getL(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getL(((OneRegisterInstruction)instruction).getRegisterA())
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
+            this.binaryOp(bv);
             break;//((short)0xc4, "shr-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
 
         case USHR_INT_2ADDR://((short)0xba, "ushr-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case USHR_LONG_2ADDR:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvlshr(
-                            var.getV(((OneRegisterInstruction)instruction).getRegisterA()),
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB())
-                            )
+            bv = fsengine.bvlshr(
+                    fsvar.getV(((OneRegisterInstruction)instruction).getRegisterA()),
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB())
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.or(
-                            var.getL(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            var.getL(((OneRegisterInstruction)instruction).getRegisterA())
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
-
+            this.binaryOp(bv);
             break;//((short)0xc5, "ushr-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
 
         case ADD_INT_LIT16://((short)0xd0, "add-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case ADD_INT_LIT8:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvadd(
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
-                            )
+            bv = fsengine.bvadd(
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
+                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getL(((TwoRegisterInstruction)instruction).getRegisterB()));
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
+            this.unaryOp(bv);
             break;//((short)0xd8, "add-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
 
 
         case MUL_INT_LIT16://((short)0xd2, "mul-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case MUL_INT_LIT8:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvmul(
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
-                            )
+            bv = fsengine.bvmul(
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
+                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getL(((TwoRegisterInstruction)instruction).getRegisterB()));
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
+            this.unaryOp(bv);
             break;//((short)0xda, "mul-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
 
 
         case DIV_INT_LIT16://((short)0xd3, "div-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case DIV_INT_LIT8:
-            //                cl.appendHead(Utils.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc, gen));
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvudiv(
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
-                            )
+            bv = fsengine.bvudiv(
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
+                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getL(((TwoRegisterInstruction)instruction).getRegisterB()));
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
-
+            this.unaryOp(bv);
             break;//((short)0xdb, "div-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
 
 
         case REM_INT_LIT16://((short)0xd4, "rem-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case REM_INT_LIT8:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvurem(
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
-                            )
+            bv = fsengine.bvurem(
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
+                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getL(((TwoRegisterInstruction)instruction).getRegisterB()));
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
-
+            this.unaryOp(bv);
             break;//((short)0xdc, "rem-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
 
 
         case AND_INT_LIT16://((short)0xd5, "and-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case AND_INT_LIT8:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvand(
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
-                            )
+            bv = fsengine.bvand(
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
+                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getL(((TwoRegisterInstruction)instruction).getRegisterB()));
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
-
+            this.unaryOp(bv);
             break;//((short)0xdd, "and-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
 
 
         case OR_INT_LIT16://((short)0xd6, "or-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case OR_INT_LIT8:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvor(
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
-                            )
+            bv = fsengine.bvor(
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
+                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getL(((TwoRegisterInstruction)instruction).getRegisterB()));
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
-
+            this.unaryOp(bv);
             break;//((short)0xde, "or-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
 
 
         case XOR_INT_LIT16://((short)0xd7, "xor-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case XOR_INT_LIT8:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvxor(
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
-                            )
+            bv = fsengine.bvxor(
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
+                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getL(((TwoRegisterInstruction)instruction).getRegisterB()));
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
-
+            this.unaryOp(bv);
             break;//((short)0xdf, "xor-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
 
 
         case RSUB_INT://((short)0xd1, "rsub-int", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case RSUB_INT_LIT8:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvsub(
-                            z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB())
-                            )
+            bv = fsengine.bvsub(
+                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB())
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getL(((TwoRegisterInstruction)instruction).getRegisterB()));
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            z3engine.addRule(z3engine.implies(h, b), null);
-
+            this.unaryOp(bv);
             break;//((short)0xd9, "rsub-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
 
 
         case SHL_INT_LIT8:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvshl(var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size))
-                    );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getL(((TwoRegisterInstruction)instruction).getRegisterB()));
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            htob = z3engine.implies(h, b);
-            z3engine.addRule(htob, null);
-
+            bv = fsengine.bvshl(fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
+                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size));
+            this.unaryOp(bv);
             break;//((short)0xe0, "shl-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
 
 
         case SHR_INT_LIT8:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvashr(
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
-                            )
+            bv = fsengine.bvashr(
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
+                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getL(((TwoRegisterInstruction)instruction).getRegisterB()));
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            htob = z3engine.implies(h, b);
-            z3engine.addRule(htob, null);
-
+            this.unaryOp(bv);
             break;//((short)0xe1, "shr-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
 
 
         case USHR_INT_LIT8:
-            h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    z3engine.bvlshr(
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
-                            )
+            bv = fsengine.bvlshr(
+                    fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
+                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
                     );
-            regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), var.getL(((TwoRegisterInstruction)instruction).getRegisterB()));
-            b = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            htob = z3engine.implies(h, b);
-            z3engine.addRule(htob, null);
-
+            this.unaryOp(bv);
             break;//((short)0xe2, "ushr-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
 
         case IGET_VOLATILE://((short)0xe3, "iget-volatile", minApi(9), ReferenceType.FIELD, Format.Format22c, Opcode.ODEX_ONLY | Opcode.ODEXED_INSTANCE_VOLATILE | Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
@@ -2657,51 +2376,90 @@ public class FSInstructionAnalysis{
         case SGET_OBJECT_VOLATILE://((short)0xfd, "sget-object-volatile", minApi(9), ReferenceType.FIELD, Format.Format21c, Opcode.ODEX_ONLY | Opcode.ODEXED_STATIC_VOLATILE | Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case SPUT_OBJECT_VOLATILE:
             break;//((short)0xfe, "sput-object-volatile", minApi(9), ReferenceType.FIELD, Format.Format21c, Opcode.ODEX_ONLY | Opcode.ODEXED_STATIC_VOLATILE | Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
-
+            //TODO: break is sound here?
+            
         case PACKED_SWITCH_PAYLOAD:
             break;//((short)0x100, "packed-switch-payload", ReferenceType.NONE, Format.PackedSwitchPayload, 0),
+            //TODO: break is sound here?
         case SPARSE_SWITCH_PAYLOAD:
             break;//((short)0x200, "sparse-switch-payload", ReferenceType.NONE, Format.SparseSwitchPayload, 0),
+            //TODO: break is sound here?
         case ARRAY_PAYLOAD:
             break;//((short)0x300, "array-payload", ReferenceType.NONE, Format.ArrayPayload, 0);
+            //TODO: break is sound here?
         }
     }
 
+    private void propagate(){
+        BoolExpr h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+        BoolExpr b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+        fsengine.addRule(fsengine.implies(h, b), null);
+    }
+    
+    private void unaryOp(BitVecExpr bv){
+        BoolExpr h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+        regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(),bv);
+        regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(), fsvar.getH(((TwoRegisterInstruction)instruction).getRegisterB()));
+        BoolExpr b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+        fsengine.addRule(fsengine.implies(h, b), null);
+    }
 
-    //    private String getLabels(){
+    private void binaryOp(BitVecExpr bv){
+        BoolExpr h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+        regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(),bv);
+        regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(),
+                fsengine.or(
+                        fsvar.getH(((TwoRegisterInstruction)instruction).getRegisterA()),
+                        fsvar.getH(((TwoRegisterInstruction)instruction).getRegisterB())));
+        BoolExpr b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+        fsengine.addRule(fsengine.implies(h, b), null);
+    }
+    
+    private void binaryOpC(BitVecExpr bv){
+        BoolExpr h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+        regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(),bv);
+        regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(),
+                fsengine.or(
+                        fsvar.getH(((ThreeRegisterInstruction)instruction).getRegisterB()),
+                        fsvar.getH(((ThreeRegisterInstruction)instruction).getRegisterC())));
+        BoolExpr b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+        fsengine.addRule(fsengine.implies(h, b), null);
+    }
+    
+    
+    
     private BoolExpr getLabels(){
         FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
         final int regCount = instruction.getRegisterCount();
         switch (regCount) {
         case 1:
-            return z3engine.or( z3engine.mkFalse(),
-                    z3engine.getVars().getL(instruction.getRegisterC()));
+            return fsengine.or(
+                    fsvar.getH(instruction.getRegisterC()));
         case 2:
-            return z3engine.or( z3engine.mkFalse(),
-                    z3engine.getVars().getL(instruction.getRegisterC()),
-                    z3engine.getVars().getL(instruction.getRegisterD()));
+            return fsengine.or(
+                    fsvar.getH(instruction.getRegisterC()),
+                    fsvar.getH(instruction.getRegisterD()));
         case 3:
-            return z3engine.or( z3engine.mkFalse(),
-                    z3engine.getVars().getL(instruction.getRegisterC()),
-                    z3engine.getVars().getL(instruction.getRegisterD()),
-                    z3engine.getVars().getL(instruction.getRegisterE()));
+            return fsengine.or(
+                    fsvar.getH(instruction.getRegisterC()),
+                    fsvar.getH(instruction.getRegisterD()),
+                    fsvar.getH(instruction.getRegisterE()));
         case 4:
-            return z3engine.or( z3engine.mkFalse(),
-                    z3engine.getVars().getL(instruction.getRegisterC()),
-                    z3engine.getVars().getL(instruction.getRegisterD()),
-                    z3engine.getVars().getL(instruction.getRegisterE()),
-                    z3engine.getVars().getL(instruction.getRegisterF()));
+            return fsengine.or(
+                    fsvar.getH(instruction.getRegisterC()),
+                    fsvar.getH(instruction.getRegisterD()),
+                    fsvar.getH(instruction.getRegisterE()),
+                    fsvar.getH(instruction.getRegisterF()));
 
         case 5:
-            return z3engine.or( z3engine.mkFalse(),
-                    z3engine.getVars().getL(instruction.getRegisterC()),
-                    z3engine.getVars().getL(instruction.getRegisterD()),
-                    z3engine.getVars().getL(instruction.getRegisterE()),
-                    z3engine.getVars().getL(instruction.getRegisterF()),
-                    z3engine.getVars().getL(instruction.getRegisterG()));
+            return fsengine.or(
+                    fsvar.getH(instruction.getRegisterC()),
+                    fsvar.getH(instruction.getRegisterD()),
+                    fsvar.getH(instruction.getRegisterE()),
+                    fsvar.getH(instruction.getRegisterF()),
+                    fsvar.getH(instruction.getRegisterG()));
         default:
-            //                return "false";
-            return z3engine.mkFalse();
+            return fsengine.mkFalse();
         }
     }
 
@@ -2711,17 +2469,16 @@ public class FSInstructionAnalysis{
         int startRegister = instruction.getStartRegister();
         int endRegister   =   startRegister+regCount-1;
 
-        BoolExpr labels = z3engine.mkFalse();
+        BoolExpr labels = fsengine.mkFalse();
         for(int reg = startRegister; reg <= endRegister; reg++){
-            labels = z3engine.or(
-                    labels, z3engine.getVars().getL(reg)
+            labels = fsengine.or(
+                    labels, fsvar.getH(reg)
                     );
         }
-        return z3engine.or(labels);
+        return fsengine.or(labels);
     }
 
     private void addQueryRange(final Z3Engine z3, BoolExpr p, String className, String methodName, String pc, String sinkName, final boolean verboseOption){
-        Z3Variable var = z3.getVars();
         RegisterRangeInstruction instruction = (RegisterRangeInstruction)this.instruction;
         int regCount = instruction.getRegisterCount();
         int startRegister = instruction.getStartRegister();
@@ -2738,53 +2495,51 @@ public class FSInstructionAnalysis{
         }
     }
 
-    private void addQuery(final Z3Engine z3, BoolExpr p, String className, String methodName, String pc, String sinkName, final boolean verboseResults){
-        Z3Variable var = z3.getVars();
+    private void addQuery(BoolExpr p, String className, String methodName, String pc, String sinkName, final boolean verboseResults){
         FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
         final int regCount = instruction.getRegisterCount();
 
         switch (regCount) {
         case 5:
-            BoolExpr q5 = z3.and(
+            BoolExpr q5 = fsengine.and(
                     p,
-                    z3.eq(var.getL(instruction.getRegisterG()), z3.mkTrue())
+                    fsengine.eq(fsvar.getH(instruction.getRegisterG()), fsengine.mkTrue())
                     );
             String d5 = "Test if register " + Integer.toString(instruction.getRegisterG()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
-            z3.addQuery(new Z3Query(q5, d5, verboseResults, className, methodName, pc, sinkName));
+            fsengine.addQuery(new Z3Query(q5, d5, verboseResults, className, methodName, pc, sinkName));
         case 4:
-            BoolExpr q4 = z3.and(
+            BoolExpr q4 = fsengine.and(
                     p,
-                    z3.eq(var.getL(instruction.getRegisterF()), z3.mkTrue())
+                    fsengine.eq(fsvar.getH(instruction.getRegisterF()), fsengine.mkTrue())
                     );
             String d4 = "Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
-            z3.addQuery(new Z3Query(q4, d4, verboseResults, className, methodName, pc, sinkName));
+            fsengine.addQuery(new Z3Query(q4, d4, verboseResults, className, methodName, pc, sinkName));
         case 3:
-            BoolExpr q3 = z3.and(
+            BoolExpr q3 = fsengine.and(
                     p,
-                    z3.eq(var.getL(instruction.getRegisterE()), z3.mkTrue())
+                    fsengine.eq(fsvar.getH(instruction.getRegisterE()), fsengine.mkTrue())
                     );
             String d3 = "Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
-            z3.addQuery(new Z3Query(q3, d3, verboseResults, className, methodName, pc, sinkName));
+            fsengine.addQuery(new Z3Query(q3, d3, verboseResults, className, methodName, pc, sinkName));
         case 2:
-            BoolExpr q2 = z3.and(
+            BoolExpr q2 = fsengine.and(
                     p,
-                    z3.eq(var.getL(instruction.getRegisterD()), z3.mkTrue())
+                    fsengine.eq(fsvar.getH(instruction.getRegisterD()), fsengine.mkTrue())
                     );
             String d2 = "Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
-            z3.addQuery(new Z3Query(q2, d2, verboseResults, className, methodName, pc, sinkName));
+            fsengine.addQuery(new Z3Query(q2, d2, verboseResults, className, methodName, pc, sinkName));
         case 1:
-            BoolExpr q1 = z3.and(
+            BoolExpr q1 = fsengine.and(
                     p,
-                    z3.eq(var.getL(instruction.getRegisterC()), z3.mkTrue())
+                    fsengine.eq(fsvar.getH(instruction.getRegisterC()), fsengine.mkTrue())
                     );
             String d1 = "Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
-            z3.addQuery(new Z3Query(q1, d1, verboseResults, className, methodName, pc, sinkName));
+            fsengine.addQuery(new Z3Query(q1, d1, verboseResults, className, methodName, pc, sinkName));
         }
     }
 
-    private Map<Integer, BoolExpr> highReg(final boolean range, Map<Integer, BoolExpr> regUpdate, Z3Engine z3engine){
+    private Map<Integer, BoolExpr> highReg(final boolean range, Map<Integer, BoolExpr> regUpdate){
 
-        Z3Variable var = z3engine.getVars();
 
         if (! range){
             FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
@@ -3126,7 +2881,6 @@ public class FSInstructionAnalysis{
     private boolean processIntent(final Z3Engine z3engine, final int ci, final int mi, final int numParLoc, final int numRegLoc, final int nextCode, final int c, final int m, final String shortMethodName,
             final int size){
         BoolExpr h, b, h2, b2, h6, b6;
-        Z3Variable var = z3engine.getVars();
         Map<Integer, BitVecExpr> regUpdate = new HashMap<>();
         Map<Integer, BoolExpr> regUpdateL = new HashMap<>();
         Map<Integer, BoolExpr> regUpdateB = new HashMap<>();
@@ -3142,6 +2896,7 @@ public class FSInstructionAnalysis{
                         var.getV(instruction.getRegisterC()), z3engine.mkBitVector(0, size),
                         var.getV(instruction.getRegisterD()), var.getL(instruction.getRegisterD()), var.getB(instruction.getRegisterD()));
                 z3engine.addRule(z3engine.implies(h2, b2), null);
+                
                 h = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                 b = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                 z3engine.addRule(z3engine.implies(h, b), null);
@@ -3764,6 +3519,12 @@ public class FSInstructionAnalysis{
         return false;
     }
     
+    
+    /*
+     * Local Heap handling functions    
+     */
+    
+    
     private void liftObject(BoolExpr h,Analysis analysis, int allocationPoint){
         Map<Integer,Boolean> fields = analysis.getClassFields(analysis.getAllocationPointClass(allocationPoint), allocationPoint);
         int size = analysis.getSize();
@@ -3838,5 +3599,29 @@ public class FSInstructionAnalysis{
                 );
         b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
         fsengine.addRule(fsengine.implies(h, b), null);
+    }
+
+    private void liftLi(){
+        int size = analysis.getSize();
+        int vecsize = numRegLoc + numParLoc + 1;
+        for (int i = 0; i < vecsize; i++){
+            BoolExpr h = fsengine.mkFalse();
+            for (int j = 0; j < analysis.getLocalHeapNumberEntries(); j++){
+                int instanceNum = analysis.getInstanceNum(j);
+                h = fsengine.or(
+                        h,
+                        fsengine.and(
+                                fsvar.getLHCF(fsengine.getOffset(instanceNum)),
+                                fsengine.eq(fsvar.getV(i), fsengine.mkBitVector(instanceNum, size))
+                                )
+                        );
+            }
+            regUpG.put(i, 
+                    fsengine.or(
+                            fsvar.getG(i),
+                            fsengine.and(fsvar.getL(i),h)
+                            )
+                    );
+        }
     }
 }

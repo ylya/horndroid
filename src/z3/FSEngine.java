@@ -88,7 +88,7 @@ public class FSEngine {
         this.localHeapSize = localHeapSize;
         this.allocationPointOffset = allocationPointOffset;
         this.allocationPointSize = allocationPointSize;
-        // this.var.initialize(localHeapNumberEntries,localHeapSize);
+        this.var.initialize(localHeapSize);
         this.initialized = true;
     }
 
@@ -628,64 +628,51 @@ public class FSEngine {
             final Map<Integer, BoolExpr> rUpGlobal, final Map<Integer, BitVecExpr> lHValues,
             final Map<Integer, BoolExpr> lHHigh, final Map<Integer, BoolExpr> lHLocal,
             final Map<Integer, BoolExpr> lHGlobal, final Map<Integer, BoolExpr> lHFilter, final int numArg,
-            final int numReg) {
+            final int numReg, final int size) {
         try {
-            int size = numArg + numReg + 1; // include return register
-            FuncDecl r = this.rPredDef(c, m, pc, size);
+            int rsize = numArg + numReg + 1; // include return register
+            FuncDecl r = this.rPredDef(c, m, pc, rsize);
 
-            Expr[] e = new Expr[4 * size + 5 * this.localHeapSize];
-            for (int i = 0, j = size, k = 2 * size, l = 3 * size; i < size; i++, j++, k++, l++) {
-                // TODO: return the corresponding variables
+            Expr[] e = new Expr[4 * rsize + 5 * this.localHeapSize];
+            for (int i = 0, j = rsize, k = 2 * rsize, l = 3 * rsize; i < rsize; i++, j++, k++, l++) {
                 e[i] = rUp.get(i);
                 if (e[i] == null) {
-                    e[i] = var.getV(i);
+                    e[i] = this.mkBitVector(0, size);
                 }
                 e[j] = rUpHigh.get(i);
                 if (e[j] == null) {
-                    e[j] = var.getH(i);
-                } // ;System.out.println("FSENgine: rPred: Wrong variables :
-                  // High");};
+                    e[j] = this.mkFalse();
+                }
                 e[k] = rUpLocal.get(i);
                 if (e[k] == null) {
-                    e[k] = var.getL(i);
-                } // ;System.out.println("FSENgine: rPred: Wrong variables :
-                  // Local");};
+                    e[k] = this.mkFalse();
+                }
                 e[l] = rUpGlobal.get(i);
                 if (e[l] == null) {
-                    e[l] = var.getG(i);
-                } // ;System.out.println("FSENgine: rPred: Wrong variables :
-                  // Global");};
+                    e[l] = this.mkFalse();
+                }
             }
             ;
-            for (int i = 4 * size, j = 4 * size + this.localHeapSize, k = 4 * size
-                    + 2 * this.localHeapSize, l = 4 * size + 3 * this.localHeapSize, n = 4 * size
+            for (int i = 4 * rsize, j = 4 * rsize + this.localHeapSize, k = 4 * rsize
+                    + 2 * this.localHeapSize, l = 4 * rsize + 3 * this.localHeapSize, n = 4 * rsize
                             + 4 * this.localHeapSize; i < this.localHeapSize; i++, j++, k++, l++, n++) {
-                // TODO: return the corresponding variables
                 e[i] = lHValues.get(i);
                 if (e[i] == null) {
                     e[i] = var.getLHV(i);
-                } // ;System.out.println("FSENgine: rPred: Wrong variables : LH
-                  // Value");}
+                }
                 e[j] = lHHigh.get(i);
                 if (e[j] == null) {
                     e[j] = var.getLHH(i);
-                } // ;System.out.println("FSENgine: rPred: Wrong variables : LH
-                  // High");};
+                }
                 e[k] = lHLocal.get(i);
                 if (e[k] == null) {
                     e[k] = var.getLHL(i);
-                } // ;System.out.println("FSENgine: rPred: Wrong variables : LH
-                  // Local");};
+                }
                 e[l] = lHGlobal.get(i);
                 if (e[l] == null) {
                     e[l] = var.getLHG(i);
-                } // ;System.out.println("FSENgine: rPred: Wrong variables : LH
-                  // Global");};
-                e[n] = lHFilter.get(i);
-                if (e[n] == null) {
-                    e[l] = var.getLHF(i);
-                } // ;System.out.println("FSENgine: rPred: Wrong variables : LH
-                  // Filter");};
+                }
+                e[n] = this.mkFalse();
             }
             ;
 

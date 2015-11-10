@@ -89,9 +89,11 @@ public class Analysis {
     @Nonnull private final Set<Integer> staticConstructor;
     
     private Map<Integer, Integer> allocationPointNumbers = Collections.synchronizedMap(new HashMap <Integer, Integer>());
+    private Map<Integer, Integer> allocationPointNumbersReverse = Collections.synchronizedMap(new HashMap <Integer, Integer>());
     private Map<Integer, Integer> allocationPointSize = Collections.synchronizedMap(new HashMap <Integer, Integer>());
     private Map<Integer, Integer> allocationPointOffset = Collections.synchronizedMap(new HashMap <Integer, Integer>());
     private Map<Integer, String> allocationPointClass = Collections.synchronizedMap(new HashMap <Integer, String>());
+    
     private Integer localHeapNumberEntries;
     private Integer localHeapSize;
 
@@ -298,6 +300,7 @@ public class Analysis {
             
             allocationPointClass.put(instanceNum,referenceString);
             allocationPointNumbers.put(instanceNum, itNumber);
+            allocationPointNumbersReverse.put(itNumber,instanceNum);
             allocationPointSize.put(instanceNum, fields.size());
             allocationPointOffset.put(instanceNum, offset);
             offset += fields.size() + 1;
@@ -305,6 +308,10 @@ public class Analysis {
         }
         localHeapSize = offset;
         localHeapNumberEntries = itNumber;
+    }
+    
+    public int getInstanceNum(int i){
+        return allocationPointNumbersReverse.get(i);
     }
     
     public int getFieldOffset(int allocationPoint, int fieldIntReference){
@@ -439,12 +446,6 @@ public class Analysis {
 
                 z3engine.addRule(b1tob2, null);
 
-
-                //		    		gen.addMain("(rule (=> " + Utils.iPred(
-                //						"cn", Utils.hexDec64(dc.getType().hashCode(), options.bitvectorSize), "val", "lf", "bf") + ' ' +
-                //				         		Utils.rPred(Integer.toString(dc.getType().hashCode()), Integer.toString(m.getName().hashCode()),
-                //							0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall, gen)
-                //				         		+ "))", dc.getType().hashCode());
             }
 
             if (!isDisabledActivity && isEntryPoint && (isLauncherActivity || isApplication || isOverApprox)){
@@ -582,16 +583,6 @@ public class Analysis {
                 }
 
                 final boolean isci = isCallbackImplementation;
-                //				instructionExecutorService.submit(new Runnable() {
-                //		   			 @Override
-                //		   			 public void run() {
-                //		   				 try {
-                //		   					 processClass(dc, isDisabledActivity, isci, isLauncherActivity, isApplication, isOverapprox);
-                //		   				 } catch (Exception e1) {
-                //							e1.printStackTrace();
-                //		   				 }
-                //		   			 }
-                //		        });
                 processClass(dc, isDisabledActivity, isci, isLauncherActivity, isApplication, isOverapprox);
             }
         }
@@ -678,6 +669,10 @@ public class Analysis {
 
     public int getLocalHeapSize(){
         return localHeapSize;
+    }
+    
+    public int getLocalHeapNumberEntries(){
+        return localHeapNumberEntries;
     }
     
     public Set<DalvikImplementation> getImplementations(final int ci, final int mi){

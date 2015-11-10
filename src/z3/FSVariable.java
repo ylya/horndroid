@@ -11,6 +11,7 @@ public class FSVariable {
 
     private final int GUARD = 100;
     private final int MAX_REGISTER = 68;
+    private int MAX_LOCALHEAP = 0;
 
     //private int localHeapNumberEntries = 0;
     //private int localHeapSize = 0;
@@ -21,7 +22,7 @@ public class FSVariable {
 
     //TODO: Those variables are not the correct one for the FS analysis!
     private final BitVecExpr rez, rezp, buf, bufp, f, fpp, vfp, cn, val;
-    private final BoolExpr lrez, brez, lrezp, lbuf, lbufp, lfp, bfp, lf, bf, lval, bval;
+    private final BoolExpr lrez, hrez, grez, lrezp, lbuf, lbufp, lfp, bfp, lf, bf, lval, bval;
     private final IntExpr fnum, cnum;
 
     public FSVariable(Context ctx, int bvSize) throws Z3Exception {
@@ -35,8 +36,9 @@ public class FSVariable {
         this.rezp = (BitVecExpr) ctx.mkBound(1, bv64);
         this.buf = (BitVecExpr) ctx.mkBound(2, bv64);
         this.bufp = (BitVecExpr) ctx.mkBound(3, bv64);
-        this.lrez = (BoolExpr) ctx.mkBound(4, bool);
-        this.brez = (BoolExpr) ctx.mkBound(5, bool);
+        this.hrez = (BoolExpr) ctx.mkBound(4, bool);
+        this.lrez = (BoolExpr) ctx.mkBound(5, bool);
+        this.grez = (BoolExpr) ctx.mkBound(25, bool);
         this.lrezp = (BoolExpr) ctx.mkBound(6, bool);
         this.lbuf = (BoolExpr) ctx.mkBound(7, bool);
         this.lbufp = (BoolExpr) ctx.mkBound(8, bool);
@@ -56,12 +58,11 @@ public class FSVariable {
 
     }
 
-    /*
-    public void initialize(Integer localHeapNumberEntries, Integer localHeapSize) { 
-        this.localHeapNumberEntries = localHeapNumberEntries;
-        this.localHeapSize = localHeapSize;
+    
+    public void initialize( Integer localHeapSize) { 
+        this.MAX_LOCALHEAP = localHeapSize;
     }
-    */
+    
 
     public BitVecExpr getRez() {
         return rez;
@@ -103,8 +104,12 @@ public class FSVariable {
         return lrez;
     }
 
-    public BoolExpr getBrez() {
-        return brez;
+    public BoolExpr getHrez() {
+        return hrez;
+    }
+
+    public BoolExpr getGrez() {
+        return grez;
     }
 
     public BoolExpr getLrezp() {
@@ -317,4 +322,97 @@ public class FSVariable {
             }
         };
     }
+    
+    // Copie of local heap variables
+    public BitVecExpr getLHCV(int i) {
+        try {
+            // if (i < 0) return ctx.mkBV(-1*i, bv64);
+            return (BitVecExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP + 5 * i + 0, bv64);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("getLHCV");
+        }
+    }
+
+    public VariableInject GetInjectLHCV(final FSVariable var) {
+        return new VariableInject() {
+            @Override
+            public BitVecExpr get(int i) {
+                return var.getLHCV(i);
+            }
+        };
+    }
+
+    public BoolExpr getLHCH(int i) {
+        try {
+            return (BoolExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP + 5 * i + 1, bool);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("getLHCH");
+        }
+    }
+
+    public VariableInject GetInjectLHCH(final FSVariable var) {
+        return new VariableInject() {
+            @Override
+            public BoolExpr get(int i) {
+                return var.getLHCH(i);
+            }
+        };
+    }
+
+    public BoolExpr getLHCL(int i) {
+        try {
+            return (BoolExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP + 5 * i + 2, bool);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("getLHCL");
+        }
+    }
+
+    public VariableInject GetInjectLHCL(final FSVariable var) {
+        return new VariableInject() {
+            @Override
+            public BoolExpr get(int i) {
+                return var.getLHCL(i);
+            }
+        };
+    }
+
+    public BoolExpr getLHCG(int i) {
+        try {
+            return (BoolExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP + 5 * i + 3, bool);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("getLHCG");
+        }
+    }
+
+    public VariableInject GetInjectLHCG(final FSVariable var) {
+        return new VariableInject() {
+            @Override
+            public BoolExpr get(int i) {
+                return var.getLHCG(i);
+            }
+        };
+    }
+
+    public BoolExpr getLHCF(int i) {
+        try {
+            return (BoolExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP +  5 * i + 4, bool);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("getLHCF");
+        }
+    }
+
+    public VariableInject GetInjectLHCF(final FSVariable var) {
+        return new VariableInject() {
+            @Override
+            public BoolExpr get(int i) {
+                return var.getLHCF(i);
+            }
+        };
+    }
+
 }
