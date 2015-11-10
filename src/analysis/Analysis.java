@@ -181,9 +181,7 @@ public class Analysis {
     public  Set<Integer> getLauncherActivities(){
         return launcherActivities;
     }
-    //	public Gen getGen(){
-    //		return gen;
-    //	}
+
     public Z3Engine getZ3Engine(){
         return z3engine;
     }
