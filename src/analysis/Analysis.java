@@ -4,7 +4,6 @@ import com.microsoft.z3.BitVecExpr;
 import com.microsoft.z3.BoolExpr;
 import horndroid.options;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -13,7 +12,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-//import java.util.concurrent.Executors;
 
 import javax.annotation.Nonnull;
 
@@ -53,6 +51,7 @@ import payload.SparseSwitch;
 import strings.ConstString;
 import util.*;
 import z3.FSEngine;
+import z3.FSVariable;
 import z3.Z3Engine;
 import z3.Z3Variable;
 
@@ -72,10 +71,11 @@ public class Analysis {
     final private Set<Integer> overapprox;
     final private Set<SourceSinkMethod> sourcesSinks;
     final private options options;
-    //    final private Gen gen;
     final private Z3Engine z3engine;
     final private FSEngine fsengine;
     final private Z3Variable var;
+    final private FSVariable fsvar;
+    
     final ExecutorService instructionExecutorService;
     private final Set<CMPair> refSources;
     private final Set<CMPair> refSinks;
@@ -118,11 +118,10 @@ public class Analysis {
         this.overapprox = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>()));
         this.instructionExecutorService = instructionExecutorService;
         this.sourcesSinks = sourcesSinks;
-        //HERE
-        //		this.gen = gen;
         this.z3engine = z3engine;
         this.fsengine = fsengine;
         this.var = z3engine.getVars();
+        this.fsvar = fsengine.getVars();
         this.options = options;
 
 
@@ -183,6 +182,9 @@ public class Analysis {
     }
 
     public Z3Engine getZ3Engine(){
+        if (options.fsanalysis){
+            throw (new RuntimeException("Requested Z3Engine during a FS analysis"));
+        }
         return z3engine;
     }
     public int getSize(){
@@ -374,20 +376,50 @@ public class Analysis {
                 return instance.hashCode();
         return null;
     }
+    
     private void addToMain(final DalvikClass dc, final int methodIndex, final int numRegCall, final int regCount){
         final int classIndex = dc.getType().hashCode();
-        Map<Integer, BitVecExpr> regUpdate = new HashMap<>();
-        Map<Integer, BoolExpr> regUpdateL = new HashMap<>();
-        Map<Integer, BoolExpr> regUpdateB = new HashMap<>();
-        for (int i = 0; i<= numRegCall + regCount; i++){
-            regUpdateL.put(i, z3engine.mkFalse());
-        }
+        if (options.fsanalysis){
+            Map<Integer, BitVecExpr> regUpV = new HashMap<>();
+            Map<Integer, BoolExpr> regUpH = new HashMap<>();
+            Map<Integer, BoolExpr> regUpL = new HashMap<>();
+            Map<Integer, BoolExpr> regUpG = new HashMap<>();
+            Map<Integer, BitVecExpr> regUpLHV = new HashMap<>();
+            Map<Integer, BoolExpr> regUpLHH = new HashMap<>();
+            Map<Integer, BoolExpr> regUpLHL = new HashMap<>();
+            Map<Integer, BoolExpr> regUpLHG = new HashMap<>();
+            Map<Integer, BoolExpr> regUpLHF = new HashMap<>();
 
-        BoolExpr b1 = z3engine.rPred(Integer.toString(classIndex), Integer.toString(methodIndex),
-                0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall);
-        z3engine.addRule(b1, dc.toString() + methodIndex + "zz");
+            for (int i = 0; i<= numRegCall + regCount; i++){
+                regUpH.put(i, fsengine.mkFalse());
+            }
+            
+            for (int i = 0; i < this.getLocalHeapSize(); i++){
+                regUpLHV.put(i, fsengine.mkBitVector(0, this.getSize()));
+                regUpLHH.put(i, fsengine.mkFalse());
+                regUpLHL.put(i, fsengine.mkFalse());
+                regUpLHG.put(i, fsengine.mkFalse());
+                regUpLHF.put(i, fsengine.mkFalse());
+            }
+            
+            BoolExpr h = fsengine.rPred(Integer.toString(classIndex), Integer.toString(methodIndex), 0, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, regCount, numRegCall);
+            fsengine.addRule(h, dc.toString() + methodIndex + "zz");
+        }else{
+            Map<Integer, BitVecExpr> regUpdate = new HashMap<>();
+            Map<Integer, BoolExpr> regUpdateL = new HashMap<>();
+            Map<Integer, BoolExpr> regUpdateB = new HashMap<>();
+            for (int i = 0; i<= numRegCall + regCount; i++){
+                regUpdateL.put(i, z3engine.mkFalse());
+            }
+
+            BoolExpr b1 = z3engine.rPred(Integer.toString(classIndex), Integer.toString(methodIndex),
+                    0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall);
+            z3engine.addRule(b1, dc.toString() + methodIndex + "zz");
+        }
     }
+    
     private void addToMainHeap(final DalvikClass dc, final int methodIndex, final int numRegCall, final int regCount){
+        /*
         final int classIndex = dc.getType().hashCode();
         Map<Integer, BitVecExpr> regUpdate = new HashMap<>();
         Map<Integer, BoolExpr> regUpdateL = new HashMap<>();
@@ -399,11 +431,21 @@ public class Analysis {
         BoolExpr b1 = z3engine.rPred(Integer.toString(classIndex), Integer.toString(methodIndex),
                 0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall);
         z3engine.addRule(b1, null);
-
-        BoolExpr b2 = z3engine.hPred( z3engine.mkBitVector(classIndex, options.bitvectorSize),
-                var.getFpp(), var.getF(), var.getVal(),
-                z3engine.mkFalse(), z3engine.mkTrue());
-        z3engine.addRule(b2, null);
+        */
+        this.addToMain(dc, methodIndex, numRegCall, regCount);
+        
+        final int classIndex = dc.getType().hashCode();
+        if (options.fsanalysis){
+            BoolExpr b2 = fsengine.hPred( fsengine.mkBitVector(classIndex, options.bitvectorSize),
+                    fsvar.getFpp(), fsvar.getF(), fsvar.getVal(),
+                    fsengine.mkFalse(), fsengine.mkTrue());
+            fsengine.addRule(b2, null);
+        }else{
+            BoolExpr b2 = z3engine.hPred( z3engine.mkBitVector(classIndex, options.bitvectorSize),
+                    var.getFpp(), var.getF(), var.getVal(),
+                    z3engine.mkFalse(), z3engine.mkTrue());
+            z3engine.addRule(b2, null);
+        }
     }
 
 
@@ -422,28 +464,59 @@ public class Analysis {
             }
 
             if (isEntryPoint){
-                Map<Integer, BitVecExpr> regUpdate = new HashMap<>();
-                Map<Integer, BoolExpr> regUpdateL = new HashMap<>();
-                Map<Integer, BoolExpr> regUpdateB = new HashMap<>();
                 final int numRegCall = m.getNumReg();
                 final int regCount = m.getNumArg();
-                int i;
-                for (i = 0; i<= numRegCall + regCount; i++){
-                    regUpdateL.put(i, z3engine.mkFalse());
+                if(options.fsanalysis){
+                    Map<Integer, BitVecExpr> regUpV = new HashMap<>();
+                    Map<Integer, BoolExpr> regUpH = new HashMap<>();
+                    Map<Integer, BoolExpr> regUpL = new HashMap<>();
+                    Map<Integer, BoolExpr> regUpG = new HashMap<>();
+                    Map<Integer, BitVecExpr> regUpLHV = new HashMap<>();
+                    Map<Integer, BoolExpr> regUpLHH = new HashMap<>();
+                    Map<Integer, BoolExpr> regUpLHL = new HashMap<>();
+                    Map<Integer, BoolExpr> regUpLHG = new HashMap<>();
+                    Map<Integer, BoolExpr> regUpLHF = new HashMap<>();
+
+                    for (int i = 0; i<= numRegCall + regCount; i++){
+                        regUpH.put(i, fsengine.mkFalse());
+                    }
+                    
+                    for (int i = 0; i < this.getLocalHeapSize(); i++){
+                        regUpLHV.put(i, fsengine.mkBitVector(0, this.getSize()));
+                        regUpLHH.put(i, fsengine.mkFalse());
+                        regUpLHL.put(i, fsengine.mkFalse());
+                        regUpLHG.put(i, fsengine.mkFalse());
+                        regUpLHF.put(i, fsengine.mkFalse());
+                    }
+                    
+                    BoolExpr b1 = fsengine.iPred(fsvar.getCn(),
+                            fsengine.mkBitVector(dc.getType().hashCode(), options.bitvectorSize),
+                            fsvar.getVal(), fsvar.getLf(), fsvar.getBf());
+                    
+                    BoolExpr b2 = fsengine.rPred(Integer.toString(dc.getType().hashCode()), Integer.toString(m.getName().hashCode()), 0, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, regCount, numRegCall);
+                
+                    fsengine.addRule(fsengine.implies(b1, b2), null);
+                }else{
+                    Map<Integer, BitVecExpr> regUpdate = new HashMap<>();
+                    Map<Integer, BoolExpr> regUpdateL = new HashMap<>();
+                    Map<Integer, BoolExpr> regUpdateB = new HashMap<>();
+                    int i;
+                    for (i = 0; i<= numRegCall + regCount; i++){
+                        regUpdateL.put(i, z3engine.mkFalse());
+                    }
+
+                    BoolExpr b1 = z3engine.iPred(var.getCn(),
+                            z3engine.mkBitVector(dc.getType().hashCode(), options.bitvectorSize),
+                            var.getVal(), var.getLf(), var.getBf());
+
+                    BoolExpr b2 = z3engine.rPred(Integer.toString(dc.getType().hashCode()),
+                            Integer.toString(m.getName().hashCode()),
+                            0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall);
+
+                    BoolExpr b1tob2 = z3engine.implies(b1, b2);
+
+                    z3engine.addRule(b1tob2, null);
                 }
-
-                BoolExpr b1 = z3engine.iPred(var.getCn(),
-                        z3engine.mkBitVector(dc.getType().hashCode(), options.bitvectorSize),
-                        var.getVal(), var.getLf(), var.getBf());
-
-                BoolExpr b2 = z3engine.rPred(Integer.toString(dc.getType().hashCode()),
-                        Integer.toString(m.getName().hashCode()),
-                        0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall);
-
-                BoolExpr b1tob2 = z3engine.implies(b1, b2);
-
-                z3engine.addRule(b1tob2, null);
-
             }
 
             if (!isDisabledActivity && isEntryPoint && (isLauncherActivity || isApplication || isOverApprox)){
@@ -456,8 +529,13 @@ public class Analysis {
 
             int codeAddress = 0;
             for (final Instruction instruction: m.getInstructions()){
-                InstructionAnalysis ia = new InstructionAnalysis(this, instruction, dc, m, codeAddress);
-                ia.CreateHornClauses();
+                if (options.fsanalysis){
+                    FSInstructionAnalysis ia = new FSInstructionAnalysis(this, instruction, dc, m, codeAddress);
+                    ia.CreateHornClauses();
+                }else{
+                    InstructionAnalysis ia = new InstructionAnalysis(this, instruction, dc, m, codeAddress);
+                    ia.CreateHornClauses();                    
+                }
                 codeAddress += instruction.getCodeUnits();
             }
         }
@@ -860,15 +938,19 @@ public class Analysis {
             if (initialValue != null) {
                 final String fieldName = ReferenceUtil.getShortFieldDescriptor(field);
                 final int classIndex = classDef.getType().hashCode();
-                //        		gen.addMain("(rule (S " + Utils.Dec(classIndex) + ' ' + Utils.Dec(fieldName.hashCode())+ " " + FormatEncodedValue.toString(initialValue, options.bitvectorSize) + " false bf))",
-                //        				classIndex);
-                BoolExpr rule = z3engine.sPred( z3engine.mkInt(Utils.Dec(classIndex)),
-                        z3engine.mkInt(Utils.Dec(fieldName.hashCode())),
-                        //                                             z3engine.mkBitVector(FormatEncodedValue.toString(initialValue, options.bitvectorSize), options.bitvectorSize),
-                        FormatEncodedValue.toBitVec(z3engine, initialValue, options.bitvectorSize),
-                        z3engine.mkFalse(), var.getBf());
-                z3engine.addRule(rule, null);
-
+                if (options.fsanalysis){
+                    BoolExpr rule = fsengine.sPred( fsengine.mkInt(Utils.Dec(classIndex)),
+                            fsengine.mkInt(Utils.Dec(fieldName.hashCode())),
+                            FormatEncodedValue.toBitVec(fsengine, initialValue, options.bitvectorSize),
+                            fsengine.mkFalse(), fsvar.getBf());
+                    fsengine.addRule(rule, null);
+                }else{
+                    BoolExpr rule = z3engine.sPred( z3engine.mkInt(Utils.Dec(classIndex)),
+                            z3engine.mkInt(Utils.Dec(fieldName.hashCode())),
+                            FormatEncodedValue.toBitVec(z3engine, initialValue, options.bitvectorSize),
+                            z3engine.mkFalse(), var.getBf());
+                    z3engine.addRule(rule, null);
+                }
                 DalvikStaticField dsf = new DalvikStaticField(ReferenceUtil.getShortFieldDescriptor(field), FormatEncodedValue.toString(initialValue, options.bitvectorSize));
                 dalvikFields.add(dsf);
             }

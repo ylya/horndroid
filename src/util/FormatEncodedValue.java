@@ -18,6 +18,8 @@ import org.jf.dexlib2.iface.value.LongEncodedValue;
 import org.jf.dexlib2.iface.value.ShortEncodedValue;
 import org.jf.dexlib2.iface.value.StringEncodedValue;
 import org.jf.dexlib2.util.ReferenceUtil;
+
+import z3.FSEngine;
 import z3.Z3Engine;
 
 public class FormatEncodedValue {
@@ -114,6 +116,53 @@ public class FormatEncodedValue {
                 return z3.mkBitVector("", size);
         }
         return z3.mkBitVector("", size);
+    }
+
+    public static BitVecExpr toBitVec(FSEngine fs, EncodedValue encodedValue, int size)  {
+        long lVal;
+        switch (encodedValue.getValueType()) {
+            case ValueType.ANNOTATION:
+            case ValueType.ARRAY:
+                return fs.mkBitVector("", size);
+
+            case ValueType.BOOLEAN:
+                if (((BooleanEncodedValue)encodedValue).getValue()) {
+                    return fs.mkBitVector(1, size);
+                } else {
+                    return fs.mkBitVector(0, size);
+                }
+            case ValueType.BYTE:
+                lVal = (long) ((ByteEncodedValue)encodedValue).getValue();
+                return fs.mkBitVector(lVal, size);
+            case ValueType.CHAR:
+                lVal = (long) ((CharEncodedValue)encodedValue).getValue();
+                return fs.mkBitVector(lVal, size);
+            case ValueType.DOUBLE:
+                lVal = Double.doubleToRawLongBits(((DoubleEncodedValue)encodedValue).getValue());
+                return fs.mkBitVector(lVal, size);
+            case ValueType.ENUM:
+                return fs.mkBitVector(ReferenceUtil.getShortFieldDescriptor(((EnumEncodedValue)encodedValue).getValue()).hashCode(), size);
+            case ValueType.FIELD:
+                return fs.mkBitVector(ReferenceUtil.getShortFieldDescriptor(((FieldEncodedValue)encodedValue).getValue()).hashCode(), size);
+            case ValueType.FLOAT:
+                lVal = (long) Float.floatToRawIntBits(((FloatEncodedValue)encodedValue).getValue());
+                return fs.mkBitVector(lVal, size);
+            case ValueType.INT:
+                return fs.mkBitVector((long)((IntEncodedValue)encodedValue).getValue(), size);
+            case ValueType.LONG:
+                return fs.mkBitVector(((LongEncodedValue)encodedValue).getValue(), size);
+            case ValueType.METHOD:
+                return fs.mkBitVector("", size);
+            case ValueType.NULL:
+                return fs.mkBitVector((long) 0, size);
+            case ValueType.SHORT:
+                return fs.mkBitVector((long) ((ShortEncodedValue)encodedValue).getValue(), size);
+            case ValueType.STRING:
+                return fs.mkBitVector(((StringEncodedValue)encodedValue).getValue().hashCode(), size);
+            case ValueType.TYPE:
+                return fs.mkBitVector("", size);
+        }
+        return fs.mkBitVector("", size);
     }
 
 }

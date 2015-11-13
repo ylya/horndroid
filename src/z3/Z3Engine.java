@@ -19,7 +19,6 @@ public class Z3Engine  implements Z3Clauses {
     final private boolean QUERY_IS_COMPACT = false;
 
     private Context mContext;
-    //    private Fixedpoint mFixedPoint;
     private ArrayList<BoolExpr> mRules;
     private ArrayList<FuncDecl> mFuncs;
 
@@ -29,13 +28,6 @@ public class Z3Engine  implements Z3Clauses {
     private int bvSize;
     private Z3Variable var;
     private Z3Function func;
-
-    //legacy
-    //private int biggestRegisterNumber;
-    //public void updateBiggestRegister(final int i){
-    //    if (i > this.biggestRegisterNumber) biggestRegisterNumber = i;
-    //}
-
 
 
     public Z3Engine(options options){
