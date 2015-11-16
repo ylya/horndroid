@@ -586,7 +586,7 @@ public class FSEngine {
             ;
             for (int i = 4 * size, j = 4 * size + this.localHeapSize, k = 4 * size
                     + 2 * this.localHeapSize, l = 4 * size + 3 * this.localHeapSize, n = 4 * size
-                            + 4 * this.localHeapSize; i < this.localHeapSize; i++, j++, k++, l++, n++) {
+                            + 4 * this.localHeapSize; i < 4 * size + this.localHeapSize; i++, j++, k++, l++, n++) {
                 // TODO: return the corresponding variables
                 e[i] = lHValues.get(i);
                 if (e[i] == null) {
@@ -610,13 +610,14 @@ public class FSEngine {
                   // Global");};
                 e[n] = lHFilter.get(i);
                 if (e[n] == null) {
-                    e[l] = var.getLHF(i);
+                    e[n] = var.getLHF(i);
                 } // ;System.out.println("FSENgine: rPred: Wrong variables : LH
                   // Filter");};
             }
             ;
-
-            return (BoolExpr) r.apply(e);
+            BoolExpr rez = null;
+            rez = (BoolExpr) r.apply(e);   
+            return rez;
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("FSEngine Failed: rPred");
@@ -655,7 +656,7 @@ public class FSEngine {
             ;
             for (int i = 4 * rsize, j = 4 * rsize + this.localHeapSize, k = 4 * rsize
                     + 2 * this.localHeapSize, l = 4 * rsize + 3 * this.localHeapSize, n = 4 * rsize
-                            + 4 * this.localHeapSize; i < this.localHeapSize; i++, j++, k++, l++, n++) {
+                            + 4 * this.localHeapSize; i < 4 * rsize + this.localHeapSize; i++, j++, k++, l++, n++) {
                 e[i] = lHValues.get(i);
                 if (e[i] == null) {
                     e[i] = var.getLHV(i);
@@ -673,6 +674,7 @@ public class FSEngine {
                     e[l] = var.getLHG(i);
                 }
                 e[n] = this.mkFalse();
+             
             }
             ;
 
@@ -739,7 +741,7 @@ public class FSEngine {
 
             for (int i = 4 * size, j = 4 * size + this.localHeapSize, k = 4 * size
                     + 2 * this.localHeapSize, l = 4 * size + 3 * this.localHeapSize, n = 4 * size
-                            + 4 * this.localHeapSize; i < this.localHeapSize; i++, j++, k++, l++, n++) {
+                            + 4 * this.localHeapSize; i < 4 * size + this.localHeapSize; i++, j++, k++, l++, n++) {
                 e[i] = lHValues.get(i);
                 if (e[i] == null) {
                     e[i] = var.getLHV(i);

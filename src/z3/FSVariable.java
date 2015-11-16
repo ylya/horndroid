@@ -10,8 +10,8 @@ import java.util.ArrayList;
 public class FSVariable {
 
     private final int GUARD = 100;
-    private final int MAX_REGISTER = 68;
-    private int MAX_LOCALHEAP = 0;
+    public final int MAX_REGISTER = 68;
+    public int MAX_LOCALHEAP = 0;
 
     //private int localHeapNumberEntries = 0;
     //private int localHeapSize = 0;

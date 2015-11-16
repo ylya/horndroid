@@ -2,11 +2,13 @@ package analysis;
 
 import com.microsoft.z3.BitVecExpr;
 import com.microsoft.z3.BoolExpr;
+
 import horndroid.options;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -281,11 +283,12 @@ public class Analysis {
         Integer itNumber = 0;
         Integer offset = 0;
         for (DalvikInstance i : instances){
-            Integer instanceNum = i.hashCode();
-            ImmutableList<Instruction> instructions = getExactMethod(i.getC(),i.getM()).getInstructions();
-            Instruction instruction = instructions.get(i.getPC());   
+            final int instanceNum = i.hashCode();
+            final String referenceString = i.getType().getType();
+            //ImmutableList<Instruction> instructions = getExactMethod(i.getC(),i.getM()).getInstructions();
+            //Instruction instruction = instructions.get(i.getPC());   
             
-            String referenceString = null;
+            /*String referenceString = null;
             if (instruction instanceof ReferenceInstruction) {
                 ReferenceInstruction referenceInstruction = (ReferenceInstruction)instruction;
                 Reference reference = referenceInstruction.getReference();
@@ -295,9 +298,13 @@ public class Analysis {
             }
             else{
                 throw new RuntimeException("initializeAllocationMapping: Failed");
-            }
-            Set<Integer> fields = this.getClassFields(referenceString, instanceNum).keySet();
-            
+            }*/
+            final Map<Integer, Boolean> fieldsMap = getClassFields(referenceString, instanceNum);
+            Set<Integer> fields = null;
+            if (fieldsMap != null)
+                fields = getClassFields(referenceString, instanceNum).keySet();
+            else
+                fields = new HashSet<Integer>();
             allocationPointClass.put(instanceNum,referenceString);
             allocationPointNumbers.put(instanceNum, itNumber);
             allocationPointNumbersReverse.put(itNumber,instanceNum);

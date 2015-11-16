@@ -1116,6 +1116,8 @@ public class FSInstructionAnalysis{
             //Object on local heap
             for (int allocationPoint : analysis.getAllocationPoints()){
                 //we do not generate rules if class of the object allocated at 'allocationPoint' has no entry for the field allocated by the dalvik instruction
+         
+                if (analysis.getClassFields(analysis.getAllocationPointClass(allocationPoint),allocationPoint) != null)
                 if (analysis.getClassFields(analysis.getAllocationPointClass(allocationPoint),allocationPoint).containsKey(referenceIntIndex)){
                     h = fsengine.and(
                             fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
@@ -1190,6 +1192,7 @@ public class FSInstructionAnalysis{
             
             for (int allocationPoint : analysis.getAllocationPoints()){
                 //we do not generate rules if class of the object allocated at 'allocationPoint' has no entry for the field allocated by the dalvik instruction
+                if (analysis.getClassFields(analysis.getAllocationPointClass(allocationPoint),allocationPoint) != null)
                 if (analysis.getClassFields(analysis.getAllocationPointClass(allocationPoint),allocationPoint).containsKey(referenceIntIndex)){
                     h = fsengine.and(
                             fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
@@ -1298,9 +1301,8 @@ public class FSInstructionAnalysis{
             
             else {
                 returnLabel = analysis.isSource(referenceClassIndex, referenceIntIndex) ? fsengine.mkTrue() : getLabels();
-                Boolean highRegBool = false;
                 
-                this.invokeImpNotKnown(returnLabel, highRegBool, ci, mi, false);
+                this.invokeImpNotKnown(returnLabel, ci, mi, false);
             }
             break;
 
@@ -1322,9 +1324,8 @@ public class FSInstructionAnalysis{
             }
             else{
                 returnLabel = analysis.isSource(referenceClassIndex, referenceIntIndex) ? fsengine.mkTrue() : getLabelsRange();
-                Boolean highRegBool = true;
                 
-                this.invokeImpNotKnown(returnLabel, highRegBool, ci, mi, true);
+                this.invokeImpNotKnown(returnLabel, ci, mi, true);
             }
             break;
 
@@ -1385,9 +1386,8 @@ public class FSInstructionAnalysis{
                 this.staticInvokeImpKnown(staticDefinitions, false);
             } else {
                 returnLabel = analysis.isSource(referenceClassIndex, referenceIntIndex) ? fsengine.mkTrue() : getLabels();
-                Boolean highRegBool = true;
 
-                this.invokeImpNotKnown(returnLabel, highRegBool, ci, mi, false);    
+                this.invokeImpNotKnown(returnLabel, ci, mi, false);    
             }
             break;
             //((short)0x6e, "invoke-virtual", ReferenceType.METHOD, Format.Format35c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_RESULT),
@@ -1402,9 +1402,7 @@ public class FSInstructionAnalysis{
                 this.staticInvokeImpKnown(staticDefinitions, true);
             } else {
                     returnLabel = analysis.isSource(referenceClassIndex, referenceIntIndex) ? fsengine.mkTrue() : getLabelsRange();
-                    Boolean highRegBool = true;
-
-                    this.invokeImpNotKnown(returnLabel, highRegBool, ci, mi, true);
+                    this.invokeImpNotKnown(returnLabel, ci, mi, true);
             }
             break;//((short)0x74, "invoke-virtual/range", ReferenceType.METHOD, Format.Format3rc, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_RESULT),
 
@@ -1806,7 +1804,7 @@ public class FSInstructionAnalysis{
         case SPARSE_SWITCH_PAYLOAD://((short)0x200, "sparse-switch-payload", ReferenceType.NONE, Format.SparseSwitchPayload, 0),
         case ARRAY_PAYLOAD://((short)0x300, "array-payload", ReferenceType.NONE, Format.ArrayPayload, 0);
         default:
-            throw new RuntimeException("FSInstructionAnalysis: unsuported instruction" + opcode);
+            System.err.println("FSInstructionAnalysis: unsuported instruction" + opcode);
         }
     }
 
@@ -2416,7 +2414,7 @@ public class FSInstructionAnalysis{
     /*
      * implementations: set of implementations of the invoked method
      */
-    private void invokeImpKnown( int referenceReg, Set<DalvikImplementation> implementations, Boolean range){
+    private void invokeImpKnown(final int referenceReg, final Set<DalvikImplementation> implementations, final Boolean range){
         int size = analysis.getSize();
         //int referenceIntIndex = referenceString.hashCode();
         //String referenceIndex = Utils.Dec(referenceIntIndex);
@@ -2555,7 +2553,7 @@ public class FSInstructionAnalysis{
     }
 
     
-    private void invokeImpNotKnown(BoolExpr returnLabel, Boolean highRegBool, int ci, int mi, Boolean range){
+    private void invokeImpNotKnown(BoolExpr returnLabel, int ci, int mi, Boolean range){
         int size = analysis.getSize();
         
         if (analysis.isSink(referenceClassIndex, referenceIntIndex)){
@@ -2628,7 +2626,7 @@ public class FSInstructionAnalysis{
             }
         }
         
-        regUpH = highReg(highRegBool, regUpH);
+        regUpH = highReg(range, regUpH);
 
         BoolExpr b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
         fsengine.addRule(fsengine.implies(subh, b), null);

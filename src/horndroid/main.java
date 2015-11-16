@@ -51,6 +51,7 @@ public class main {
     static {
         options = new Options();
         options.addOption("q", false, "precise query results");
+        options.addOption("f", false, "flow-sensitive heap");
         options.addOption("w", false, "sensitive array indexes");
         options.addOption("s", true, "number of queries per file, run Z3 in parallel saving results to the /out folder");
         options.addOption("n", true, "bitvector size (default 64)");
@@ -196,8 +197,11 @@ public class main {
             //            BoolExpr alwaysTrue = z3engine.eq(b, z3engine.mkFalse());
             //            z3engine.addQuery(new Z3Query(alwaysTrue, "Always True", false));
 
-
-            z3engine.executeAllQueries();
+            if (!hornDroidOptions.fsanalysis)
+                z3engine.executeAllQueries();
+            else
+                fsengine.executeAllQueries();
+            
             endTime = System.nanoTime();
             System.out.println("...done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
 
@@ -394,6 +398,9 @@ public class main {
             case 'q':
                 hornDroidOptions.verboseResults = true;
                 break;
+            case 'f':
+                hornDroidOptions.fsanalysis = true;
+                break;
             case 's':
                 hornDroidOptions.numQueries = Integer.parseInt(commandLine.getOptionValue("s"));;
                 break;
@@ -448,6 +455,7 @@ public class main {
         System.out.println("java -jar HornDroid.jar [options] %Z3Home%/bin %apktool%/ <apk-file> | <apk-folder> \n finds leaks in the app");
         System.out.println("options:");
         System.out.println("-q precise query results");
+        System.out.println("-f flow-sensitive heap");
         System.out.println("-w sensitive array indexes");
         System.out.println("-s one query per file, run Z3 in parallel saving results to the /out folder");
         System.out.println("-n bitvector size (default 64)");
