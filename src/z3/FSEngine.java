@@ -1,7 +1,6 @@
 package z3;
 
 import com.microsoft.z3.*;
-//import com.sun.org.apache.xpath.internal.operations.Bool;
 
 import horndroid.options;
 
@@ -584,39 +583,34 @@ public class FSEngine {
                   // Global");};
             }
             ;
-            for (int i = 4 * size, j = 4 * size + this.localHeapSize, k = 4 * size
+            for (int loop = 0,  i = 4 * size, j = 4 * size + this.localHeapSize, k = 4 * size
                     + 2 * this.localHeapSize, l = 4 * size + 3 * this.localHeapSize, n = 4 * size
-                            + 4 * this.localHeapSize; i < 4 * size + this.localHeapSize; i++, j++, k++, l++, n++) {
-                // TODO: return the corresponding variables
-                e[i] = lHValues.get(i);
+                            + 4 * this.localHeapSize; loop < this.localHeapSize; loop++, i++, j++, k++, l++, n++) {
+                e[i] = lHValues.get(loop);
                 if (e[i] == null) {
-                    e[i] = var.getLHV(i);
-                } // ;System.out.println("FSENgine: rPred: Wrong variables : LH
-                  // Value");}
-                e[j] = lHHigh.get(i);
+                    e[i] = var.getLHV(loop);
+                }
+                e[j] = lHHigh.get(loop);
                 if (e[j] == null) {
-                    e[j] = var.getLHH(i);
-                } // ;System.out.println("FSENgine: rPred: Wrong variables : LH
-                  // High");};
-                e[k] = lHLocal.get(i);
+                    e[j] = var.getLHH(loop);
+                }
+                e[k] = lHLocal.get(loop);
                 if (e[k] == null) {
-                    e[k] = var.getLHL(i);
-                } // ;System.out.println("FSENgine: rPred: Wrong variables : LH
-                  // Local");};
-                e[l] = lHGlobal.get(i);
+                    e[k] = var.getLHL(loop);
+                }
+                e[l] = lHGlobal.get(loop);
                 if (e[l] == null) {
-                    e[l] = var.getLHG(i);
-                } // ;System.out.println("FSENgine: rPred: Wrong variables : LH
-                  // Global");};
-                e[n] = lHFilter.get(i);
+                    e[l] = var.getLHG(loop);
+                }
+                e[n] = lHFilter.get(loop);
                 if (e[n] == null) {
-                    e[n] = var.getLHF(i);
-                } // ;System.out.println("FSENgine: rPred: Wrong variables : LH
-                  // Filter");};
+                    e[n] = var.getLHF(loop);
+                }
             }
             ;
-            BoolExpr rez = null;
-            rez = (BoolExpr) r.apply(e);   
+            BoolExpr rez = (BoolExpr) r.apply(e); 
+            
+            this.addQuery(new Z3Query(rez, c + ' ' + m + ' ' +Integer.toString(pc), true, c, m, Integer.toString(pc), ""));
             return rez;
         } catch (Z3Exception e) {
             e.printStackTrace();
@@ -654,24 +648,24 @@ public class FSEngine {
                 }
             }
             ;
-            for (int i = 4 * rsize, j = 4 * rsize + this.localHeapSize, k = 4 * rsize
+            for (int loop = 0, i = 4 * rsize, j = 4 * rsize + this.localHeapSize, k = 4 * rsize
                     + 2 * this.localHeapSize, l = 4 * rsize + 3 * this.localHeapSize, n = 4 * rsize
-                            + 4 * this.localHeapSize; i < 4 * rsize + this.localHeapSize; i++, j++, k++, l++, n++) {
-                e[i] = lHValues.get(i);
+                            + 4 * this.localHeapSize; loop < this.localHeapSize; loop++, i++, j++, k++, l++, n++) {
+                e[i] = lHValues.get(loop);
                 if (e[i] == null) {
-                    e[i] = var.getLHV(i);
+                    e[i] = var.getLHV(loop);
                 }
-                e[j] = lHHigh.get(i);
+                e[j] = lHHigh.get(loop);
                 if (e[j] == null) {
-                    e[j] = var.getLHH(i);
+                    e[j] = var.getLHH(loop);
                 }
-                e[k] = lHLocal.get(i);
+                e[k] = lHLocal.get(loop);
                 if (e[k] == null) {
-                    e[k] = var.getLHL(i);
+                    e[k] = var.getLHL(loop);
                 }
-                e[l] = lHGlobal.get(i);
+                e[l] = lHGlobal.get(loop);
                 if (e[l] == null) {
-                    e[l] = var.getLHG(i);
+                    e[l] = var.getLHG(loop);
                 }
                 e[n] = this.mkFalse();
              
@@ -739,31 +733,32 @@ public class FSEngine {
             }
             ;
 
-            for (int i = 4 * size, j = 4 * size + this.localHeapSize, k = 4 * size
+            for (int loop = 0, i = 4 * size, j = 4 * size + this.localHeapSize, k = 4 * size
                     + 2 * this.localHeapSize, l = 4 * size + 3 * this.localHeapSize, n = 4 * size
-                            + 4 * this.localHeapSize; i < 4 * size + this.localHeapSize; i++, j++, k++, l++, n++) {
-                e[i] = lHValues.get(i);
+                            + 4 * this.localHeapSize; loop < this.localHeapSize; loop++, i++, j++, k++, l++, n++) {
+                e[i] = lHValues.get(loop);
                 if (e[i] == null) {
-                    e[i] = var.getLHV(i);
+                    e[i] = var.getLHV(loop);
                 } 
-                e[j] = lHHigh.get(i);
+                e[j] = lHHigh.get(loop);
                 if (e[j] == null) {
-                    e[j] = var.getLHH(i);
+                    e[j] = var.getLHH(loop);
                 } 
-                e[k] = lHLocal.get(i);
+                e[k] = lHLocal.get(loop);
                 if (e[k] == null) {
-                    e[k] = var.getLHL(i);
+                    e[k] = var.getLHL(loop);
                 } 
-                e[l] = lHGlobal.get(i);
+                e[l] = lHGlobal.get(loop);
                 if (e[l] == null) {
-                    e[l] = var.getLHG(i);
+                    e[l] = var.getLHG(loop);
                 } 
-                e[n] = lHFilter.get(i);
+                e[n] = lHFilter.get(loop);
                 if (e[n] == null) {
-                    e[n] = var.getLHF(i);
+                    e[n] = var.getLHF(loop);
                 } 
             }
             ;
+            //this.addQuery(new Z3Query((BoolExpr) res.apply(e), c + ' ' + m , true, c, m, "rez", ""));
 
             return (BoolExpr) res.apply(e);
         } catch (Z3Exception e) {

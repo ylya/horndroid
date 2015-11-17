@@ -821,8 +821,10 @@ public class Analysis {
             if ((c instanceof DalvikClass)){
                 final DalvikClass cd = ((DalvikClass) c);	
                 if (c.getType().hashCode() == ci){
+                
                     for (final DalvikMethod m: cd.getMethods()){
                         if (m.getName().hashCode() == mi){
+                           
                             resolvents.put(cd, m);
                             break;
                         }
@@ -849,6 +851,7 @@ public class Analysis {
             }
         }
         if (resolvents.isEmpty()) return null;
+        else
         return resolvents;
     }
 

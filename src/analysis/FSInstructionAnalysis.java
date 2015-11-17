@@ -197,6 +197,8 @@ public class FSInstructionAnalysis{
         numParLoc = dm.getNumArg();
         BoolExpr returnLabel;
 
+        System.out.println(codeAddress + " " + opcode.name);
+        
         BoolExpr h, b, htob;
         switch (opcode){
         case NOP:
@@ -224,6 +226,7 @@ public class FSInstructionAnalysis{
             regUpG.put(((OneRegisterInstruction) instruction).getRegisterA(), fsvar.getG(((TwoRegisterInstruction) instruction).getRegisterB()));
             b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
             fsengine.addRule(fsengine.implies(h, b), null);
+          
             break;//((short)0x09, "move-object/16", ReferenceType.NONE, Format.Format32x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
 
 
@@ -237,6 +240,8 @@ public class FSInstructionAnalysis{
             regUpG.put(((OneRegisterInstruction) instruction).getRegisterA(), fsvar.getG(numRegLoc));
             b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
             fsengine.addRule(fsengine.implies(h, b), null);
+           
+           
             break;//((short)0x0c, "move-result-object", ReferenceType.NONE, Format.Format11x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
 
 
@@ -259,6 +264,18 @@ public class FSInstructionAnalysis{
 
 
         case RETURN_VOID:
+            h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+         
+            int count1 = 0;
+            for (int i = numRegLoc + 1; i <= numRegLoc + numParLoc; i++){
+                regUpV.put(count1, fsvar.getV(i));
+                regUpH.put(count1, fsvar.getH(i));
+                regUpL.put(count1, fsvar.getL(i));
+                regUpG.put(count1, fsvar.getG(i));
+                count1++;
+            }
+            b = fsengine.resPred(classIndex, methodIndex,regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF,numParLoc);
+            fsengine.addRule(fsengine.implies(h, b), null);
             break;
             //((short)0x0e, "return-void", ReferenceType.NONE, Format.Format10x),
 
@@ -1907,7 +1924,6 @@ public class FSInstructionAnalysis{
                     p,
                     fsengine.eq(fsvar.getH(reg), fsengine.mkTrue())
                     );
-
             String d = "Test if register " + Integer.toString(reg) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             fsengine.addQuery(new Z3Query(q, d, verboseOption, className, methodName, pc, sinkName));
         }
