@@ -197,7 +197,27 @@ public class FSInstructionAnalysis{
         numParLoc = dm.getNumArg();
         BoolExpr returnLabel;
 
-        System.out.println(codeAddress + " " + opcode.name);
+        /*
+        System.out.println(codeAddress + " " + opcode.toString());
+         
+        boolean debug = true;
+        if (debug && ((this.codeAddress == 11) || (codeAddress == 14))){
+            BoolExpr h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+            fsengine.addQuery(new Z3Query(h, classIndex + " " + methodIndex + " " + codeAddress +" reachable: ", true, classIndex, methodIndex, Integer.toString(nextCode), null));
+           for (int i = 0; i < this.numRegLoc; i++){
+                h = fsengine.and(fsvar.getL(i),fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc));
+                fsengine.addQuery(new Z3Query(h, classIndex + " " + methodIndex + " v"+i+" is a local pointer: ", true, classIndex, methodIndex, Integer.toString(nextCode), null));
+            }
+           for (int i = 0; i < this.numRegLoc; i++){
+               h = fsengine.and(fsvar.getG(i),fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc));
+               fsengine.addQuery(new Z3Query(h, classIndex + " " + methodIndex + " v"+i+" is a global pointer: ", true, classIndex, methodIndex, Integer.toString(nextCode), null));
+           }
+            for (int i = 0; i < analysis.getLocalHeapNumberEntries(); i++){
+                h = fsengine.and(fsvar.getLHH(i),fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc));
+                fsengine.addQuery(new Z3Query(h, classIndex + " " + methodIndex + " Local heap is high: "+ i, true, classIndex, methodIndex, Integer.toString(nextCode), null));
+            }
+        }
+        */
         
         BoolExpr h, b, htob;
         switch (opcode){
@@ -402,9 +422,10 @@ public class FSInstructionAnalysis{
                 fsengine.addRule(fsengine.implies(h, b), null);
                 break;
             }
-            instanceNum = analysis.getInstNum(ci, mi, codeAddress);
+            instanceNum = analysis.getInstNum(ci, mi, codeAddress);            
             h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
             //lift all occurrence of instanceNum
+            
             for (int i = 0; i <= numRegLoc  ; i++){
                 regUpG.put(i,fsengine.or(fsvar.getG(i),fsengine.and(fsvar.getL(i),fsengine.eq(fsvar.getV(i), fsengine.mkBitVector(instanceNum, size)))));
                 regUpL.put(i,fsengine.and(fsvar.getL(i),fsengine.neq(fsvar.getV(i), fsengine.mkBitVector(instanceNum, size))));
@@ -2393,21 +2414,21 @@ public class FSInstructionAnalysis{
 
     private void liftLi(){
         int size = analysis.getSize();
-        int vecsize = numRegLoc + numParLoc + 1;
+        int vecsize = numRegLoc + 1;
         for (int i = 0; i < vecsize; i++){
-            BoolExpr h1 = fsengine.mkFalse();
-            BoolExpr h2 = fsengine.mkFalse();
+            BoolExpr hl = fsengine.mkFalse();
+            BoolExpr hg = fsengine.mkFalse();
             for (int j = 0; j < analysis.getLocalHeapNumberEntries(); j++){
                 int instanceNum = analysis.getInstanceNum(j);
-                h1 = fsengine.or(
-                        h1,
+                hg = fsengine.or(
+                        hg,
                         fsengine.and(
                                 fsvar.getLHCF(fsengine.getOffset(instanceNum)),
                                 fsengine.eq(fsvar.getV(i), fsengine.mkBitVector(instanceNum, size))
                                 )
                         );
-                h2 = fsengine.or(
-                        h2,
+                hl = fsengine.or(
+                        hl,
                         fsengine.and(
                                 fsengine.not(fsvar.getLHCF(fsengine.getOffset(instanceNum))),
                                 fsengine.eq(fsvar.getV(i), fsengine.mkBitVector(instanceNum, size))
@@ -2417,11 +2438,11 @@ public class FSInstructionAnalysis{
             regUpG.put(i, 
                     fsengine.or(
                             fsvar.getG(i),
-                            fsengine.and(fsvar.getL(i),h1)
+                            fsengine.and(fsvar.getL(i),hg)
                             )
                     );
             regUpL.put(i, 
-                    fsengine.and(fsvar.getL(i),h1)
+                    fsengine.and(fsvar.getL(i),hl)
                     );
         }
     }
@@ -2679,7 +2700,8 @@ public class FSInstructionAnalysis{
             fsengine.addRule(fsengine.implies(h, b), null);
 
             regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
-            regUpLHF.clear();
+            regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
+
 
 
             BoolExpr subh = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);

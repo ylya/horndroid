@@ -610,7 +610,7 @@ public class FSEngine {
             ;
             BoolExpr rez = (BoolExpr) r.apply(e); 
             
-            this.addQuery(new Z3Query(rez, c + ' ' + m + ' ' +Integer.toString(pc), true, c, m, Integer.toString(pc), ""));
+            //this.addQuery(new Z3Query(rez, c + ' ' + m + ' ' +Integer.toString(pc), true, c, m, Integer.toString(pc), ""));
             return rez;
         } catch (Z3Exception e) {
             e.printStackTrace();
