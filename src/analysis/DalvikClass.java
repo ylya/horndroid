@@ -1,6 +1,7 @@
 package analysis;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -36,7 +37,11 @@ public class DalvikClass extends GeneralClass {
 		return interfaces;
 	}
 	public Set<DalvikField> getFields(){
-		return fields;
+	    Set<DalvikField> f = new HashSet<DalvikField>(fields);
+	    if (this.superClass instanceof DalvikClass){
+	        f.addAll(((DalvikClass) this.superClass).getFields());
+	    }
+		return f;
 	}
 	public Set<DalvikMethod> getMethods(){
 		return methods;

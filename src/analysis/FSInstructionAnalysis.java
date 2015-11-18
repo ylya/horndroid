@@ -416,6 +416,10 @@ public class FSInstructionAnalysis{
 
 
         case NEW_INSTANCE:
+            if (referenceIntIndex == "Lde/ecspride/NoDataLeak;".hashCode()){
+                int i = 0;
+                i = i + 1;
+            }
             if (referenceIntIndex == "Landroid/content/Intent;".hashCode()){
                 h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
                 b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);

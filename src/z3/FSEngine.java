@@ -440,6 +440,29 @@ public class FSEngine {
     }
 
     public void executeAllQueries() {
+        BoolExpr h;
+        Map<Integer, BitVecExpr> regUpV = new HashMap<>();
+        Map<Integer, BoolExpr> regUpH = new HashMap<>();
+        Map<Integer, BoolExpr> regUpL = new HashMap<>();
+        Map<Integer, BoolExpr> regUpG = new HashMap<>();
+        Map<Integer, BitVecExpr> regUpLHV = new HashMap<>();
+        Map<Integer, BoolExpr> regUpLHH = new HashMap<>();
+        Map<Integer, BoolExpr> regUpLHL = new HashMap<>();
+        Map<Integer, BoolExpr> regUpLHG = new HashMap<>();
+        Map<Integer, BoolExpr> regUpLHF = new HashMap<>();
+        
+        regUpH.put(0,this.mkTrue());
+        // 1 5 clickButton(Landroid/view/View;)V
+        // 2 4 onCreate(Landroid/os/Bundle;)V
+        // 1 3 Lde/ecspride/DataLeak; <init>(Ljava/lang/String;)V
+        // 1 3 Lde/ecspride/DataLeak; logData()V
+        // 1 2 Lde/ecspride/NoDataLeak; getData()Ljava/lang/String;
+        h = this.rPred(Integer.toString("Lde/ecspride/NoDataLeak;".hashCode()), Integer.toString("getData()Ljava/lang/String;".hashCode()), 2, 
+                regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, 1, 2);
+       // this.addQuery(new Z3Query(h, "description", true, "", 
+       //         "", "", null));
+        
+        
         // ensure that the cached query is added
         if (mCurrentQuery != null)
             mQueries.add(mCurrentQuery);
@@ -449,6 +472,9 @@ public class FSEngine {
 
         // ExecutorService executor = Executors.newFixedThreadPool(threshold);
         ExecutorService executor = Executors.newSingleThreadExecutor();
+        
+       
+        
         System.out.println("Number of queries: " + Integer.toString(mQueries.size()));
 
         for (int i = 0; i < mQueries.size(); i++) {
