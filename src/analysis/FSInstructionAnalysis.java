@@ -141,6 +141,7 @@ public class FSInstructionAnalysis{
     }
     
     public void CreateHornClauses(){
+        boolean superBool = false;
         Integer staticFieldClassName;
         Map<DalvikClass, DalvikMethod> staticDefinitions = new ConcurrentHashMap<DalvikClass, DalvikMethod>();
         DalvikMethod dmc;
@@ -197,9 +198,9 @@ public class FSInstructionAnalysis{
         numParLoc = dm.getNumArg();
         BoolExpr returnLabel;
 
-        /*
+        
         System.out.println(codeAddress + " " + opcode.toString());
-         
+         /*
         boolean debug = true;
         if (debug && ((this.codeAddress == 11) || (codeAddress == 14))){
             BoolExpr h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
@@ -416,10 +417,7 @@ public class FSInstructionAnalysis{
 
 
         case NEW_INSTANCE:
-            if (referenceIntIndex == "Lde/ecspride/NoDataLeak;".hashCode()){
-                int i = 0;
-                i = i + 1;
-            }
+           
             if (referenceIntIndex == "Landroid/content/Intent;".hashCode()){
                 h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
                 b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
@@ -1263,7 +1261,7 @@ public class FSInstructionAnalysis{
         case SGET_BYTE://((short)0x64, "sget-byte", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case SGET_CHAR://((short)0x65, "sget-char", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case SGET_SHORT:
-            staticFieldClassName = analysis.staticFieldsLookup(referenceClassIndex, referenceIntIndex, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
+            staticFieldClassName = analysis.staticFieldLookup(referenceClassIndex, referenceIntIndex, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
             if (staticFieldClassName == null){
                 staticFieldClassName = referenceClassIndex;
             }
@@ -1299,7 +1297,7 @@ public class FSInstructionAnalysis{
         case SPUT_BYTE://((short)0x6b, "sput-byte", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
         case SPUT_CHAR://((short)0x6c, "sput-char", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
         case SPUT_SHORT:
-            staticFieldClassName = analysis.staticFieldsLookup(referenceClassIndex, referenceIntIndex, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
+            staticFieldClassName = analysis.staticFieldLookup(referenceClassIndex, referenceIntIndex, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
             if (staticFieldClassName == null){
                 staticFieldClassName = referenceClassIndex;
             }
@@ -1325,11 +1323,15 @@ public class FSInstructionAnalysis{
             break;//((short)0x6d, "sput-short", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
 
 
-        case INVOKE_VIRTUAL:
         case INVOKE_SUPER:
+            superBool = true;
+        case INVOKE_VIRTUAL:
         case INVOKE_INTERFACE:
-
-            this.getImplementationsSpecialCase();
+            if (referenceClassIndex == "Lde/ecspride/GeneralActivity;".hashCode() && referenceIntIndex == "onCreate(Landroid/os/Bundle;)V".hashCode()){
+                int i =0;
+                i = i +1;
+            }
+            this.getImplementationsSpecialCase(superBool);
 
             isDefined = (implementations != null);
             
@@ -1349,12 +1351,12 @@ public class FSInstructionAnalysis{
             break;
 
 
-
-        case INVOKE_VIRTUAL_RANGE:
         case INVOKE_SUPER_RANGE:
+            superBool = true;
+        case INVOKE_VIRTUAL_RANGE:
         case INVOKE_INTERFACE_RANGE:
 
-            this.getImplementationsSpecialCase();
+            this.getImplementationsSpecialCase(superBool);
 
             isDefined = (implementations != null);
             if (implementations != null)
@@ -2549,7 +2551,7 @@ public class FSInstructionAnalysis{
         }
     }
 
-    private void getImplementationsSpecialCase(){
+    private void getImplementationsSpecialCase(final boolean superBool){
         Boolean modRes = false;
         if ((referenceIntIndex == "execute(Ljava/lang/Runnable;)V".hashCode()) && (referenceClassIndex == "Ljava/util/concurrent/ExecutorService;".hashCode())){
             implementations = analysis.getImplementations("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode());
@@ -2583,7 +2585,10 @@ public class FSInstructionAnalysis{
         }
 
         if (!modRes){
-            implementations = analysis.getImplementations(referenceClassIndex, referenceIntIndex);
+            if (!superBool)
+                implementations = analysis.getImplementations(referenceClassIndex, referenceIntIndex);
+            else
+                implementations = analysis.getSuperImplementations(referenceClassIndex, referenceIntIndex);
             if (implementations == null){
                 analysis.putNotImpl(referenceClassIndex, referenceIntIndex);
             }

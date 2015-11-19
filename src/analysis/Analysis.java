@@ -217,7 +217,7 @@ public class Analysis {
     }
     
     
-    public Integer staticFieldsLookup(final GeneralClass ci, final int fi, final Set<Integer> visited){
+    public Integer staticFieldLookup(final GeneralClass ci, final int fi, final Set<Integer> visited){
         if (!visited.isEmpty())
         {
             if (visited.contains(ci.getType().hashCode()))
@@ -226,15 +226,15 @@ public class Analysis {
         visited.add(ci.getType().hashCode());
         if (ci instanceof DalvikClass){
             final DalvikClass dc = (DalvikClass) ci;
-            for (final DalvikField f: dc.getFields()){
+            for (final DalvikField f: dc.getExactFields()){
                 if (f.getName().hashCode() == fi)
                     return ci.getType().hashCode();
             }
-            return staticFieldsLookup(dc.getSuperClass(), fi, visited);
+            return staticFieldLookup(dc.getSuperClass(), fi, visited);
         }
         else return null;
     }
-    public Integer staticFieldsLookup(final int ci, final int fi, final Set<Integer> visited){
+    public Integer staticFieldLookup(final int ci, final int fi, final Set<Integer> visited){
         if (!visited.isEmpty())
         {
             if (visited.contains(ci))
@@ -244,11 +244,11 @@ public class Analysis {
         for (final GeneralClass c: classes){
             if ((c instanceof DalvikClass) && (c.getType().hashCode() == ci)){
                 final DalvikClass dc = (DalvikClass) c;
-                for (final DalvikField f: dc.getFields()){
+                for (final DalvikField f: dc.getExactFields()){
                     if (f.getName().hashCode() == fi)
                         return ci;
                 }
-                return staticFieldsLookup(dc.getSuperClass(), fi, visited);
+                return staticFieldLookup(dc.getSuperClass(), fi, visited);
             }
         }
         return null;
@@ -796,6 +796,106 @@ public class Analysis {
 
         }
         return implementations;
+    }
+    
+    public Set<DalvikImplementation> getSuperImplementations(final int ci, final int mi){
+        /*if (!isNotImpl.isEmpty()){
+            if (isNotImpl.contains(new CMPair(ci, mi)))
+                return null;
+        }
+        if (!allImplementations.isEmpty()){
+            if (allImplementations.containsKey(new CMPair(ci, mi))){
+                return allImplementations.get(new CMPair(ci, mi));
+            }
+        }*/
+        final Set<DalvikImplementation> implementations = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<DalvikImplementation, Boolean>()));
+        final Map<DalvikClass, DalvikMethod> definitions = isSuperDefined(ci, mi, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
+        /*if (definitions == null) 
+        {
+            isNotDefined.add(new CMPair(ci, mi));
+            return null;
+        }
+        else{
+            allDefinitions.put(new CMPair(ci, mi), definitions);
+        }*/
+        if (definitions == null) return null;
+        for (Map.Entry<DalvikClass, DalvikMethod> entry : definitions.entrySet()){
+            final DalvikImplementation di = new DalvikImplementation(entry.getKey(), entry.getValue());
+            for (final DalvikInstance instance: instances){
+                if (entry.getKey().getType().hashCode() == instance.getType().getType().hashCode()){
+                    di.putInstance(instance);
+                    /*for (final DalvikClass child: entry.getKey().getChildClasses()){
+                        for (final DalvikInstance childInstance: instances){
+                            if (child.getType().hashCode() == childInstance.getType().getType().hashCode()){
+                                di.putInstance(childInstance);
+                            }
+                        }
+                    }*/
+                }
+            }
+            implementations.add(di);
+
+        }
+        return implementations;
+    }
+    
+    
+    public Map<DalvikClass, DalvikMethod> isSuperDefined(final int ci, int mi, final Set<Integer> visited){  
+        /*if (!isNotDefined.isEmpty())
+            if (isNotDefined.contains(new CMPair(ci, mi))) return null;*/
+        Map<DalvikClass, DalvikMethod> resolvents = new ConcurrentHashMap<DalvikClass, DalvikMethod>();
+        /*Map<DalvikClass, DalvikMethod> exResolvents = null;
+        if (!allDefinitions.isEmpty()){
+            exResolvents = allDefinitions.get(new CMPair(ci, mi));
+        }
+        if (exResolvents != null) return exResolvents;*/
+        if (visited.contains(ci)) return null;
+        else visited.add(ci);
+
+        final boolean isThread = isThread(ci, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
+        if (isThread && (mi == "execute([Ljava/lang/Object;)Landroid/os/AsyncTask;".hashCode())){
+            mi = "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode();
+        }
+        if (isThread && (mi == "start()V".hashCode())){
+            mi = "run()V".hashCode();
+        }
+        for (final GeneralClass c: classes){
+            if ((c instanceof DalvikClass)){
+                final DalvikClass cd = ((DalvikClass) c);   
+                if (c.getType().hashCode() == ci){
+                    final GeneralClass superClass = cd.getSuperClass();
+                    if (superClass instanceof DalvikClass){
+                        final DalvikClass scd = (DalvikClass) superClass;
+                        for (final DalvikMethod m: scd.getMethods()){
+                            if (m.getName().hashCode() == mi){
+                                resolvents.put(cd, m);
+                                return resolvents;
+                            }
+                        }
+                        isSuperDefined(scd.getType().hashCode(), mi, visited);
+                    }
+                    /*for (final DalvikClass sc: cd.getChildClasses()){
+                        if (sc != null){
+                            final Map<DalvikClass, DalvikMethod> resolventsChild = isDefined(sc.getType().hashCode(), mi, visited);
+                            if (resolventsChild != null)
+                                resolvents.putAll(resolventsChild);
+                        }
+                    }*/
+                }
+                /*for (final GeneralClass cint: cd.getInterfaces()){
+                    if ((cint.getType().hashCode() == ci)){
+                        for (final DalvikMethod m: 
+                            cd.getMethods()){
+                            if (m.getName().hashCode() == mi){
+                                resolvents.put(cd, m);
+                                break;
+                            }
+                        }
+                    }
+                } */             
+            }
+        }
+        return null;
     }
 
     public Map<DalvikClass, DalvikMethod> isDefined(final int ci, int mi, final Set<Integer> visited){	

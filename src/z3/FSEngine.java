@@ -451,16 +451,15 @@ public class FSEngine {
         Map<Integer, BoolExpr> regUpLHG = new HashMap<>();
         Map<Integer, BoolExpr> regUpLHF = new HashMap<>();
         
-        regUpH.put(0,this.mkTrue());
+        regUpH.put(1,this.mkTrue());
         // 1 5 clickButton(Landroid/view/View;)V
         // 2 4 onCreate(Landroid/os/Bundle;)V
         // 1 3 Lde/ecspride/DataLeak; <init>(Ljava/lang/String;)V
         // 1 3 Lde/ecspride/DataLeak; logData()V
         // 1 2 Lde/ecspride/NoDataLeak; getData()Ljava/lang/String;
-        h = this.rPred(Integer.toString("Lde/ecspride/NoDataLeak;".hashCode()), Integer.toString("getData()Ljava/lang/String;".hashCode()), 2, 
-                regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, 1, 2);
-       // this.addQuery(new Z3Query(h, "description", true, "", 
-       //         "", "", null));
+        h = this.rPred(Integer.toString("Lde/ecspride/MainActivity;".hashCode()), Integer.toString("onCreate(Landroid/os/Bundle;)V".hashCode()), 24, 
+                regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, 2, 7);
+        this.addQuery(new Z3Query(h, "description", true, "",  "", "", null));
         
         
         // ensure that the cached query is added

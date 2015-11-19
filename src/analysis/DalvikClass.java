@@ -43,6 +43,9 @@ public class DalvikClass extends GeneralClass {
 	    }
 		return f;
 	}
+	public Set<DalvikField> getExactFields(){
+        return fields;
+    }
 	public Set<DalvikMethod> getMethods(){
 		return methods;
 	}
