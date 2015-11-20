@@ -95,6 +95,9 @@ public class Analysis {
     private Map<Integer, Integer> allocationPointSize = Collections.synchronizedMap(new HashMap <Integer, Integer>());
     private Map<Integer, Integer> allocationPointOffset = Collections.synchronizedMap(new HashMap <Integer, Integer>());
     private Map<Integer, String> allocationPointClass = Collections.synchronizedMap(new HashMap <Integer, String>());
+    private Map<Integer, String> allocationPointClassDebug = Collections.synchronizedMap(new HashMap <Integer, String>());
+    private Map<Integer, String> allocationPointMethod = Collections.synchronizedMap(new HashMap <Integer, String>());
+    private Map<Integer, Integer> allocationPointPC = Collections.synchronizedMap(new HashMap <Integer, Integer>());
     
     private Integer localHeapNumberEntries;
     private Integer localHeapSize;
@@ -266,6 +269,28 @@ public class Analysis {
         return null;
     }
     
+    public String getClassString(final int ci){
+        for (final GeneralClass c: classes){
+            if ((c instanceof DalvikClass) && c.getType().hashCode() == ci && c.getType() != null){
+                return c.getType();
+                }
+            }
+        return Integer.toString(ci);
+    }
+    
+    public String getMethodString(final int ci, final int mi){
+        for (final GeneralClass c: classes){
+            if ((c instanceof DalvikClass) && c.getType().hashCode() == ci){
+                for (final DalvikMethod m: ((DalvikClass) c).getMethods()){
+                    if (m.getName().hashCode() == mi && m.getName() != null){
+                        return m.getName();
+                    }
+                }
+            }
+        }
+        return Integer.toString(mi);
+    }
+    
     /*
      * Return a bijective mapping (i --> field_i) between [[0;inputMap.size() - 1]] and the inputMap key-space
      */
@@ -302,10 +327,13 @@ public class Analysis {
             final Map<Integer, Boolean> fieldsMap = getClassFields(referenceString, instanceNum);
             Set<Integer> fields = null;
             if (fieldsMap != null)
-                fields = getClassFields(referenceString, instanceNum).keySet();
+                fields = fieldsMap.keySet();
             else
                 fields = new HashSet<Integer>();
             allocationPointClass.put(instanceNum,referenceString);
+            allocationPointClassDebug.put(instanceNum,this.getClassString(i.getC()));
+            allocationPointMethod.put(instanceNum,this.getMethodString(i.getC(), i.getM()));            allocationPointMethod.put(instanceNum,this.getMethodString(i.getC(), i.getC()));
+            allocationPointPC.put(instanceNum,i.getPC());
             allocationPointNumbers.put(instanceNum, itNumber);
             allocationPointNumbersReverse.put(itNumber,instanceNum);
             allocationPointSize.put(instanceNum, fields.size());
@@ -335,6 +363,18 @@ public class Analysis {
     
     public String getAllocationPointClass(int instanceNum){
         return new String(allocationPointClass.get(instanceNum));
+    }
+    
+    public String getAllocationPointClassDebug(int instanceNum){
+        return new String(allocationPointClassDebug.get(instanceNum));
+    }
+    
+    public String getAllocationPointMethod(int instanceNum){
+        return new String(allocationPointMethod.get(instanceNum));
+    }
+    
+    public int getAllocationPointPC(int instanceNum){
+        return allocationPointPC.get(instanceNum);
     }
     
     public Map<Integer, Boolean> getClassFields(final String className, final int instanceNum){

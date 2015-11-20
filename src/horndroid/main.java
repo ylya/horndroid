@@ -200,7 +200,7 @@ public class main {
             if (!hornDroidOptions.fsanalysis)
                 z3engine.executeAllQueries();
             else
-                fsengine.executeAllQueries();
+                fsengine.executeAllQueries(analysis);
             
             endTime = System.nanoTime();
             System.out.println("...done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");

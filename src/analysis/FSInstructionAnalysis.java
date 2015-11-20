@@ -6,9 +6,7 @@ import com.microsoft.z3.Expr;
 //import gen.Clause;
 //import gen.Gen;
 
-
-
-
+import debugging.QUERY_TYPE;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -199,26 +197,43 @@ public class FSInstructionAnalysis{
         BoolExpr returnLabel;
 
         
-        System.out.println(codeAddress + " " + opcode.toString());
-         /*
+
         boolean debug = true;
-        if (debug && ((this.codeAddress == 11) || (codeAddress == 14))){
-            BoolExpr h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
-            fsengine.addQuery(new Z3Query(h, classIndex + " " + methodIndex + " " + codeAddress +" reachable: ", true, classIndex, methodIndex, Integer.toString(nextCode), null));
+        if (debug){
+           BoolExpr h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
            for (int i = 0; i < this.numRegLoc; i++){
-                h = fsengine.and(fsvar.getL(i),fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc));
-                fsengine.addQuery(new Z3Query(h, classIndex + " " + methodIndex + " v"+i+" is a local pointer: ", true, classIndex, methodIndex, Integer.toString(nextCode), null));
-            }
-           for (int i = 0; i < this.numRegLoc; i++){
-               h = fsengine.and(fsvar.getG(i),fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc));
-               fsengine.addQuery(new Z3Query(h, classIndex + " " + methodIndex + " v"+i+" is a global pointer: ", true, classIndex, methodIndex, Integer.toString(nextCode), null));
-           }
+               BoolExpr h1 = fsengine.and(fsvar.getH(i),h);
+               BoolExpr h2 = fsengine.and(fsvar.getL(i),h);
+               BoolExpr h3 = fsengine.and(fsvar.getG(i),h);
+               Z3Query q1 = new Z3Query(h1,i,QUERY_TYPE.HIGH,className,methodName,Integer.toString(codeAddress));
+               Z3Query q2 = new Z3Query(h2,i,QUERY_TYPE.LOCAL,className,methodName,Integer.toString(codeAddress));
+               Z3Query q3 = new Z3Query(h3,i,QUERY_TYPE.GLOBAL,className,methodName,Integer.toString(codeAddress));
+               fsengine.addQueryDebug(q1);
+               fsengine.addQueryDebug(q2);
+               fsengine.addQueryDebug(q3);
+               }
             for (int i = 0; i < analysis.getLocalHeapNumberEntries(); i++){
-                h = fsengine.and(fsvar.getLHH(i),fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc));
-                fsengine.addQuery(new Z3Query(h, classIndex + " " + methodIndex + " Local heap is high: "+ i, true, classIndex, methodIndex, Integer.toString(nextCode), null));
+                int instanceNumber = analysis.getInstanceNum(i);
+                int lhoffset = fsengine.getOffset(instanceNumber);
+                int lhsize = fsengine.getSize(instanceNumber);
+                String ac = analysis.getAllocationPointClassDebug(instanceNumber);
+                String am = analysis.getAllocationPointMethod(instanceNumber);
+                int apc = analysis.getAllocationPointPC(instanceNumber);
+                
+                for (int j = 0; j <= lhsize; j++){
+                    BoolExpr h1 = fsengine.and(fsvar.getLHH(lhoffset + j),h);
+                    BoolExpr h2 = fsengine.and(fsvar.getLHL(lhoffset + j),h);
+                    BoolExpr h3 = fsengine.and(fsvar.getLHG(lhoffset + j),h);
+                    Z3Query q1 = new Z3Query(h1,ac,am,apc,j,instanceNumber,QUERY_TYPE.HIGH,className,methodName,Integer.toString(codeAddress));
+                    Z3Query q2 = new Z3Query(h2,ac,am,apc,j,instanceNumber,QUERY_TYPE.LOCAL,className,methodName,Integer.toString(codeAddress));
+                    Z3Query q3 = new Z3Query(h3,ac,am,apc,j,instanceNumber,QUERY_TYPE.GLOBAL,className,methodName,Integer.toString(codeAddress));
+                    fsengine.addQueryDebug(q1);
+                    fsengine.addQueryDebug(q2);
+                    fsengine.addQueryDebug(q3);
+                }
             }
         }
-        */
+
         
         BoolExpr h, b, htob;
         switch (opcode){

@@ -2,8 +2,15 @@ package z3;
 
 import com.microsoft.z3.*;
 
+import analysis.Analysis;
+import debugging.Debug;
+import debugging.LHInfo;
+import debugging.LHKey;
+import debugging.MethodeInfo;
+import debugging.RegInfo;
 import horndroid.options;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -18,6 +25,7 @@ public class FSEngine {
     private ArrayList<FuncDecl> mFuncs;
 
     private ArrayList<Z3Query> mQueries;
+    //private ArrayList<Z3Query> mQueriesDebug;
     private Z3Query mCurrentQuery;
 
     private int bvSize;
@@ -40,6 +48,7 @@ public class FSEngine {
         try {
             bvSize = options.bitvectorSize;
             mQueries = new ArrayList<>();
+            //mQueriesDebug = new ArrayList<>();
 
             Global.setParameter("fixedpoint.engine", "pdr");
             // Global.setParameter("fixedpoint.unbound_compressor", "false");
@@ -438,29 +447,12 @@ public class FSEngine {
             mCurrentQuery = query;
         }
     }
+    
+    public void addQueryDebug(Z3Query query) {
+        mQueries.add(query);
+    }
 
-    public void executeAllQueries() {
-        BoolExpr h;
-        Map<Integer, BitVecExpr> regUpV = new HashMap<>();
-        Map<Integer, BoolExpr> regUpH = new HashMap<>();
-        Map<Integer, BoolExpr> regUpL = new HashMap<>();
-        Map<Integer, BoolExpr> regUpG = new HashMap<>();
-        Map<Integer, BitVecExpr> regUpLHV = new HashMap<>();
-        Map<Integer, BoolExpr> regUpLHH = new HashMap<>();
-        Map<Integer, BoolExpr> regUpLHL = new HashMap<>();
-        Map<Integer, BoolExpr> regUpLHG = new HashMap<>();
-        Map<Integer, BoolExpr> regUpLHF = new HashMap<>();
-        
-        regUpH.put(1,this.mkTrue());
-        // 1 5 clickButton(Landroid/view/View;)V
-        // 2 4 onCreate(Landroid/os/Bundle;)V
-        // 1 3 Lde/ecspride/DataLeak; <init>(Ljava/lang/String;)V
-        // 1 3 Lde/ecspride/DataLeak; logData()V
-        // 1 2 Lde/ecspride/NoDataLeak; getData()Ljava/lang/String;
-        h = this.rPred(Integer.toString("Lde/ecspride/MainActivity;".hashCode()), Integer.toString("onCreate(Landroid/os/Bundle;)V".hashCode()), 24, 
-                regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, 2, 7);
-        this.addQuery(new Z3Query(h, "description", true, "",  "", "", null));
-        
+    public void executeAllQueries(Analysis analysis) {    
         
         // ensure that the cached query is added
         if (mCurrentQuery != null)
@@ -476,12 +468,16 @@ public class FSEngine {
         
         System.out.println("Number of queries: " + Integer.toString(mQueries.size()));
 
+        //Used for debugging
+        final Debug debug = new Debug(analysis);
         for (int i = 0; i < mQueries.size(); i++) {
 
             final Z3Query q = mQueries.get(i);
-            System.out.print((i + 1) + ": ");
-            if (q.isVerbose())
-                System.out.println(q.getDescription());
+            if(!q.debugging){
+                System.out.print((i + 1) + ": ");
+                if (q.isVerbose())
+                    System.out.println(q.getDescription());
+            }
 
             final Fixedpoint temp = mContext.mkFixedpoint();
             for (BoolExpr rule : mRules) {
@@ -494,19 +490,62 @@ public class FSEngine {
                 temp.setPredicateRepresentation(func, symbols);
             }
 
-            final Future<String> future = executor.submit(new Callable() {
+         
+            
+            Future<String> future = null;
+            future = executor.submit(new Callable() {
+
 
                 public String call() throws Exception {
 
                     Status result = temp.query(q.getQuery());
-                    System.out.println(result);
+                    if(!q.debugging)
+                        System.out.println(result);
 
                     return result.toString();
                 }
             });
+            
+            
+            try{
+                if (q.debugging && q.isReg){
+                    final MethodeInfo minfo = debug.get(q.getClassName(), q.getMethodName());
+                    boolean res = future.get(timeout, TimeUnit.MINUTES).equals("SATISFIABLE");
+                    switch(q.queryType){
+                    case HIGH:
+                        minfo.regInfo[q.regNum].high.put(Integer.parseInt(q.getPc()),res);
+                        break;
+                    case LOCAL:
+                        minfo.regInfo[q.regNum].local.put(Integer.parseInt(q.getPc()),res);
+                        break;
+                    case GLOBAL:
+                        minfo.regInfo[q.regNum].global.put(Integer.parseInt(q.getPc()),res);
+                        break;
+                    }
+                }
+                if (q.debugging && !q.isReg){
+                    final MethodeInfo minfo = debug.get(q.getClassName(), q.getMethodName());
+                    boolean res = future.get(timeout, TimeUnit.MINUTES).equals("SATISFIABLE");
+                    LHKey lhkey = new LHKey(q.instanceNum,q.field);
+                    LHInfo lhinf = minfo.getLHInfo(lhkey);
+                    RegInfo regInf = lhinf.regInfo;
+                    Integer k = Integer.parseInt(q.getPc());
+                    switch(q.queryType){
+                    case HIGH:
+                        regInf.high.put(k,res);
+                        break;
+                    case LOCAL:
+                        regInf.local.put(k,res);
+                        break;
+                    case GLOBAL:
+                        regInf.global.put(k,res);
+                        break;
+                    }
+                }
 
-            try {
-                future.get(timeout, TimeUnit.MINUTES);
+
+                if(!q.debugging)
+                    future.get(timeout, TimeUnit.MINUTES);
             } catch (TimeoutException e) {
                 future.cancel(true);
             } catch (InterruptedException e) {
@@ -514,6 +553,14 @@ public class FSEngine {
             } catch (ExecutionException e) {
                 future.cancel(true);
             }
+        }
+        
+        debug.printToLatex();
+        try {
+            new ProcessBuilder(new String[]{ "pdflatex", "wrapper.tex"}).start();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
         }
 
         executor.shutdownNow();

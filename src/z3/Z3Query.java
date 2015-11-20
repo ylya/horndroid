@@ -2,6 +2,8 @@ package z3;
 
 import com.microsoft.z3.BoolExpr;
 
+import debugging.QUERY_TYPE;
+
 import java.util.ArrayList;
 
 /**
@@ -12,7 +14,18 @@ public class Z3Query {
     private BoolExpr query;
     private String description;
     private boolean isVerbose;
+    public boolean debugging;
+    public boolean isReg;
+    
+    public String allocationClassName;
+    public String allocationMethodeName;
+    public int field = 0;
+    public int allocationPC;
+    public int regNum = 0;
+    public QUERY_TYPE queryType;
+    public int instanceNum;
 
+    
     private String className;
     private String methodName;
     private String pc;
@@ -23,12 +36,53 @@ public class Z3Query {
         this.query = query;
         this.description = desc;
         this.isVerbose = verbose;
-
+        this.debugging = false;
+        this.isReg = false;
+        
         this.className = className;
         this.methodName = methodName;
         this.pc = pc;
         this.sinkName = sinkName;
     }
+
+    public Z3Query(BoolExpr query, int regNum, QUERY_TYPE queryType,
+            String className, String methodName, String pc){
+        this.query = query;
+        this.description = null;
+        this.isVerbose = false;
+        this.debugging = true;
+        this.isReg = true;
+        
+        this.regNum = regNum;
+        this.queryType = queryType;
+        
+        this.className = className;
+        this.methodName = methodName;
+        this.pc = pc;
+        this.sinkName = null;
+    }
+    
+    public Z3Query(BoolExpr query, String acn, String amn, int apc, int af, int instanceNum, QUERY_TYPE queryType,
+            String className, String methodName, String pc){
+        this.query = query;
+        this.description = null;
+        this.isVerbose = false;
+        this.debugging = true;
+        this.isReg = false;
+        
+        this.allocationClassName = acn;
+        this.allocationMethodeName = amn;
+        this.allocationPC = apc;
+        this.field = af;
+        this.queryType = queryType;
+        this.instanceNum = instanceNum;
+
+        this.className = className;
+        this.methodName = methodName;
+        this.pc = pc;
+        this.sinkName = null;
+    }
+    
 
     public BoolExpr getQuery() {
         return query;
