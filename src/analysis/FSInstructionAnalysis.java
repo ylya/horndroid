@@ -1243,8 +1243,7 @@ public class FSInstructionAnalysis{
                     );
             this.liftIfLocal(h, null);
             
-            //if the object is on the local heap
-            
+            //object is on the local heap: update the local heap
             for (int allocationPoint : analysis.getAllocationPoints()){
                 //we do not generate rules if class of the object allocated at 'allocationPoint' has no entry for the field allocated by the dalvik instruction
                 if (analysis.getClassFields(analysis.getAllocationPointClass(allocationPoint),allocationPoint) != null)

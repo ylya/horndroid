@@ -4,3 +4,10 @@
 /.idea
 .DS_Store
 *.class
+*.pdf
+*.log
+*~
+*.tex
+/test/
+/smali/
+*.aux

@@ -75,7 +75,7 @@ public class Debug {
             writer.print(" & ");
             item(writer,reginf.globalGet(i));
         }
-        writer.print("\\\\ \\hline");
+        writer.print("\\\\ \\hline\\hline");
     }
     
     private void newcm(final PrintWriter writer, final String c, final String m){
@@ -129,7 +129,7 @@ public class Debug {
                                 );
                         writer.print("\n");
                     }
-                    writer.print("\\end{tabular}\n\n\n"); 
+                    writer.print("\\end{tabular}\n\n\\clearpage\n"); 
                 }
             }
             writer.close();

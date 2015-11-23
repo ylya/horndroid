@@ -477,11 +477,11 @@ public class FSEngine {
         for (int i = 0; i < mQueries.size(); i++) {
 
             final Z3Query q = mQueries.get(i);
-            //if(!q.debugging){
+            if(!q.debugging){
                 System.out.println((i + 1) + ": ");
                 if (q.isVerbose())
                     System.out.println(q.getDescription());
-            //}
+            }
 
             final Fixedpoint temp = mContext.mkFixedpoint();
             for (BoolExpr rule : mRules) {
@@ -506,8 +506,8 @@ public class FSEngine {
                     if(!q.debugging)
                         System.out.println(result);
 
-                    if(q.isLocalHeap && result.equals("SATISFIABLE"))
-                        System.out.println("" + q.field);
+                    /*if(q.isLocalHeap && result.equals("SATISFIABLE"))
+                        System.out.println("" + q.field);*/
                     
                     return result.toString();
                 }
@@ -558,8 +558,8 @@ public class FSEngine {
                 }
 
 
-                //if(!q.debugging)
-                System.out.println(future.get(timeout, TimeUnit.MINUTES));
+                if(!q.debugging)
+                    future.get(timeout, TimeUnit.MINUTES);
             } catch (TimeoutException e) {
                 future.cancel(true);
             } catch (InterruptedException e) {

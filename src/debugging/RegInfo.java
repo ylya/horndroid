@@ -8,10 +8,6 @@ public class RegInfo {
     private TreeMap<Integer,Boolean> local;
     private TreeMap<Integer,Boolean> global;
 
-
-    public int size(){
-        return high.size() + local.size() + global.size();
-    }
     
     public RegInfo(){
         high = new TreeMap<Integer,Boolean>();
@@ -32,16 +28,13 @@ public class RegInfo {
     }
     
     public void highPut(int num, boolean bool){
-        //System.out.println("high" + this.size());
         high.put(num,bool);
     }
     
     public void localPut(int num, boolean bool){
-        //System.out.println("local" + this.size());
         local.put(num,bool);
         
     }    public void globalPut(int num, boolean bool){
-        //System.out.println("global" + this.size());
         global.put(num,bool);
     }
     
