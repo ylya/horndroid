@@ -1104,12 +1104,14 @@ public class FSInstructionAnalysis{
         case APUT_CHAR://((short)0x50, "aput-char", ReferenceType.NONE, Format.Format23x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
         case APUT_SHORT:
             h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+            /*
             regUpH.put(((TwoRegisterInstruction)instruction).getRegisterB(),
                     fsengine.or(
                             fsvar.getH(((TwoRegisterInstruction)instruction).getRegisterB()),
                             fsvar.getH(((OneRegisterInstruction)instruction).getRegisterA())
                             )
                     );
+             */
             b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
             fsengine.addRule(fsengine.implies(h, b), null);
 
@@ -1203,13 +1205,17 @@ public class FSInstructionAnalysis{
         case IPUT_CHAR://((short)0x5e, "iput-char", ReferenceType.FIELD, Format.Format22c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
         case IPUT_SHORT:
             //object on the global heap: propagate R
-            h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+            h = fsengine.and(
+                    fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
+                    fsvar.getG(((TwoRegisterInstruction)instruction).getRegisterB()));
+            /*
             regUpH.put(((TwoRegisterInstruction)instruction).getRegisterB(),
                     fsengine.or(
                             fsvar.getH(((TwoRegisterInstruction)instruction).getRegisterB()),
                             fsvar.getH(((OneRegisterInstruction)instruction).getRegisterA())
                             )
                     );
+            */
             b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
             fsengine.addRule(fsengine.implies(h, b), null);
 
@@ -1217,7 +1223,7 @@ public class FSInstructionAnalysis{
 
             //object on the global heap: update the global heap
             h = fsengine.and(
-                    fsengine.eq(fsengine.mkTrue(), fsvar.getG(((TwoRegisterInstruction)instruction).getRegisterB())),
+                    fsvar.getG(((TwoRegisterInstruction)instruction).getRegisterB()),
                     fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
                     fsengine.hPred(fsvar.getCn(), fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
                             fsvar.getF(), fsengine.mkBitVector(0, size),
