@@ -12,6 +12,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 
@@ -325,14 +328,14 @@ public class Analysis {
                 throw new RuntimeException("initializeAllocationMapping: Failed");
             }*/
             final Map<Integer, Boolean> fieldsMap = getClassFields(referenceString, instanceNum);
-            Set<Integer> fields = null;
+            TreeSet<Integer> fields = null;
             if (fieldsMap != null)
-                fields = fieldsMap.keySet();
+                fields = new TreeSet<Integer>(fieldsMap.keySet());
             else
-                fields = new HashSet<Integer>();
+                fields = new TreeSet<Integer>();
             allocationPointClass.put(instanceNum,referenceString);
             allocationPointClassDebug.put(instanceNum,this.getClassString(i.getC()));
-            allocationPointMethod.put(instanceNum,this.getMethodString(i.getC(), i.getM()));            allocationPointMethod.put(instanceNum,this.getMethodString(i.getC(), i.getC()));
+            allocationPointMethod.put(instanceNum,this.getMethodString(i.getC(), i.getM()));
             allocationPointPC.put(instanceNum,i.getPC());
             allocationPointNumbers.put(instanceNum, itNumber);
             allocationPointNumbersReverse.put(itNumber,instanceNum);
@@ -345,12 +348,12 @@ public class Analysis {
         localHeapNumberEntries = itNumber;
     }
     
-    public int getInstanceNum(int i){
+    public int getInstanceNumFromReverse(int i){
         return allocationPointNumbersReverse.get(i);
     }
     
     public int getFieldOffset(int allocationPoint, int fieldIntReference){
-        Set<Integer> fields = this.getClassFields(allocationPointClass.get(allocationPoint), allocationPoint).keySet();
+        TreeSet<Integer> fields = new TreeSet<Integer>(this.getClassFields(allocationPointClass.get(allocationPoint), allocationPoint).keySet());
         int i = 0;
         for (int field : fields){
             if (field == fieldIntReference){
@@ -377,8 +380,8 @@ public class Analysis {
         return allocationPointPC.get(instanceNum);
     }
     
-    public Map<Integer, Boolean> getClassFields(final String className, final int instanceNum){
-        Map<Integer, Boolean> result = Collections.synchronizedMap(new HashMap <Integer, Boolean>());
+    public TreeMap<Integer, Boolean> getClassFields(final String className, final int instanceNum){
+        TreeMap<Integer, Boolean> result = new TreeMap <Integer, Boolean>();
         boolean found = false;
         boolean prim;
         for (final GeneralClass c: classes) {

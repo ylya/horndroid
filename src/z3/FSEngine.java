@@ -449,6 +449,8 @@ public class FSEngine {
     }
     
     public void addQueryDebug(Z3Query query) {
+        if (!query.debugging)
+            throw new RuntimeException("debug queries only");
         mQueries.add(query);
     }
 
@@ -470,14 +472,16 @@ public class FSEngine {
 
         //Used for debugging
         final Debug debug = new Debug(analysis);
+        //Counter of the number of queries
+        int counter = 0;
         for (int i = 0; i < mQueries.size(); i++) {
 
             final Z3Query q = mQueries.get(i);
-            if(!q.debugging){
-                System.out.print((i + 1) + ": ");
+            //if(!q.debugging){
+                System.out.println((i + 1) + ": ");
                 if (q.isVerbose())
                     System.out.println(q.getDescription());
-            }
+            //}
 
             final Fixedpoint temp = mContext.mkFixedpoint();
             for (BoolExpr rule : mRules) {
@@ -502,10 +506,20 @@ public class FSEngine {
                     if(!q.debugging)
                         System.out.println(result);
 
+                    if(q.isLocalHeap && result.equals("SATISFIABLE"))
+                        System.out.println("" + q.field);
+                    
                     return result.toString();
                 }
             });
             
+            /*
+             * Apparently the Z3 wrapper is not handling the memory correctly, need to GC manually. See:
+             * http://stackoverflow.com/questions/24188626/performance-issues-about-z3-for-java#comment37349014_24190067
+             */
+            if (counter % 50 == 0)
+                System.gc();
+            counter++;
             
             try{
                 if (q.debugging && q.isReg){
@@ -513,39 +527,39 @@ public class FSEngine {
                     boolean res = future.get(timeout, TimeUnit.MINUTES).equals("SATISFIABLE");
                     switch(q.queryType){
                     case HIGH:
-                        minfo.regInfo[q.regNum].high.put(Integer.parseInt(q.getPc()),res);
+                        minfo.regInfo[q.regNum].highPut(Integer.parseInt(q.getPc()),res);
                         break;
                     case LOCAL:
-                        minfo.regInfo[q.regNum].local.put(Integer.parseInt(q.getPc()),res);
+                        minfo.regInfo[q.regNum].localPut(Integer.parseInt(q.getPc()),res);
                         break;
                     case GLOBAL:
-                        minfo.regInfo[q.regNum].global.put(Integer.parseInt(q.getPc()),res);
+                        minfo.regInfo[q.regNum].globalPut(Integer.parseInt(q.getPc()),res);
                         break;
                     }
                 }
-                if (q.debugging && !q.isReg){
+                if (q.debugging && q.isLocalHeap){
                     final MethodeInfo minfo = debug.get(q.getClassName(), q.getMethodName());
                     boolean res = future.get(timeout, TimeUnit.MINUTES).equals("SATISFIABLE");
-                    LHKey lhkey = new LHKey(q.instanceNum,q.field);
-                    LHInfo lhinf = minfo.getLHInfo(lhkey);
-                    RegInfo regInf = lhinf.regInfo;
+                    //LHKey lhkey = new LHKey(q.instanceNum,q.field);
+                    final LHInfo lhinf = minfo.getLHInfo(q.instanceNum,q.field);
+                    final RegInfo regInf = lhinf.getRegInfo();
                     Integer k = Integer.parseInt(q.getPc());
                     switch(q.queryType){
                     case HIGH:
-                        regInf.high.put(k,res);
+                        regInf.highPut(k,res);
                         break;
                     case LOCAL:
-                        regInf.local.put(k,res);
+                        regInf.localPut(k,res);
                         break;
                     case GLOBAL:
-                        regInf.global.put(k,res);
+                        regInf.globalPut(k,res);
                         break;
                     }
                 }
 
 
-                if(!q.debugging)
-                    future.get(timeout, TimeUnit.MINUTES);
+                //if(!q.debugging)
+                System.out.println(future.get(timeout, TimeUnit.MINUTES));
             } catch (TimeoutException e) {
                 future.cancel(true);
             } catch (InterruptedException e) {

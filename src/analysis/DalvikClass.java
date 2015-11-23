@@ -3,6 +3,7 @@ package analysis;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class DalvikClass extends GeneralClass {
@@ -37,7 +38,7 @@ public class DalvikClass extends GeneralClass {
 		return interfaces;
 	}
 	public Set<DalvikField> getFields(){
-	    Set<DalvikField> f = new HashSet<DalvikField>(fields);
+	    TreeSet<DalvikField> f = new TreeSet<DalvikField>(fields);
 	    if (this.superClass instanceof DalvikClass){
 	        f.addAll(((DalvikClass) this.superClass).getFields());
 	    }

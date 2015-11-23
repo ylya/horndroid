@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 import analysis.Analysis;
 import analysis.DalvikInstance;
@@ -14,7 +15,7 @@ public class MethodeInfo {
     public int numReg;
     public int numPc;
     public RegInfo[] regInfo;
-    private HashMap<LHKey,LHInfo> lhMap;
+    private HashMap<Integer,HashMap<Integer, LHInfo>> lhMap;
     private Analysis analysis;
 
     public MethodeInfo(Analysis analysis, String c, String m, int numReg, int numPc){
@@ -29,8 +30,9 @@ public class MethodeInfo {
             regInfo[i] = new RegInfo();
         }
         
-        lhMap = new HashMap<LHKey,LHInfo>();
-        for (int instanceNum : analysis.getAllocationPoints()){
+        lhMap = new HashMap<Integer,HashMap<Integer, LHInfo>>();
+        /*
+         for (int instanceNum : analysis.getAllocationPoints()){
             final String referenceString = analysis.getAllocationPointClass(instanceNum);
             final Map<Integer, Boolean> fieldsMap = analysis.getClassFields(referenceString, instanceNum);
             Set<Integer> fields = null;
@@ -40,27 +42,41 @@ public class MethodeInfo {
                 fields = new HashSet<Integer>();
                 fields.add(0);
             }
-            for (int f : fields){
-                LHKey lhkey = new LHKey(instanceNum,f); 
-                LHInfo lhinfo = LHInfo.lhInfoFromInstanceNum(analysis,lhkey);
-                lhMap.put(lhkey,lhinfo);
+            for (int field : fields){
+                LHInfo lhinfo = LHInfo.lhInfoFromInstanceNum(analysis,instanceNum, field);
+                addLHElem(instanceNum, field ,lhinfo);
             }
+    }
+    */
+}
+    
+    private void addLHElem(int instanceNum, int field, final LHInfo lhinfo){
+        if (!lhMap.containsKey(instanceNum)){
+            HashMap<Integer, LHInfo> hmap = new HashMap<Integer, LHInfo>();
+            lhMap.put(instanceNum, hmap);
         }
+        lhMap.get(instanceNum).put(field, lhinfo);
     }
     
     public Set<LHKey> getLHKeySet(){
-        return lhMap.keySet();
+        TreeSet<LHKey> keySet = new TreeSet<LHKey>();
+        for (int instanceNum : lhMap.keySet()){
+            for (int field : lhMap.get(instanceNum).keySet()){
+                keySet.add(new LHKey(instanceNum, field));
+            }
+        }
+        return keySet;
     }
     
-    public LHInfo getLHInfo(LHKey lhkey){
-        if (lhMap.containsKey(lhkey))
-            return lhMap.get(lhkey);
-
-        int instanceNum = lhkey.instanceNum;
-        int f = lhkey.field;
-        final String referenceString = analysis.getAllocationPointClass(instanceNum);
-        LHInfo lhinfo = LHInfo.lhInfoFromInstanceNum(analysis,lhkey);
-        lhMap.put(lhkey,lhinfo);
+    public final LHInfo getLHInfo(int instanceNum, int field){
+        if (lhMap.containsKey(instanceNum)){
+            if (lhMap.get(instanceNum).containsKey(field))
+                return lhMap.get(instanceNum).get(field);
+        }
+        
+        //final String referenceString = analysis.getAllocationPointClass(instanceNum);
+        final LHInfo lhinfo = LHInfo.lhInfoFromInstanceNum(analysis,instanceNum, field);
+        addLHElem(instanceNum, field, lhinfo);
         return lhinfo;
     }
 }

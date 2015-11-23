@@ -3,7 +3,7 @@ package debugging;
 import analysis.Analysis;
 
 public class LHInfo {
-        public RegInfo regInfo;
+        private RegInfo regInfo;
         public String allocatedClass;
         public int field;
         public String c;
@@ -11,9 +11,10 @@ public class LHInfo {
         public int pc;
 
 
-
+        static int dcounter = 0;
+        
         public LHInfo(String ac, int f, String c, String m, int pc){
-            regInfo = new RegInfo();
+            this.regInfo = new RegInfo();
             
             allocatedClass = ac;
             field = f;
@@ -22,10 +23,15 @@ public class LHInfo {
             this.pc = pc;
         }
         
-        public static LHInfo lhInfoFromInstanceNum(Analysis analysis, LHKey lhKey){
-            int instanceNum = lhKey.instanceNum;
-            int f = lhKey.field;
-            return new LHInfo(analysis.getAllocationPointClass(instanceNum), f, analysis.getAllocationPointClassDebug(instanceNum), analysis.getAllocationPointMethod(instanceNum), analysis.getAllocationPointPC(instanceNum));
+        public static LHInfo lhInfoFromInstanceNum(Analysis analysis, int instanceNum, int field){
+            dcounter++;
+            System.out.println("" + dcounter);
+            return new LHInfo(analysis.getAllocationPointClass(instanceNum), field, analysis.getAllocationPointClassDebug(instanceNum), analysis.getAllocationPointMethod(instanceNum), analysis.getAllocationPointPC(instanceNum));
         }
+
+        public RegInfo getRegInfo() {
+            return regInfo;
+        }
+
 }
 

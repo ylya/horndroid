@@ -18,7 +18,7 @@ public class Debug {
         this.analysis = analysis;
     }
     
-    public MethodeInfo get(String c,String m){
+    public final MethodeInfo get(String c,String m){
         if (debug.containsKey(c)){
           if(debug.get(c).containsKey(m)){
               return debug.get(c).get(m);
@@ -41,6 +41,7 @@ public class Debug {
         }
     }
     
+    
     private void tabular(final PrintWriter writer,int length){
         writer.println("");
         writer.print("\\begin{tabular}{|l|");
@@ -60,19 +61,19 @@ public class Debug {
     
     private void tripleline(final PrintWriter writer,final RegInfo reginf, final String linestring){
         writer.print("\\multirow{3}{*}{" + linestring + "} ");
-        for (int i : reginf.high.keySet()){
+        for (int i : reginf.highKeySet()){
             writer.print(" & ");
-            item(writer,reginf.high.get(i));
+            item(writer,reginf.highGet(i));
         }
-        writer.print("\\\\ \\cline{2-" + (reginf.high.size()+ 1) + "}\n");
-        for (int i : reginf.local.keySet()){
+        writer.print("\\\\ \\cline{2-" + (reginf.highKeySet().size()+ 1) + "}\n");
+        for (int i : reginf.localKeySet()){
             writer.print(" & ");
-            item(writer,reginf.local.get(i));
+            item(writer,reginf.localGet(i));
         }
-        writer.print("\\\\ \\cline{2-" + (reginf.local.size() + 1) + "}\n");
-        for (int i : reginf.global.keySet()){
+        writer.print("\\\\ \\cline{2-" + (reginf.localKeySet().size() + 1) + "}\n");
+        for (int i : reginf.globalKeySet()){
             writer.print(" & ");
-            item(writer,reginf.global.get(i));
+            item(writer,reginf.globalGet(i));
         }
         writer.print("\\\\ \\hline");
     }
@@ -83,8 +84,10 @@ public class Debug {
         if (dc == null)
             return;
         writer.println("\\begin{itemize}");
+        int codeAddr = 0;
         for (final Instruction inst : dc.getInstructions()){
-            writer.print("\\item $" + inst.getOpcode().toString().replaceAll("_", "\\\\;\\\\;") + "$\n");
+            writer.print("\\item $" + codeAddr + " : " + inst.getOpcode().toString().replaceAll("_", "\\\\;\\\\;") + "$\n");
+            codeAddr += inst.getCodeUnits();
         }
         writer.println("\\end{itemize}");
     }
@@ -98,10 +101,10 @@ public class Debug {
                     final MethodeInfo minfo = debug.get(c).get(m);
                     this.newcm(writer,c,m);
                     
-                    /*tabular(writer,minfo.regInfo[0].high.size());
+                    tabular(writer,minfo.regInfo[0].highKeySet().size());
                     int length = minfo.regInfo.length;
                     writer.print(" $ $");
-                    for (int i : minfo.regInfo[0].global.keySet()){
+                    for (int i : minfo.regInfo[0].globalKeySet()){
                         writer.print(" & $" + i + "$ ");
                     }
                     writer.println("\\\\ \\hline");
@@ -110,20 +113,19 @@ public class Debug {
                         tripleline(writer,minfo.regInfo[i],"" + i);
                         writer.print("\n");
                     }
-                    writer.print("\\end{tabular}\n\n\n");*/
+                    writer.print("\\end{tabular}\n\n\n");
                     
-                    tabular(writer,minfo.regInfo[0].high.size());
-                    int length = minfo.getLHKeySet().size();
+                    tabular(writer,minfo.regInfo[0].highKeySet().size());
                     writer.print(" $ $");
-                    for (int i : minfo.regInfo[0].global.keySet()){
+                    for (int i : minfo.regInfo[0].globalKeySet()){
                         writer.print(" & $" + i + "$ ");
                     }
                     writer.println("\\\\ \\hline");
                     
                     for (final LHKey lhkey : minfo.getLHKeySet()){
-                        final LHInfo lhinfo = minfo.getLHInfo(lhkey);
-                        tripleline(writer,lhinfo.regInfo,
-                                "\\begin{tabular}{c}\n" + lhinfo.allocatedClass + "\\\\ \n"+ lhinfo.c + "\\\\ \n" + lhinfo.m + "\\\\ \n" + lhinfo.pc + " " + lhinfo.field + "\n\\end{tabular}\n"
+                        final LHInfo lhinfo = minfo.getLHInfo(lhkey.instanceNum, lhkey.field);
+                        tripleline(writer,lhinfo.getRegInfo(),
+                                "\\begin{tabular}{c}\n" + lhinfo.allocatedClass + "\\\\ \n"+ lhinfo.c + "\\\\ \n" + lhinfo.m + " " + lhinfo.pc + " " + lhinfo.field + "\n\\end{tabular}\n"
                                 );
                         writer.print("\n");
                     }

@@ -213,7 +213,7 @@ public class FSInstructionAnalysis{
                fsengine.addQueryDebug(q3);
                }
             for (int i = 0; i < analysis.getLocalHeapNumberEntries(); i++){
-                int instanceNumber = analysis.getInstanceNum(i);
+                int instanceNumber = analysis.getInstanceNumFromReverse(i);
                 int lhoffset = fsengine.getOffset(instanceNumber);
                 int lhsize = fsengine.getSize(instanceNumber);
                 String ac = analysis.getAllocationPointClassDebug(instanceNumber);
@@ -2440,7 +2440,7 @@ public class FSInstructionAnalysis{
             BoolExpr hl = fsengine.mkFalse();
             BoolExpr hg = fsengine.mkFalse();
             for (int j = 0; j < analysis.getLocalHeapNumberEntries(); j++){
-                int instanceNum = analysis.getInstanceNum(j);
+                int instanceNum = analysis.getInstanceNumFromReverse(j);
                 hg = fsengine.or(
                         hg,
                         fsengine.and(

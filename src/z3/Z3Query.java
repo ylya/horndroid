@@ -16,6 +16,7 @@ public class Z3Query {
     private boolean isVerbose;
     public boolean debugging;
     public boolean isReg;
+    public boolean isLocalHeap;
     
     public String allocationClassName;
     public String allocationMethodeName;
@@ -38,6 +39,11 @@ public class Z3Query {
         this.isVerbose = verbose;
         this.debugging = false;
         this.isReg = false;
+        this.isLocalHeap = false;
+        
+        this.field = 99999;
+        this.allocationClassName = "Error Z3QUery3";
+        this.allocationMethodeName = "Error Z3QUery4";
         
         this.className = className;
         this.methodName = methodName;
@@ -45,6 +51,9 @@ public class Z3Query {
         this.sinkName = sinkName;
     }
 
+    /*
+     * Debug queries for registers
+     */
     public Z3Query(BoolExpr query, int regNum, QUERY_TYPE queryType,
             String className, String methodName, String pc){
         this.query = query;
@@ -52,9 +61,14 @@ public class Z3Query {
         this.isVerbose = false;
         this.debugging = true;
         this.isReg = true;
+        this.isLocalHeap = false;
         
         this.regNum = regNum;
         this.queryType = queryType;
+        
+        this.field = 99999;
+        this.allocationClassName = "Error Z3QUery";
+        this.allocationMethodeName = "Error Z3QUery2";
         
         this.className = className;
         this.methodName = methodName;
@@ -62,6 +76,9 @@ public class Z3Query {
         this.sinkName = null;
     }
     
+    /*
+     * Debuq queries for local heap values
+     */
     public Z3Query(BoolExpr query, String acn, String amn, int apc, int af, int instanceNum, QUERY_TYPE queryType,
             String className, String methodName, String pc){
         this.query = query;
@@ -69,6 +86,7 @@ public class Z3Query {
         this.isVerbose = false;
         this.debugging = true;
         this.isReg = false;
+        this.isLocalHeap = true;
         
         this.allocationClassName = acn;
         this.allocationMethodeName = amn;
