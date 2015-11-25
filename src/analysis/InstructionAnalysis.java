@@ -549,9 +549,9 @@ public class InstructionAnalysis {
         				int elNum = 0;
         				BoolExpr mainh = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                         BoolExpr mainb = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
+                        z3engine.addRule(z3engine.implies(mainh, mainb), null);
         				for (final Number element: elements){
         					if (analysis.optionArrays()){
-                                z3engine.addRule(z3engine.implies(mainh, mainb), null);
                                 h = z3engine.and(
                                         z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                                         z3engine.hPred(var.getCn(), var.getV(((OneRegisterInstruction)instruction).getRegisterA()),
