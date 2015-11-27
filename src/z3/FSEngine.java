@@ -268,8 +268,18 @@ public class FSEngine {
         }
     }
 
-    public BitVecExpr bvneg(BitVecExpr bv) {
+    public BitVecExpr bvneg(BitVecExpr bv, Type type) {
         try {
+            switch(type){
+            case FLOAT:
+                return floatToIEEEBV(mContext.mkFPNeg(toFloat(bv)));
+            case DOUBLE:
+                return doubleToIEEEBV(mContext.mkFPNeg(toDouble(bv)));
+            case INT:
+                return toLong(mContext.mkBVNeg(toInt(bv)));
+            case LONG:
+                return mContext.mkBVNeg(bv);
+            }
             return mContext.mkBVNeg(bv);
         } catch (Z3Exception e) {
             e.printStackTrace();
@@ -277,17 +287,38 @@ public class FSEngine {
         }
     }
 
-    public BitVecExpr bvnot(BitVecExpr bv) {
+    public BitVecExpr bvnot(BitVecExpr bv, Type type) {
         try {
-            return mContext.mkBVNot(bv);
+            switch(type){
+            case INT:
+                return toLong(mContext.mkBVNot(toInt(bv)));
+            case LONG:
+                return mContext.mkBVNot(bv);
+            default:
+                throw new RuntimeException("BVNOT on wrong type");                    
+            }
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("FSEngine Failed: bvnot");
         }
     }
 
-    public BitVecExpr bvadd(BitVecExpr bv1, BitVecExpr bv2) {
+    private FPRMExpr rM(){
+        return mContext.mkFPRoundNearestTiesToEven();
+    }
+    
+    public BitVecExpr bvadd(BitVecExpr bv1, BitVecExpr bv2, Type type) {
         try {
+            switch(type){
+            case FLOAT:
+                return floatToIEEEBV(mContext.mkFPAdd(rM(),toFloat(bv1), toFloat(bv2)));
+            case DOUBLE:
+                return doubleToIEEEBV(mContext.mkFPAdd(rM(),toDouble(bv1), toDouble(bv2)));
+            case INT:
+                return toLong(mContext.mkBVAdd(toInt(bv1),toInt(bv2)));
+            case LONG:
+                return mContext.mkBVAdd(bv1, bv2);
+            }
             return mContext.mkBVAdd(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
@@ -295,8 +326,18 @@ public class FSEngine {
         }
     }
 
-    public BitVecExpr bvmul(BitVecExpr bv1, BitVecExpr bv2) {
+    public BitVecExpr bvmul(BitVecExpr bv1, BitVecExpr bv2, Type type) {
         try {
+            switch(type){
+            case FLOAT:
+                return floatToIEEEBV(mContext.mkFPMul(rM(),toFloat(bv1), toFloat(bv2)));
+            case DOUBLE:
+                return doubleToIEEEBV(mContext.mkFPMul(rM(),toDouble(bv1), toDouble(bv2)));
+            case INT:
+                return toLong(mContext.mkBVMul(toInt(bv1),toInt(bv2)));
+            case LONG:
+                return mContext.mkBVMul(bv1, bv2);
+            }
             return mContext.mkBVMul(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
@@ -304,18 +345,39 @@ public class FSEngine {
         }
     }
 
-    public BitVecExpr bvudiv(BitVecExpr bv1, BitVecExpr bv2) {
+    public BitVecExpr bvdiv(BitVecExpr bv1, BitVecExpr bv2, Type type) {
         try {
-            return mContext.mkBVUDiv(bv1, bv2);
+            switch(type){
+            case FLOAT:
+                return floatToIEEEBV(mContext.mkFPDiv(rM(),toFloat(bv1), toFloat(bv2)));
+            case DOUBLE:
+                return doubleToIEEEBV(mContext.mkFPDiv(rM(),toDouble(bv1), toDouble(bv2)));
+            case INT:
+                return toLong(mContext.mkBVSDiv(toInt(bv1),toInt(bv2)));
+            case LONG:
+                return mContext.mkBVSDiv(bv1, bv2);
+            }
+            return mContext.mkBVSDiv(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("FSEngine Failed: bvudiv");
         }
     }
 
-    public BitVecExpr bvurem(BitVecExpr bv1, BitVecExpr bv2) {
+    public BitVecExpr bvrem(BitVecExpr bv1, BitVecExpr bv2, Type type) {
         try {
-            return mContext.mkBVURem(bv1, bv2);
+            switch(type){
+            //TODO: I think that mkFPRem follows the IEEE754 standard, whereas Dalvik reminder is a bit different
+            case FLOAT:
+                return floatToIEEEBV(mContext.mkFPRem(toFloat(bv1), toFloat(bv2)));
+            case DOUBLE:
+                return doubleToIEEEBV(mContext.mkFPRem(toDouble(bv1), toDouble(bv2)));
+            case INT:
+                return toLong(mContext.mkBVSRem(toInt(bv1),toInt(bv2)));
+            case LONG:
+                return mContext.mkBVSRem(bv1, bv2);
+            }
+            return mContext.mkBVSRem(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("FSEngine Failed: bvurem");
@@ -385,40 +447,114 @@ public class FSEngine {
         }
     }
 
-    public BitVecExpr bvsub(BitVecExpr bv1, BitVecExpr bv2) {
+    public BitVecExpr bvsub(BitVecExpr bv1, BitVecExpr bv2, Type type) {
         try {
-            return mContext.mkBVASHR(bv1, bv2);
+            //TODO: the wrong operation is performed in the standard analysis
+            switch(type){
+            case FLOAT:
+                return floatToIEEEBV(mContext.mkFPSub(rM(),toFloat(bv1), toFloat(bv2)));
+            case DOUBLE:
+                return doubleToIEEEBV(mContext.mkFPSub(rM(),toDouble(bv1), toDouble(bv2)));
+            case INT:
+                return toLong(mContext.mkBVSub(toInt(bv1),toInt(bv2)));
+            case LONG:
+                return mContext.mkBVSub(bv1, bv2);
+            }
+            return mContext.mkBVSub(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("FSEngine Failed: bvsub");
         }
     }
 
-    public BitVecExpr bvxor(BitVecExpr bv1, BitVecExpr bv2) {
+    public BitVecExpr bvxor(BitVecExpr bv1, BitVecExpr bv2, Type type) {
         try {
-            return mContext.mkBVXOR(bv1, bv2);
+            switch(type){
+            case INT:
+                return toLong(mContext.mkBVXOR(toInt(bv1),toInt(bv2)));
+            case LONG:
+                return mContext.mkBVXOR(bv1,bv2);
+            default:
+                throw new RuntimeException("BVXOR on wrong type");                    
+            }
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("FSEngine Failed: bvxor");
         }
     }
 
-    public BitVecExpr bvor(BitVecExpr bv1, BitVecExpr bv2) {
+    public BitVecExpr bvor(BitVecExpr bv1, BitVecExpr bv2, Type type) {
         try {
-            return mContext.mkBVOR(bv1, bv2);
+            switch(type){
+            case INT:
+                return toLong(mContext.mkBVOR(toInt(bv1),toInt(bv2)));
+            case LONG:
+                return mContext.mkBVOR(bv1,bv2);
+            default:
+                throw new RuntimeException("BVOR on wrong type");                    
+            }
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("FSEngine Failed: bvor");
         }
     }
 
-    public BitVecExpr bvand(BitVecExpr bv1, BitVecExpr bv2) {
+    public BitVecExpr bvand(BitVecExpr bv1, BitVecExpr bv2, Type type) {
         try {
-            return mContext.mkBVAND(bv1, bv2);
+            switch(type){
+            case INT:
+                return toLong(mContext.mkBVAND(toInt(bv1),toInt(bv2)));
+            case LONG:
+                return mContext.mkBVAND(bv1,bv2);
+            default:
+                throw new RuntimeException("BVAND on wrong type");                    
+            }
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("FSEngine Failed: bvand");
         }
+    }
+    
+    public BitVecExpr toInt(BitVecExpr longBV){
+        return mContext.mkExtract(31, 0, longBV);
+    }
+
+    public BitVecExpr toLong(BitVecExpr longBV){
+        return mContext.mkConcat(mkBitVector(0, 32),longBV);
+    }
+
+    public FPExpr toFloat(BitVecExpr longBV){
+        return mContext.mkFPToFP(toInt(longBV), mContext.mkFPSort32());
+    }
+    
+    public FPExpr toDouble(BitVecExpr longBV){
+        return mContext.mkFPToFP(longBV, mContext.mkFPSort64());
+    }
+    
+    public BitVecExpr floatToIEEEBV(FPExpr floatExpr){
+        return toLong(mContext.mkFPToIEEEBV(floatExpr));        
+    }
+    
+    public BitVecExpr doubleToIEEEBV(FPExpr doubleExpr){
+        return mContext.mkFPToIEEEBV(doubleExpr);
+    }
+    
+    public BitVecExpr uOpIntToFloat(BitVecExpr bv){
+        return(floatToIEEEBV(mContext.mkFPToFP(rM(),bv,mContext.mkFPSort32(),true)));
+    }
+    
+    
+    public BitVecExpr uOpIntToDouble(BitVecExpr bv){
+        return(doubleToIEEEBV(mContext.mkFPToFP(rM(),bv,mContext.mkFPSort64(),true)));
+    }
+    
+    public BitVecExpr uOpLongToFloat(BitVecExpr bv){
+        return(floatToIEEEBV(mContext.mkFPToFP(rM(),bv,mContext.mkFPSort32(),true)));
+    }
+    
+    
+    public BitVecExpr uOpLongToDouble(BitVecExpr bv){
+        return(doubleToIEEEBV(mContext.mkFPToFP(rM(),bv,mContext.mkFPSort64(),true)));
     }
 
     public BoolExpr implies(BoolExpr b1, BoolExpr b2) {
@@ -450,7 +586,8 @@ public class FSEngine {
     
     public void addQueryDebug(Z3Query query) {
         if (!query.debugging)
-            throw new RuntimeException("debug queries only");
+            //TODO: uncomment
+            //throw new RuntimeException("debug queries only");
         mQueries.add(query);
     }
 

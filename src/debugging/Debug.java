@@ -60,7 +60,7 @@ public class Debug {
     }
     
     private void tripleline(final PrintWriter writer,final RegInfo reginf, final String linestring){
-        writer.print("\\multirow{3}{*}{" + linestring + "} ");
+        writer.print("\\multirow{3}{*}{" + linestring.replace("$", "\\$") + "} ");
         for (int i : reginf.highKeySet()){
             writer.print(" & ");
             item(writer,reginf.highGet(i));
