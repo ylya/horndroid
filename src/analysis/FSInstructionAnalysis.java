@@ -197,7 +197,6 @@ public class FSInstructionAnalysis{
         BoolExpr returnLabel;
 
         
-        System.out.println("size : " + analysis.getSize());
         boolean debug = false;
         if (debug){
            BoolExpr h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
@@ -1521,17 +1520,41 @@ public class FSInstructionAnalysis{
             bv = fsengine.uOpLongToDouble(regB());
             this.unaryOp(bv);
             break;
-            //TODO:
         case FLOAT_TO_INT://((short)0x87, "float-to-int", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            bv = fsengine.floatRoundToInt(regB());
+            this.unaryOp(bv);
+            break;
         case FLOAT_TO_LONG://((short)0x88, "float-to-long", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            bv = fsengine.floatRoundToLong(regB());
+            this.unaryOp(bv);
+            break;
         case FLOAT_TO_DOUBLE://((short)0x89, "float-to-double", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            bv = fsengine.floatToDouble(regB());
+            this.unaryOp(bv);
+            break;        
         case DOUBLE_TO_INT://((short)0x8a, "double-to-int", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            bv = fsengine.doubleRoundToInt(regB());
+            this.unaryOp(bv);
+            break;
         case DOUBLE_TO_LONG://((short)0x8b, "double-to-long", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            bv = fsengine.floatRoundToLong(regB());
+            this.unaryOp(bv);
+            break;
         case DOUBLE_TO_FLOAT://((short)0x8c, "double-to-float", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            bv = fsengine.doubleToFloat(regB());
+            this.unaryOp(bv);
+            break;
         case INT_TO_BYTE://((short)0x8d, "int-to-byte", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            bv = fsengine.intToByte(regB());
+            this.unaryOp(bv);
+            break;
         case INT_TO_CHAR://((short)0x8e, "int-to-char", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            bv = fsengine.intToChar(regB());
+            this.unaryOp(bv);
+            break;
         case INT_TO_SHORT://((short)0x8f, "int-to-short", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            this.propagate();
+            bv = fsengine.intToShort(regB());
+            this.unaryOp(bv);
             break;
 
         case ADD_INT://((short)0x90, "add-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
@@ -1563,6 +1586,13 @@ public class FSInstructionAnalysis{
             this.binaryOpC(bv);
             break;
 
+        case RSUB_INT://((short)0xd1, "rsub-int", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            bv = fsengine.bvsub(
+                    regC(),
+                    regB(), Type.INT
+                    );
+            this.binaryOpC(bv);
+            break;
         case SUB_INT://((short)0x91, "sub-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvsub(
                     regB(),
@@ -1725,29 +1755,46 @@ public class FSInstructionAnalysis{
             break;
 
         case SHL_INT://((short)0x98, "shl-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-        case SHL_LONG://((short)0xa3, "shl-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-//          SHL not XOR!
-            bv = fsengine.bvxor(
+            bv = fsengine.bvshl(
                     regB(),
-                    regC()
+                    regC(), Type.INT
+                    );
+            this.binaryOpC(bv);
+            break;
+        case SHL_LONG://((short)0xa3, "shl-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            bv = fsengine.bvshl(
+                    regB(),
+                    regC(), Type.LONG
                     );
             this.binaryOpC(bv);
             break;
 
         case SHR_LONG://((short)0xa4, "shr-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            bv = fsengine.bvashr(
+                    regB(),
+                    regC(), Type.LONG
+                    );
+            this.binaryOpC(bv);
+            break;
         case SHR_INT://((short)0x99, "shr-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvashr(
                     regB(),
-                    regC()
+                    regC(), Type.INT
                     );
             this.binaryOpC(bv);
             break;
 
         case USHR_INT://((short)0x9a, "ushr-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            bv = fsengine.bvlshr(
+                    regB(),
+                    regC(), Type.INT
+                    );
+            this.binaryOpC(bv);
+            break;
         case USHR_LONG://((short)0xa5, "ushr-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvlshr(
                     regB(),
-                    regC()
+                    regC(), Type.LONG
                     );
             this.binaryOpC(bv);
             break;
@@ -1852,7 +1899,7 @@ public class FSInstructionAnalysis{
                     regB(),Type.LONG
                     );
             this.binaryOp(bv);
-            break;    
+            break;
         case DIV_FLOAT_2ADDR://((short)0xc9, "div-float/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvdiv(
                     regA(),
@@ -1898,166 +1945,194 @@ public class FSInstructionAnalysis{
             break;
 
         case AND_INT_2ADDR://((short)0xb5, "and-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-        case AND_LONG_2ADDR:
             bv = fsengine.bvand(
                     regA(),
-                    regB()
+                    regB(), Type.INT
                     );
             this.binaryOp(bv);
-            break;//((short)0xbb, "add-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-
+            break;
+        case AND_LONG_2ADDR://((short)0xbb, "add-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            bv = fsengine.bvand(
+                    regA(),
+                    regB(), Type.LONG
+                    );
+            this.binaryOp(bv);
+            break;
+            
         case OR_INT_2ADDR://((short)0xb6, "or-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-        case OR_LONG_2ADDR:
             bv = fsengine.bvor(
                     regA(),
-                    regB()
+                    regB(), Type.INT
                     );
             this.binaryOp(bv);
-            break;//((short)0xc1, "or-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            break;
+        case OR_LONG_2ADDR://((short)0xc1, "or-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            bv = fsengine.bvor(
+                    regA(),
+                    regB(), Type.LONG
+                    );
+            this.binaryOp(bv);
+            break;
 
         case XOR_INT_2ADDR://((short)0xb7, "xor-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-        case XOR_LONG_2ADDR:
             bv = fsengine.bvxor(
                     regA(),
-                    regB()
+                    regB(), Type.INT
                     );
             this.binaryOp(bv);
-            break;//((short)0xc2, "xor-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-
+            break;
+        case XOR_LONG_2ADDR://((short)0xc2, "xor-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            bv = fsengine.bvxor(
+                    regA(),
+                    regB(), Type.LONG
+                    );
+            this.binaryOp(bv);
+            break;
+            
         case SHL_INT_2ADDR://((short)0xb8, "shl-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-        case SHL_LONG_2ADDR:
             bv = fsengine.bvshl(
                     regA(),
-                    regB()
+                    regB(), Type.INT
                     );
             this.binaryOp(bv);
-
-            break;//((short)0xc3, "shl-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-
+            break;
+        case SHL_LONG_2ADDR://((short)0xc3, "shl-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            bv = fsengine.bvshl(
+                    regA(),
+                    regB(), Type.LONG
+                    );
+            this.binaryOp(bv);
+            break;
+            
         case SHR_INT_2ADDR://((short)0xb9, "shr-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-        case SHR_LONG_2ADDR:
             bv = fsengine.bvashr(
                     regA(),
-                    regB()
+                    regB(), Type.INT
                     );
             this.binaryOp(bv);
-            break;//((short)0xc4, "shr-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-
+            break;
+        case SHR_LONG_2ADDR://((short)0xc4, "shr-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            bv = fsengine.bvashr(
+                    regA(),
+                    regB(), Type.LONG
+                    );
+            this.binaryOp(bv);
+            break;
 
         case USHR_INT_2ADDR://((short)0xba, "ushr-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-        case USHR_LONG_2ADDR:
             bv = fsengine.bvlshr(
                     regA(),
-                    regB()
+                    regB(), Type.INT
                     );
             this.binaryOp(bv);
-            break;//((short)0xc5, "ushr-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-
+            break;
+        case USHR_LONG_2ADDR://((short)0xc5, "ushr-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            bv = fsengine.bvlshr(
+                    regA(),
+                    regB(), Type.LONG
+                    );
+            this.binaryOp(bv);
+            break;
 
         case ADD_INT_LIT16://((short)0xd0, "add-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-        case ADD_INT_LIT8:
+        case ADD_INT_LIT8://((short)0xd8, "add-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvadd(
                     regB(),
-                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
-                    );
+                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
+                    Type.INT);
             this.unaryOp(bv);
-            break;//((short)0xd8, "add-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-
+            break;
 
         case MUL_INT_LIT16://((short)0xd2, "mul-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-        case MUL_INT_LIT8:
+        case MUL_INT_LIT8://((short)0xda, "mul-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvmul(
                     regB(),
-                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
-                    );
+                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
+                    Type.INT);
             this.unaryOp(bv);
-            break;//((short)0xda, "mul-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-
+            break;
 
         case DIV_INT_LIT16://((short)0xd3, "div-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-        case DIV_INT_LIT8:
-            bv = fsengine.bvudiv(
+        case DIV_INT_LIT8://((short)0xdb, "div-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            bv = fsengine.bvdiv(
                     regB(),
-                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
-                    );
+                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
+                    Type.INT);
             this.unaryOp(bv);
-            break;//((short)0xdb, "div-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-
+            break;
 
         case REM_INT_LIT16://((short)0xd4, "rem-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-        case REM_INT_LIT8:
-            bv = fsengine.bvurem(
+        case REM_INT_LIT8://((short)0xdc, "rem-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            bv = fsengine.bvrem(
                     regB(),
-                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
-                    );
+                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
+                    Type.INT);
             this.unaryOp(bv);
-            break;//((short)0xdc, "rem-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-
+            break;
 
         case AND_INT_LIT16://((short)0xd5, "and-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-        case AND_INT_LIT8:
+        case AND_INT_LIT8://((short)0xdd, "and-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvand(
                     regB(),
-                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
-                    );
+                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
+                    Type.INT);
             this.unaryOp(bv);
-            break;//((short)0xdd, "and-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-
+            break;
 
         case OR_INT_LIT16://((short)0xd6, "or-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-        case OR_INT_LIT8:
+        case OR_INT_LIT8://((short)0xde, "or-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvor(
                     regB(),
-                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
-                    );
+                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
+                    Type.INT);
             this.unaryOp(bv);
-            break;//((short)0xde, "or-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-
+            break;
 
         case XOR_INT_LIT16://((short)0xd7, "xor-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-        case XOR_INT_LIT8:
+        case XOR_INT_LIT8://((short)0xdf, "xor-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvxor(
                     regB(),
-                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
-                    );
+                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
+                    Type.INT);
             this.unaryOp(bv);
-            break;//((short)0xdf, "xor-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            break;
 
-
-        case RSUB_INT://((short)0xd1, "rsub-int", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-        case RSUB_INT_LIT8:
+        case RSUB_INT_LIT8://((short)0xd9, "rsub-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvsub(
                     fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
-                    regB()
-                    );
+                    regB(),
+                    Type.INT);
             this.unaryOp(bv);
-            break;//((short)0xd9, "rsub-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            break;
 
-
-        case SHL_INT_LIT8:
-            bv = fsengine.bvshl(regB(),
-                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size));
+        case SHL_INT_LIT8://((short)0xe0, "shl-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            bv = fsengine.bvshl(
+                    regB(),
+                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
+                    Type.INT);
             this.unaryOp(bv);
-            break;//((short)0xe0, "shl-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            break;
 
-
-        case SHR_INT_LIT8:
+        case SHR_INT_LIT8://((short)0xe1, "shr-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvashr(
                     regB(),
-                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
-                    );
+                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
+                    Type.INT);
             this.unaryOp(bv);
-            break;//((short)0xe1, "shr-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            break;
 
-
-        case USHR_INT_LIT8:
+        case USHR_INT_LIT8://((short)0xe2, "ushr-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvlshr(
                     regB(),
-                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size)
-                    );
+                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
+                    Type.INT);
             this.unaryOp(bv);
-            break;//((short)0xe2, "ushr-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-
+            break;
+        case PACKED_SWITCH_PAYLOAD://((short)0x100, "packed-switch-payload", ReferenceType.NONE, Format.PackedSwitchPayload, 0),
+        case SPARSE_SWITCH_PAYLOAD://((short)0x200, "sparse-switch-payload", ReferenceType.NONE, Format.SparseSwitchPayload, 0),
+        case ARRAY_PAYLOAD://((short)0x300, "array-payload", ReferenceType.NONE, Format.ArrayPayload, 0);
+            //For these operations nothing should be done, it was already taken care of
+            break;
         case IGET_VOLATILE://((short)0xe3, "iget-volatile", minApi(9), ReferenceType.FIELD, Format.Format22c, Opcode.ODEX_ONLY | Opcode.ODEXED_INSTANCE_VOLATILE | Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case IPUT_VOLATILE://((short)0xe4, "iput-volatile", minApi(9), ReferenceType.FIELD, Format.Format22c, Opcode.ODEX_ONLY | Opcode.ODEXED_INSTANCE_VOLATILE | Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
         case SGET_VOLATILE://((short)0xe5, "sget-volatile", minApi(9), ReferenceType.FIELD, Format.Format21c, Opcode.ODEX_ONLY | Opcode.ODEXED_STATIC_VOLATILE | Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
@@ -2088,9 +2163,6 @@ public class FSInstructionAnalysis{
         case IPUT_OBJECT_VOLATILE://((short)0xfc, "iput-object-volatile", minApi(9), ReferenceType.FIELD, Format.Format22c, Opcode.ODEX_ONLY | Opcode.ODEXED_INSTANCE_VOLATILE | Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
         case SGET_OBJECT_VOLATILE://((short)0xfd, "sget-object-volatile", minApi(9), ReferenceType.FIELD, Format.Format21c, Opcode.ODEX_ONLY | Opcode.ODEXED_STATIC_VOLATILE | Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case SPUT_OBJECT_VOLATILE://((short)0xfe, "sput-object-volatile", minApi(9), ReferenceType.FIELD, Format.Format21c, Opcode.ODEX_ONLY | Opcode.ODEXED_STATIC_VOLATILE | Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
-        case PACKED_SWITCH_PAYLOAD://((short)0x100, "packed-switch-payload", ReferenceType.NONE, Format.PackedSwitchPayload, 0),
-        case SPARSE_SWITCH_PAYLOAD://((short)0x200, "sparse-switch-payload", ReferenceType.NONE, Format.SparseSwitchPayload, 0),
-        case ARRAY_PAYLOAD://((short)0x300, "array-payload", ReferenceType.NONE, Format.ArrayPayload, 0);
         default:
             System.err.println("FSInstructionAnalysis: unsuported instruction" + opcode);
         }
@@ -2108,40 +2180,67 @@ public class FSInstructionAnalysis{
         return fsvar.getV(((ThreeRegisterInstruction)instruction).getRegisterC());
     }
     
-    private void propagate(){
-        BoolExpr h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
-        BoolExpr b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
-        fsengine.addRule(fsengine.implies(h, b), null);
-    }
     
     private void unaryOp(BitVecExpr bv){
-        BoolExpr h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
-        regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(),bv);
-        regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(), fsvar.getH(((TwoRegisterInstruction)instruction).getRegisterB()));
-        BoolExpr b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
-        fsengine.addRule(fsengine.implies(h, b), null);
+        if (analysis.getSize() == 64){
+            BoolExpr h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+            regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(),bv);
+            regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(), fsvar.getH(((TwoRegisterInstruction)instruction).getRegisterB()));
+            BoolExpr b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+            fsengine.addRule(fsengine.implies(h, b), null);
+        }else{
+            BoolExpr h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+            regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(),fsvar.getVal());
+            regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(), fsvar.getH(((TwoRegisterInstruction)instruction).getRegisterB()));
+            BoolExpr b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+            fsengine.addRule(fsengine.implies(h, b), null);
+            
+        }
+
     }
 
     private void binaryOp(BitVecExpr bv){
-        BoolExpr h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
-        regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(),bv);
-        regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                fsengine.or(
-                        fsvar.getH(((TwoRegisterInstruction)instruction).getRegisterA()),
-                        fsvar.getH(((TwoRegisterInstruction)instruction).getRegisterB())));
-        BoolExpr b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
-        fsengine.addRule(fsengine.implies(h, b), null);
+        if (analysis.getSize() == 64){
+            BoolExpr h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+            regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(),bv);
+            regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(),
+                    fsengine.or(
+                            fsvar.getH(((TwoRegisterInstruction)instruction).getRegisterA()),
+                            fsvar.getH(((TwoRegisterInstruction)instruction).getRegisterB())));
+            BoolExpr b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+            fsengine.addRule(fsengine.implies(h, b), null);
+        }else{
+            BoolExpr h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+            regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(),fsvar.getVal());
+            regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(),
+                    fsengine.or(
+                            fsvar.getH(((TwoRegisterInstruction)instruction).getRegisterA()),
+                            fsvar.getH(((TwoRegisterInstruction)instruction).getRegisterB())));
+            BoolExpr b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+            fsengine.addRule(fsengine.implies(h, b), null);
+        }
     }
     
     private void binaryOpC(BitVecExpr bv){
-        BoolExpr h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
-        regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(),bv);
-        regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                fsengine.or(
-                        fsvar.getH(((ThreeRegisterInstruction)instruction).getRegisterB()),
-                        fsvar.getH(((ThreeRegisterInstruction)instruction).getRegisterC())));
-        BoolExpr b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
-        fsengine.addRule(fsengine.implies(h, b), null);
+        if (analysis.getSize() == 64){
+            BoolExpr h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+            regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(),bv);
+            regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(),
+                    fsengine.or(
+                            fsvar.getH(((ThreeRegisterInstruction)instruction).getRegisterB()),
+                            fsvar.getH(((ThreeRegisterInstruction)instruction).getRegisterC())));
+            BoolExpr b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+            fsengine.addRule(fsengine.implies(h, b), null);
+        }else{
+            BoolExpr h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+            regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(),fsvar.getVal());
+            regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(),
+                    fsengine.or(
+                            fsvar.getH(((ThreeRegisterInstruction)instruction).getRegisterB()),
+                            fsvar.getH(((ThreeRegisterInstruction)instruction).getRegisterC())));
+            BoolExpr b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+            fsengine.addRule(fsengine.implies(h, b), null);            
+        }
     }
     
     

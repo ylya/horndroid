@@ -420,36 +420,58 @@ public class FSEngine {
         }
     }
 
-    public BitVecExpr bvshl(BitVecExpr bv1, BitVecExpr bv2) {
-        try {
-            return mContext.mkBVSHL(bv1, bv2);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("FSEngine Failed: bvshl");
-        }
-    }
 
-    public BitVecExpr bvlshr(BitVecExpr bv1, BitVecExpr bv2) {
+    public BitVecExpr bvlshr(BitVecExpr bv1, BitVecExpr bv2, Type type) {
         try {
-            return mContext.mkBVLSHR(bv1, bv2);
+            switch(type){
+            case INT:
+                return toLong(mContext.mkBVLSHR(toInt(bv1), toInt(bv2)));
+            case LONG:
+                return mContext.mkBVLSHR(bv1, bv2);
+            default:
+                    throw new RuntimeException("FSEngine: wrong type in LSHR");
+            }
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("FSEngine Failed: bvlshr");
         }
     }
 
-    public BitVecExpr bvashr(BitVecExpr bv1, BitVecExpr bv2) {
+    public BitVecExpr bvashr(BitVecExpr bv1, BitVecExpr bv2, Type type) {
         try {
-            return mContext.mkBVASHR(bv1, bv2);
+            switch(type){
+            case INT:
+                return toLong(mContext.mkBVASHR(toInt(bv1), toInt(bv2)));
+            case LONG:
+                return mContext.mkBVASHR(bv1, bv2);
+            default:
+                    throw new RuntimeException("FSEngine: wrong type in ASHR");
+            }
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("FSEngine Failed: bvashr");
         }
     }
+    
+
+    public BitVecExpr bvshl(BitVecExpr bv1, BitVecExpr bv2, Type type) {
+        try {
+            switch(type){
+            case INT:
+                return toLong(mContext.mkBVSHL(toInt(bv1), toInt(bv2)));
+            case LONG:
+                return mContext.mkBVSHL(bv1, bv2);
+            default:
+                    throw new RuntimeException("FSEngine: wrong type in SHL");
+            }
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: bvshl");
+        }
+    }
 
     public BitVecExpr bvsub(BitVecExpr bv1, BitVecExpr bv2, Type type) {
         try {
-            //TODO: the wrong operation is performed in the standard analysis
             switch(type){
             case FLOAT:
                 return floatToIEEEBV(mContext.mkFPSub(rM(),toFloat(bv1), toFloat(bv2)));
@@ -557,6 +579,43 @@ public class FSEngine {
         return(doubleToIEEEBV(mContext.mkFPToFP(rM(),bv,mContext.mkFPSort64(),true)));
     }
 
+    public BitVecExpr floatRoundToInt(BitVecExpr bv){
+        return toLong(mContext.mkFPToBV(rM(),toFloat(bv),32, true));
+    }
+
+    public BitVecExpr floatRoundToLong(BitVecExpr bv){
+        return mContext.mkFPToBV(rM(),toFloat(bv),64, true);
+    }
+    
+    public BitVecExpr doubleRoundToInt(BitVecExpr bv){
+        return toLong(mContext.mkFPToBV(rM(),toDouble(bv),32, true));
+    }
+
+    public BitVecExpr doubleRoundToLong(BitVecExpr bv){
+        return mContext.mkFPToBV(rM(),toDouble(bv),64, true);
+    }
+    
+    public BitVecExpr floatToDouble(BitVecExpr bv){
+        return doubleToIEEEBV(mContext.mkFPToFP(rM(),toFloat(bv),mContext.mkFPSort64()));
+    }
+    
+    public BitVecExpr doubleToFloat(BitVecExpr bv){
+        return floatToIEEEBV(mContext.mkFPToFP(rM(),toDouble(bv),mContext.mkFPSort32()));
+    }
+    
+    public BitVecExpr intToShort(BitVecExpr bv){
+        return bvashr(bvshl(bv, mkBitVector(16, 64), Type.INT),mkBitVector(16, 64), Type.INT);
+    }
+    
+    public BitVecExpr intToByte(BitVecExpr bv){
+        return bvashr(bvshl(bv, mkBitVector(24, 64), Type.INT),mkBitVector(24, 64), Type.INT);
+    }
+    
+    public BitVecExpr intToChar(BitVecExpr bv){
+        return this.bvand(bv, mkBitVector(65535,64), Type.INT);
+    }
+    
+    
     public BoolExpr implies(BoolExpr b1, BoolExpr b2) {
         try {
             return mContext.mkImplies(b1, b2);
@@ -586,7 +645,6 @@ public class FSEngine {
     
     public void addQueryDebug(Z3Query query) {
         if (!query.debugging)
-            //TODO: uncomment
             //throw new RuntimeException("debug queries only");
         mQueries.add(query);
     }
@@ -710,7 +768,6 @@ public class FSEngine {
         try {
             new ProcessBuilder(new String[]{ "pdflatex", "wrapper.tex"}).start();
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
 
@@ -748,7 +805,6 @@ public class FSEngine {
 
     private FuncDecl rPredDef(String c, String m, int pc, int size) {
         try {
-            // TODO: mkBoolSort and mkBitVecSort called at each invocation of
             // rPredDef
             BitVecSort bv64 = mContext.mkBitVecSort(bvSize);
             BoolSort bool = mContext.mkBoolSort();
@@ -784,7 +840,6 @@ public class FSEngine {
 
             Expr[] e = new Expr[4 * size + 5 * this.localHeapSize];
             for (int i = 0, j = size, k = 2 * size, l = 3 * size; i < size; i++, j++, k++, l++) {
-                // TODO: return the corresponding variables
                 e[i] = rUp.get(i);
                 if (e[i] == null) {
                     e[i] = var.getV(i);
@@ -792,18 +847,15 @@ public class FSEngine {
                 e[j] = rUpHigh.get(i);
                 if (e[j] == null) {
                     e[j] = var.getH(i);
-                } // ;System.out.println("FSENgine: rPred: Wrong variables :
-                  // High");};
+                }
                 e[k] = rUpLocal.get(i);
                 if (e[k] == null) {
                     e[k] = var.getL(i);
-                } // ;System.out.println("FSENgine: rPred: Wrong variables :
-                  // Local");};
+                }
                 e[l] = rUpGlobal.get(i);
                 if (e[l] == null) {
                     e[l] = var.getG(i);
-                } // ;System.out.println("FSENgine: rPred: Wrong variables :
-                  // Global");};
+                }
             }
             ;
             for (int loop = 0,  i = 4 * size, j = 4 * size + this.localHeapSize, k = 4 * size
@@ -833,7 +885,6 @@ public class FSEngine {
             ;
             BoolExpr rez = (BoolExpr) r.apply(e); 
             
-            //this.addQuery(new Z3Query(rez, c + ' ' + m + ' ' +Integer.toString(pc), true, c, m, Integer.toString(pc), ""));
             return rez;
         } catch (Z3Exception e) {
             e.printStackTrace();
