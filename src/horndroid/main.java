@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 import javax.xml.parsers.ParserConfigurationException;
 
 import com.microsoft.z3.BoolExpr;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.Option;
@@ -33,6 +34,7 @@ import org.xml.sax.SAXException;
 import com.google.common.collect.Ordering;
 
 import analysis.Analysis;
+import analysis.Stubs;
 import util.SourceSinkMethod;
 import util.SourceSinkParser;
 import util.Utils;
@@ -60,6 +62,9 @@ public class main {
     public static void main(String[] args) {
         parseCommandLine(args);
 
+        Stubs stubs = new Stubs(hornDroidOptions);
+        stubs.process();
+        
         //add all known sources and sinks
         final Set<SourceSinkMethod> sourcesSinks = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <SourceSinkMethod, Boolean>()));
         File sourceSinkFile = new File("SourcesAndSinksDroidSafe.txt");
@@ -99,7 +104,7 @@ public class main {
             final FSEngine fsengine = new FSEngine(hornDroidOptions);
 
             final ExecutorService instructionExecutorService = Executors.newCachedThreadPool();
-            Analysis analysis = new Analysis(z3engine, fsengine, sourcesSinks, hornDroidOptions, instructionExecutorService);
+            Analysis analysis = new Analysis(z3engine, fsengine, sourcesSinks, hornDroidOptions, instructionExecutorService, stubs);
             System.out.println("Analysing " + file.getName());
             startTime = System.nanoTime();
 
@@ -132,7 +137,7 @@ public class main {
             System.out.println("done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
 
             //////////////////////////////////////
-
+            
             startTime = System.nanoTime();
             System.out.print("Parsing callbacks and disabled activities...");
             try {

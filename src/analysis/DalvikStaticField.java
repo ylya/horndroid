@@ -1,12 +1,15 @@
 package analysis;
 
+import org.jf.dexlib2.iface.value.EncodedValue;
+
+
 public class DalvikStaticField extends DalvikField {
-	final private String defaultValue;
-	DalvikStaticField(final String name, final String defaultValue){
+	final private EncodedValue defaultValue;
+	DalvikStaticField(final String name, final EncodedValue defaultValue){
 		super(name);
 		this.defaultValue = defaultValue;
 	}
-	public String getDefaultValue(){
+	public EncodedValue getDefaultValue(){
 		return defaultValue;
 	}
 }
