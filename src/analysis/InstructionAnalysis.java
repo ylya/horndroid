@@ -293,7 +293,9 @@ public class InstructionAnalysis {
                     z3engine.addRule(z3engine.implies(h, b), null);
         			break;
         		}
+        		
         		instanceNum = analysis.getInstNum(ci, mi, codeAddress);
+        		
         		h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
         		regUpdate.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkBitVector(instanceNum, size));
         		regUpdateL.put(((OneRegisterInstruction)instruction).getRegisterA(), z3engine.mkFalse());

@@ -393,6 +393,7 @@ public class Analysis {
         boolean found = false;
         boolean prim;
         for (final GeneralClass c: classes) {
+            if (c.getType() == null) continue;
             if ((c.getType().hashCode() == className.hashCode()) && (c instanceof DalvikClass)){
                 final DalvikClass dc = (DalvikClass) c;
                 found = true;
@@ -631,6 +632,7 @@ public class Analysis {
         return false;
     }
     private boolean testLauncherActivity(final GeneralClass c, final Set<Integer> visited){
+        if (c.getType() == null) return false;
         if (!visited.isEmpty())
         {
             if (visited.contains(c.getType().hashCode()))
@@ -663,6 +665,7 @@ public class Analysis {
         return false;
     }
     private boolean testApplication(final GeneralClass c, final Set<Integer> visited){
+        if (c.getType() == null) return false;
         if (!visited.isEmpty())
         {
             if (visited.contains(c.getType().hashCode()))
@@ -717,13 +720,38 @@ public class Analysis {
         }
     }
     
+    private void addClassFromStubs(final GeneralClass cp, final LinkedList<GeneralClass> toProcess, final Set<GeneralClass> processed){
+        if(!processed.contains(cp)){
+            processed.add(cp);
+            toProcess.add(cp);
+            classes.add(cp);
+        }
+        else return;
+        if (cp instanceof DalvikClass)
+            addClassFromStubs(((DalvikClass)cp).getSuperClass(), toProcess, processed);              
+    }
+    
+    private void addClassFromApk(final GeneralClass cp, final LinkedList<GeneralClass> toProcess, final Set<GeneralClass> processed){
+        processed.add(cp);
+        toProcess.add(cp);
+        if (cp instanceof DalvikClass){
+            GeneralClass superClass = ((DalvikClass)cp).getSuperClass();
+            if (!classes.contains(superClass)){
+                for (GeneralClass stub: stubs.getClasses()){
+                    if (stub.getType().equals(superClass.getType())){
+                        ((DalvikClass) cp).putSuperClass(stub);
+                        addClassFromStubs(stub, toProcess, processed);
+                    }
+                }
+            }
+        }
+    }
     
     public void createHornClauses(){
         LinkedList<GeneralClass> toProcess = new LinkedList<GeneralClass>();
         Set<GeneralClass> processed = new HashSet<GeneralClass>();
         for (final GeneralClass c: classes){
-            toProcess.add(c);
-            processed.add(c);
+            addClassFromApk(c, toProcess, processed);
         }
         while(!toProcess.isEmpty()){
             GeneralClass c = toProcess.poll();
@@ -761,11 +789,7 @@ public class Analysis {
                             for (final GeneralClass cp: stubs.getClasses()){
                                 if (!(cp instanceof DalvikClass)) continue;
                                 if (cp.getType().hashCode() == referenceClassIndex){
-                                    if(!processed.contains(cp)){
-                                        processed.add(cp);
-                                        toProcess.add(cp);
-                                        classes.add(cp);
-                                    }
+                                    addClassFromStubs(cp, toProcess, processed);
                                     break;
                                 }
                             }
@@ -812,12 +836,16 @@ public class Analysis {
         if (c instanceof DalvikClass){
             final DalvikClass dc = (DalvikClass) c;
             final GeneralClass superClass = dc.getSuperClass();
+            if (superClass.getType() == null) return false;
             if (this.isEntryPoint(superClass.getType().hashCode(), methodIndex)){
                 return true;
             }
+           
+            
             else{	
                 return testEntryPoint(superClass, methodIndex, visited);
             }
+          
         }
         return false;
 
