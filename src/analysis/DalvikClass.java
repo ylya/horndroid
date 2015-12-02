@@ -32,6 +32,10 @@ public class DalvikClass extends GeneralClass {
 		this.methods = methods;
 	}
 	public GeneralClass getSuperClass(){
+	    //TODO: this is a quick fix, need to check that this does not break anything
+	    if (superClass == null){
+	        return new GeneralClass("Ljava/lang/Object;");
+	    }
 		return superClass;
 	}
 	public Set<GeneralClass> getInterfaces(){

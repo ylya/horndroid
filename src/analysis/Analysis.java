@@ -13,7 +13,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,35 +20,16 @@ import java.util.concurrent.ExecutorService;
 
 import javax.annotation.Nonnull;
 
-import org.jf.baksmali.Adaptors.ClassDefinition;
-import org.jf.baksmali.Adaptors.MethodDefinition;
-import org.jf.baksmali.Adaptors.MethodDefinition.InvalidSwitchPayload;
-import org.jf.dexlib2.AccessFlags;
-import org.jf.dexlib2.Opcode;
-import org.jf.dexlib2.dexbacked.DexBackedClassDef;
+
 import org.jf.dexlib2.iface.ClassDef;
-import org.jf.dexlib2.iface.Field;
-import org.jf.dexlib2.iface.Method;
-import org.jf.dexlib2.iface.MethodImplementation;
-import org.jf.dexlib2.iface.MethodParameter;
-import org.jf.dexlib2.iface.instruction.FiveRegisterInstruction;
+
 import org.jf.dexlib2.iface.instruction.Instruction;
-import org.jf.dexlib2.iface.instruction.OneRegisterInstruction;
 import org.jf.dexlib2.iface.instruction.ReferenceInstruction;
-import org.jf.dexlib2.iface.instruction.SwitchElement;
-import org.jf.dexlib2.iface.instruction.formats.ArrayPayload;
-import org.jf.dexlib2.iface.instruction.formats.Instruction31t;
-import org.jf.dexlib2.iface.instruction.formats.PackedSwitchPayload;
-import org.jf.dexlib2.iface.instruction.formats.SparseSwitchPayload;
+
 import org.jf.dexlib2.iface.reference.FieldReference;
 import org.jf.dexlib2.iface.reference.MethodReference;
 import org.jf.dexlib2.iface.reference.Reference;
 import org.jf.dexlib2.iface.value.EncodedValue;
-import org.jf.dexlib2.util.ReferenceUtil;
-import org.jf.dexlib2.util.TypeUtils;
-import org.jf.util.ExceptionWithContext;
-
-import com.google.common.collect.ImmutableList;
 
 import payload.ArrayData;
 import payload.PackedSwitch;
@@ -62,7 +42,7 @@ import z3.Z3Engine;
 import z3.Z3Variable;
 
 public class Analysis {
-    final private Set<GeneralClass> classes;
+    final private Map<Integer,GeneralClass> classes;
     final private Set<DalvikInstance> instances;
     final private Set<Integer> disabledActivities;
     final private Set<Integer> activities;
@@ -115,19 +95,19 @@ public class Analysis {
     public Analysis(final Z3Engine z3engine,final FSEngine fsengine, 
             final Set<SourceSinkMethod> sourcesSinks, final options options, final ExecutorService instructionExecutorService,
             final Stubs stubs){
-        this.classes = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<GeneralClass, Boolean>()));
-        this.instances = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<DalvikInstance, Boolean>()));
-        this.disabledActivities = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>()));
-        this.activities = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>()));
-        this.applications = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>()));
-        this.launcherActivities = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>()));
-        this.constStrings = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <ConstString, Boolean>()));
-        this.callbackImplementations = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>()));
-        this.callbacks = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <String, Boolean>()));
-        this.arrayDataPayload = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <ArrayData, Boolean>()));
-        this.packedSwitchPayload = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <PackedSwitch, Boolean>()));
-        this.sparseSwitchPayload = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <SparseSwitch, Boolean>()));
-        this.overapprox = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>()));
+        this.classes = new ConcurrentHashMap<Integer,GeneralClass>();
+        this.instances = Collections.synchronizedSet(new HashSet<DalvikInstance>());
+        this.disabledActivities = Collections.synchronizedSet(new HashSet<Integer>());
+        this.activities = Collections.synchronizedSet(new HashSet<Integer>());
+        this.applications = Collections.synchronizedSet(new HashSet<Integer>());
+        this.launcherActivities = Collections.synchronizedSet(new HashSet <Integer>());
+        this.constStrings = Collections.synchronizedSet(new HashSet <ConstString>());
+        this.callbackImplementations = Collections.synchronizedSet(new HashSet <Integer>());
+        this.callbacks = Collections.synchronizedSet(new HashSet <String>());
+        this.arrayDataPayload = Collections.synchronizedSet(new HashSet <ArrayData>());
+        this.packedSwitchPayload = Collections.synchronizedSet(new HashSet <PackedSwitch>());
+        this.sparseSwitchPayload = Collections.synchronizedSet(new HashSet <SparseSwitch>());
+        this.overapprox = Collections.synchronizedSet(new HashSet <Integer>());
         this.instructionExecutorService = instructionExecutorService;
         this.sourcesSinks = sourcesSinks;
         this.z3engine = z3engine;
@@ -138,14 +118,14 @@ public class Analysis {
         
         this.stubs = stubs;
 
-        this.refSources = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <CMPair, Boolean>()));
-        this.refSinks = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <CMPair, Boolean>()));
-        this.refNull = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <CMPair, Boolean>()));
-        this.allImplementations = Collections.synchronizedMap(new ConcurrentHashMap <CMPair, Set<DalvikImplementation>>());
-        this.allDefinitions = Collections.synchronizedMap(new ConcurrentHashMap <CMPair, Map<DalvikClass, DalvikMethod>>());
+        this.refSources = Collections.synchronizedSet(new HashSet <CMPair>());
+        this.refSinks = Collections.synchronizedSet(new HashSet <CMPair>());
+        this.refNull = Collections.synchronizedSet(new HashSet <CMPair>());
+        this.allImplementations = new ConcurrentHashMap <CMPair, Set<DalvikImplementation>>();
+        this.allDefinitions = new ConcurrentHashMap <CMPair, Map<DalvikClass, DalvikMethod>>();
 
-        this.isNotDefined = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <CMPair, Boolean>()));
-        this.isNotImpl = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <CMPair, Boolean>()));
+        this.isNotDefined = Collections.synchronizedSet(new HashSet <CMPair>());
+        this.isNotImpl = Collections.synchronizedSet(new HashSet <CMPair>());
 
         this.overapprox.add("Landroid/content/ContentProvider;".hashCode());
         this.overapprox.add("Landroid/app/Service;".hashCode());
@@ -157,11 +137,11 @@ public class Analysis {
         this.overapprox.add("Landroid/support/v4/app/ListFragment;".hashCode());
         this.overapprox.add("Landroid/os/Handler;".hashCode());
         
-        this.methodIsEntryPoint = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<CMPair, Boolean>()));
-        this.staticConstructor = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<Integer, Boolean>()));
+        this.methodIsEntryPoint = Collections.synchronizedSet(new HashSet<CMPair>());
+        this.staticConstructor = Collections.synchronizedSet(new HashSet<Integer>());
 
         //this.numberAllocationPoints = 0;
-        //this.allocationsPoints = new ConcurrentHashMap<Integer,String>();
+        //this.allocationsPoints = new HashSet<Integer,String>();
     }
     public void putNotImpl(final int c, final int m){
         isNotImpl.add(new CMPair(c, m));
@@ -255,8 +235,10 @@ public class Analysis {
                 return null;
         }
         visited.add(ci);
-        for (final GeneralClass c: classes){
-            if ((c instanceof DalvikClass) && (c.getType().hashCode() == ci)){
+        
+        if (classes.containsKey(ci)){
+            GeneralClass c = classes.get(ci);
+            if (c instanceof DalvikClass){
                 final DalvikClass dc = (DalvikClass) c;
                 for (final DalvikField f: dc.getExactFields()){
                     if (f.getName().hashCode() == fi)
@@ -265,11 +247,14 @@ public class Analysis {
                 return staticFieldLookup(dc.getSuperClass(), fi, visited);
             }
         }
+        
         return null;
     }
+    
     public DalvikMethod getExactMethod(final int ci, final int mi){
-        for (final GeneralClass c: classes){
-            if ((c instanceof DalvikClass) && c.getType().hashCode() == ci){
+        if (classes.containsKey(ci)){
+            GeneralClass c = classes.get(ci);
+            if (c instanceof DalvikClass){
                 for (final DalvikMethod m: ((DalvikClass) c).getMethods()){
                     if (m.getName().hashCode() == mi){
                         return m;
@@ -281,17 +266,19 @@ public class Analysis {
     }
     
     public String getClassString(final int ci){
-        for (final GeneralClass c: classes){
-            if ((c instanceof DalvikClass) && c.getType().hashCode() == ci && c.getType() != null){
+        if (classes.containsKey(ci)){
+            GeneralClass c = classes.get(ci);
+            if ((c instanceof DalvikClass) && c.getType() != null){
                 return c.getType();
-                }
             }
+        }
         return Integer.toString(ci);
     }
     
     public String getMethodString(final int ci, final int mi){
-        for (final GeneralClass c: classes){
-            if ((c instanceof DalvikClass) && c.getType().hashCode() == ci){
+        if (classes.containsKey(ci)){
+            GeneralClass c = classes.get(ci);
+            if ((c instanceof DalvikClass)){
                 for (final DalvikMethod m: ((DalvikClass) c).getMethods()){
                     if (m.getName().hashCode() == mi && m.getName() != null){
                         return m.getName();
@@ -321,20 +308,6 @@ public class Analysis {
         for (DalvikInstance i : instances){
             final int instanceNum = i.hashCode();
             final String referenceString = i.getType().getType();
-            //ImmutableList<Instruction> instructions = getExactMethod(i.getC(),i.getM()).getInstructions();
-            //Instruction instruction = instructions.get(i.getPC());   
-            
-            /*String referenceString = null;
-            if (instruction instanceof ReferenceInstruction) {
-                ReferenceInstruction referenceInstruction = (ReferenceInstruction)instruction;
-                Reference reference = referenceInstruction.getReference();
-                referenceString = Utils.getShortReferenceString(reference);
-                //referenceIntIndex = referenceString.hashCode();
-                //referenceIndex = Utils.Dec(referenceIntIndex);
-            }
-            else{
-                throw new RuntimeException("initializeAllocationMapping: Failed");
-            }*/
             final Map<Integer, Boolean> fieldsMap = getClassFields(referenceString, instanceNum);
             TreeSet<Integer> fields = null;
             if (fieldsMap != null)
@@ -392,9 +365,9 @@ public class Analysis {
         TreeMap<Integer, Boolean> result = new TreeMap <Integer, Boolean>();
         boolean found = false;
         boolean prim;
-        for (final GeneralClass c: classes) {
-            if (c.getType() == null) continue;
-            if ((c.getType().hashCode() == className.hashCode()) && (c instanceof DalvikClass)){
+        if (classes.containsKey(className)){
+            GeneralClass c = classes.get(className);
+            if (c instanceof DalvikClass && c != null){
                 final DalvikClass dc = (DalvikClass) c;
                 found = true;
                 for (DalvikField field: dc.getFields()) {
@@ -406,13 +379,16 @@ public class Analysis {
                     }
                     result.put(fieldName.hashCode(), prim);
                 }
+            }else{
+                System.out.println("getClassField " + className);
             }
         }
+
         if (!found){
             String javaName = Utils.toStandardJavaClassName(className);
             try {
-                Class<?> c = Class.forName(javaName);
-                java.lang.reflect.Field[] fields = c.getFields();
+                Class<?> cc = Class.forName(javaName);
+                java.lang.reflect.Field[] fields = cc.getFields();
                 if (fields.length != 0)
                     for (java.lang.reflect.Field f: fields){
                         result.put((className + "->" + f.getName() + ':' + Utils.toDalvikType(f.getType().toString())).hashCode(), f.getType().isPrimitive());
@@ -430,9 +406,12 @@ public class Analysis {
     }
     public Integer getInstNum(final int c, final int m, final int pc){
         // This is rather inefficient
-        for (final DalvikInstance instance: instances)
-            if ((instance.getC() == c) && (instance.getM() == m) && (instance.getPC() == pc)) 
+        for (final DalvikInstance instance: instances){
+            if ((instance.getC() == c) && (instance.getM() == m) && (instance.getPC() == pc)){
                 return instance.hashCode();
+            }
+        }
+        //throw new RuntimeException("ae");
         return null;
     }
     
@@ -517,7 +496,7 @@ public class Analysis {
                     isCallback = true;
                 }
             }
-            final boolean isEntryPoint = testEntryPoint(dc, m.getName().hashCode(), Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
+            final boolean isEntryPoint = testEntryPoint(dc, m.getName().hashCode(), Collections.synchronizedSet(new HashSet <Integer>()));
             if (isCallbackImplementation){
                 addToMain(dc, m.getName().hashCode(), m.getNumReg(), m.getNumArg());
             }
@@ -698,7 +677,7 @@ public class Analysis {
     }
     
     private void addStaticFieldsValues(){
-        for (GeneralClass c: classes){
+        for (GeneralClass c: classes.values()){
             if (!(c instanceof DalvikClass)) continue;
             for (DalvikField f: ((DalvikClass) c).getFields()){
                 if (!(f instanceof DalvikStaticField)) continue;
@@ -720,38 +699,87 @@ public class Analysis {
         }
     }
     
-    private void addClassFromStubs(final GeneralClass cp, final LinkedList<GeneralClass> toProcess, final Set<GeneralClass> processed){
-        if(!processed.contains(cp)){
+    private void addClassFromStubs(final GeneralClass cp, final LinkedList<GeneralClass> toProcess,
+            final Set<GeneralClass> processed, final Set<Integer> stubProcessed){
+        if(!processed.contains(cp) && cp != null){
             processed.add(cp);
             toProcess.add(cp);
-            classes.add(cp);
+            stubProcessed.add(cp.getType().hashCode());
+            
+            classes.put(cp.getType().hashCode(),cp);
+            if (cp instanceof DalvikClass){
+                addClassFromStubs(((DalvikClass)cp).getSuperClass(), toProcess, processed, stubProcessed);
+            }
+            
         }
         else return;
-        if (cp instanceof DalvikClass)
-            addClassFromStubs(((DalvikClass)cp).getSuperClass(), toProcess, processed);              
     }
     
-    private void addClassFromApk(final GeneralClass cp, final LinkedList<GeneralClass> toProcess, final Set<GeneralClass> processed){
+    private void addClassFromApk(final GeneralClass cp, final LinkedList<GeneralClass> toProcess,
+            final Set<GeneralClass> processed, final Set<Integer> stubProcessed){
         processed.add(cp);
         toProcess.add(cp);
         if (cp instanceof DalvikClass){
             GeneralClass superClass = ((DalvikClass)cp).getSuperClass();
-            if (!classes.contains(superClass)){
-                for (GeneralClass stub: stubs.getClasses()){
-                    if (stub.getType().equals(superClass.getType())){
-                        ((DalvikClass) cp).putSuperClass(stub);
-                        addClassFromStubs(stub, toProcess, processed);
-                    }
+            if (superClass == null){
+                System.out.println("This class has no super class " + cp.getType());
+            }else{
+                if (!classes.containsKey(superClass.getType().hashCode())){
+                    GeneralClass stub = stubs.getClasses().get(superClass.getType().hashCode());
+                    ((DalvikClass) cp).putSuperClass(stub);
+                    addClassFromStubs(stub, toProcess, processed, stubProcessed);
                 }
             }
         }
     }
     
-    public void createHornClauses(){
+    /*
+     * Get the additional information from the added classes, by querying stubs object
+     */
+    private void fetchAdditionalInfo(final Set<Integer> stubProcessed){
+        for (DalvikInstance instance : stubs.getInstances()){
+            if (stubProcessed.contains(instance.getC())){
+                instances.add(instance);
+            }
+        }
+        
+        for (ArrayData aData : stubs.getArrayDataPayload()){
+            if (stubProcessed.contains(aData.getC())){
+                arrayDataPayload.add(aData);
+            }
+        }
+        
+        for (ConstString cString : stubs.getConstStrings()){
+            if (stubProcessed.contains(cString.getC())){
+                constStrings.add(cString);
+            }
+        }
+
+        for (PackedSwitch pSwitch : stubs.getPackedSwitchPayload()){
+            if (stubProcessed.contains(pSwitch.getC())){
+                packedSwitchPayload.add(pSwitch);
+            }
+        }
+
+        for (SparseSwitch sSwitch : stubs.getSparseSwitchPayload()){
+            if (stubProcessed.contains(sSwitch.getC())){
+                sparseSwitchPayload.add(sSwitch);
+            }
+        }
+        
+        staticConstructor.addAll(stubs.getStaticConstructor());
+    }
+    
+    /*
+     * Fetch the classes from standard java and android for all unknown classes
+     */
+    private void fetchUnknownMethod(){
+        //TODO: remove the useless toProcess pool and use only a recursive function
         LinkedList<GeneralClass> toProcess = new LinkedList<GeneralClass>();
         Set<GeneralClass> processed = new HashSet<GeneralClass>();
-        for (final GeneralClass c: classes){
-            addClassFromApk(c, toProcess, processed);
+        Set<Integer> stubProcessed = new HashSet<Integer>();
+        for (final GeneralClass c: classes.values()){
+            addClassFromApk(c, toProcess, processed, stubProcessed);
         }
         while(!toProcess.isEmpty()){
             GeneralClass c = toProcess.poll();
@@ -776,29 +804,24 @@ public class Analysis {
                                 }
 
                         }
-                        if (referenceClassIndex == null) continue;
-                        boolean found = false;
-                        for (final GeneralClass cp: classes){
-                            if (!(cp instanceof DalvikClass)) continue;
-                            if (cp.getType().hashCode() == referenceClassIndex){
-                                found = true;
-                                break;
-                            }
-                        }
-                        if (!found){
-                            for (final GeneralClass cp: stubs.getClasses()){
-                                if (!(cp instanceof DalvikClass)) continue;
-                                if (cp.getType().hashCode() == referenceClassIndex){
-                                    addClassFromStubs(cp, toProcess, processed);
-                                    break;
-                                }
+                        if ((referenceClassIndex != null) && !classes.containsKey(referenceClassIndex)){
+                            GeneralClass cp = stubs.getClasses().get(referenceClassIndex);
+                            if (cp instanceof DalvikClass){
+                                addClassFromStubs(cp, toProcess, processed, stubProcessed);
                             }
                         }
                     }
                 }
             }
         }
-        
+        fetchAdditionalInfo(stubProcessed);
+    }
+
+    
+    
+    public void createHornClauses(){
+        fetchUnknownMethod(); 
+                
         addEntryPointsInstances();
         addStaticFieldsValues();
         // Initialize allocationPointOffset,allocationPointNumbers and allocationPointSize
@@ -806,14 +829,17 @@ public class Analysis {
         // Correctly set the corresponding fields in the FSEngine
         fsengine.initialize(localHeapNumberEntries, localHeapSize, allocationPointOffset, allocationPointSize);
         
-        for (final GeneralClass c: classes){
+        System.out.println("Ready to start generating Horn Clauses:");
+        System.out.println("Number of classes : " + classes.size());
+        System.out.println("Number of instances : " + instances.size());
+        for (final GeneralClass c: classes.values()){
             if ((c instanceof DalvikClass) && (!c.getType().contains("Landroid"))){
                 final DalvikClass dc = (DalvikClass) c;
 
                 final boolean isDisabledActivity = testDisabledActivity(dc);
-                final boolean isLauncherActivity = testLauncherActivity(dc, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
-                final boolean isApplication = testApplication(dc, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
-                final boolean isOverapprox = testOverapprox(dc, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
+                final boolean isLauncherActivity = testLauncherActivity(dc, Collections.synchronizedSet(new HashSet <Integer>()));
+                final boolean isApplication = testApplication(dc, Collections.synchronizedSet(new HashSet <Integer>()));
+                final boolean isOverapprox = testOverapprox(dc, Collections.synchronizedSet(new HashSet <Integer>()));
                 boolean isCallbackImplementation = false;
                 for (final GeneralClass interfaceC: dc.getInterfaces()){
                     if (callbackImplementations.contains(interfaceC.getType().hashCode())){
@@ -851,16 +877,16 @@ public class Analysis {
 
     }
     private void addEntryPointsInstances(){
-        for (final GeneralClass c: classes){
+        for (final GeneralClass c: classes.values()){
             if (c instanceof DalvikClass){
                 final DalvikClass dc = (DalvikClass) c;
                 boolean execByDefault = false;
                 for (final DalvikMethod method: dc.getMethods()){
                     final int methodIndex = method.getName().hashCode();
-                    if (!testDisabledActivity(dc) && testEntryPoint(dc, methodIndex, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())))
-                            && (testLauncherActivity(dc, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>()))) 
-                                    || testApplication(dc, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>()))) 
-                                    || testOverapprox(dc, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>()))))){
+                    if (!testDisabledActivity(dc) && testEntryPoint(dc, methodIndex, Collections.synchronizedSet(new HashSet <Integer>()))
+                            && (testLauncherActivity(dc, Collections.synchronizedSet(new HashSet <Integer>()))
+                                    || testApplication(dc, Collections.synchronizedSet(new HashSet <Integer>()))
+                                    || testOverapprox(dc, Collections.synchronizedSet(new HashSet <Integer>())))){
                         execByDefault = true;
                         break;
                     }
@@ -892,8 +918,8 @@ public class Analysis {
                 return allImplementations.get(new CMPair(ci, mi));
             }
         }
-        final Set<DalvikImplementation> implementations = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<DalvikImplementation, Boolean>()));
-        final Map<DalvikClass, DalvikMethod> definitions = isDefined(ci, mi, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
+        final Set<DalvikImplementation> implementations = Collections.synchronizedSet(new HashSet<DalvikImplementation>());
+        final Map<DalvikClass, DalvikMethod> definitions = isDefined(ci, mi, Collections.synchronizedSet(new HashSet <Integer>()));
         if (definitions == null) 
         {
             isNotDefined.add(new CMPair(ci, mi));
@@ -923,38 +949,14 @@ public class Analysis {
     }
     
     public Set<DalvikImplementation> getSuperImplementations(final int ci, final int mi){
-        /*if (!isNotImpl.isEmpty()){
-            if (isNotImpl.contains(new CMPair(ci, mi)))
-                return null;
-        }
-        if (!allImplementations.isEmpty()){
-            if (allImplementations.containsKey(new CMPair(ci, mi))){
-                return allImplementations.get(new CMPair(ci, mi));
-            }
-        }*/
-        final Set<DalvikImplementation> implementations = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<DalvikImplementation, Boolean>()));
-        final Map<DalvikClass, DalvikMethod> definitions = isSuperDefined(ci, mi, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
-        /*if (definitions == null) 
-        {
-            isNotDefined.add(new CMPair(ci, mi));
-            return null;
-        }
-        else{
-            allDefinitions.put(new CMPair(ci, mi), definitions);
-        }*/
+        final Set<DalvikImplementation> implementations = Collections.synchronizedSet(new HashSet<DalvikImplementation>());
+        final Map<DalvikClass, DalvikMethod> definitions = isSuperDefined(ci, mi, Collections.synchronizedSet(new HashSet <Integer>()));
         if (definitions == null) return null;
         for (Map.Entry<DalvikClass, DalvikMethod> entry : definitions.entrySet()){
             final DalvikImplementation di = new DalvikImplementation(entry.getKey(), entry.getValue());
             for (final DalvikInstance instance: instances){
                 if (entry.getKey().getType().hashCode() == instance.getType().getType().hashCode()){
                     di.putInstance(instance);
-                    /*for (final DalvikClass child: entry.getKey().getChildClasses()){
-                        for (final DalvikInstance childInstance: instances){
-                            if (child.getType().hashCode() == childInstance.getType().getType().hashCode()){
-                                di.putInstance(childInstance);
-                            }
-                        }
-                    }*/
                 }
             }
             implementations.add(di);
@@ -965,58 +967,32 @@ public class Analysis {
     
     
     public Map<DalvikClass, DalvikMethod> isSuperDefined(final int ci, int mi, final Set<Integer> visited){  
-        /*if (!isNotDefined.isEmpty())
-            if (isNotDefined.contains(new CMPair(ci, mi))) return null;*/
         Map<DalvikClass, DalvikMethod> resolvents = new ConcurrentHashMap<DalvikClass, DalvikMethod>();
-        /*Map<DalvikClass, DalvikMethod> exResolvents = null;
-        if (!allDefinitions.isEmpty()){
-            exResolvents = allDefinitions.get(new CMPair(ci, mi));
-        }
-        if (exResolvents != null) return exResolvents;*/
         if (visited.contains(ci)) return null;
         else visited.add(ci);
 
-        final boolean isThread = isThread(ci, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
+        final boolean isThread = isThread(ci, Collections.synchronizedSet(new HashSet <Integer>()));
         if (isThread && (mi == "execute([Ljava/lang/Object;)Landroid/os/AsyncTask;".hashCode())){
             mi = "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode();
         }
         if (isThread && (mi == "start()V".hashCode())){
             mi = "run()V".hashCode();
         }
-        for (final GeneralClass c: classes){
-            if ((c instanceof DalvikClass)){
+        if (classes.containsKey(ci)){
+            GeneralClass c = classes.get(ci);
+            if (c instanceof DalvikClass){
                 final DalvikClass cd = ((DalvikClass) c);   
-                if (c.getType().hashCode() == ci){
-                    final GeneralClass superClass = cd.getSuperClass();
-                    if (superClass instanceof DalvikClass){
-                        final DalvikClass scd = (DalvikClass) superClass;
-                        for (final DalvikMethod m: scd.getMethods()){
-                            if (m.getName().hashCode() == mi){
-                                resolvents.put(cd, m);
-                                return resolvents;
-                            }
+                final GeneralClass superClass = cd.getSuperClass();
+                if (superClass instanceof DalvikClass){
+                    final DalvikClass scd = (DalvikClass) superClass;
+                    for (final DalvikMethod m: scd.getMethods()){
+                        if (m.getName().hashCode() == mi){
+                            resolvents.put(cd, m);
+                            return resolvents;
                         }
-                        isSuperDefined(scd.getType().hashCode(), mi, visited);
                     }
-                    /*for (final DalvikClass sc: cd.getChildClasses()){
-                        if (sc != null){
-                            final Map<DalvikClass, DalvikMethod> resolventsChild = isDefined(sc.getType().hashCode(), mi, visited);
-                            if (resolventsChild != null)
-                                resolvents.putAll(resolventsChild);
-                        }
-                    }*/
+                    isSuperDefined(scd.getType().hashCode(), mi, visited);
                 }
-                /*for (final GeneralClass cint: cd.getInterfaces()){
-                    if ((cint.getType().hashCode() == ci)){
-                        for (final DalvikMethod m: 
-                            cd.getMethods()){
-                            if (m.getName().hashCode() == mi){
-                                resolvents.put(cd, m);
-                                break;
-                            }
-                        }
-                    }
-                } */             
             }
         }
         return null;
@@ -1034,33 +1010,35 @@ public class Analysis {
         if (visited.contains(ci)) return null;
         else visited.add(ci);
 
-        final boolean isThread = isThread(ci, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
+        final boolean isThread = isThread(ci, Collections.synchronizedSet(new HashSet <Integer>()));
         if (isThread && (mi == "execute([Ljava/lang/Object;)Landroid/os/AsyncTask;".hashCode())){
             mi = "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode();
         }
         if (isThread && (mi == "start()V".hashCode())){
             mi = "run()V".hashCode();
         }
-        for (final GeneralClass c: classes){
+        
+        if (classes.containsKey(ci)){
+            GeneralClass c = classes.get(ci);
             if ((c instanceof DalvikClass)){
-                final DalvikClass cd = ((DalvikClass) c);	
-                if (c.getType().hashCode() == ci){
+                final DalvikClass cd = ((DalvikClass) c);
                 
-                    for (final DalvikMethod m: cd.getMethods()){
-                        if (m.getName().hashCode() == mi){
-                           
-                            resolvents.put(cd, m);
-                            break;
-                        }
-                    }
-                    for (final DalvikClass sc: cd.getChildClasses()){
-                        if (sc != null){
-                            final Map<DalvikClass, DalvikMethod> resolventsChild = isDefined(sc.getType().hashCode(), mi, visited);
-                            if (resolventsChild != null)
-                                resolvents.putAll(resolventsChild);
-                        }
+                for (final DalvikMethod m: cd.getMethods()){
+                    if (m.getName().hashCode() == mi){
+
+                        resolvents.put(cd, m);
+                        break;
                     }
                 }
+                
+                for (final DalvikClass sc: cd.getChildClasses()){
+                    if (sc != null){
+                        final Map<DalvikClass, DalvikMethod> resolventsChild = isDefined(sc.getType().hashCode(), mi, visited);
+                        if (resolventsChild != null)
+                            resolvents.putAll(resolventsChild);
+                    }
+                }
+                
                 for (final GeneralClass cint: cd.getInterfaces()){
                     if ((cint.getType().hashCode() == ci)){
                         for (final DalvikMethod m: 
@@ -1071,9 +1049,10 @@ public class Analysis {
                             }
                         }
                     }
-                }				
+                }
             }
-        }
+        }        
+        
         if (resolvents.isEmpty()) return null;
         else
         return resolvents;
@@ -1107,8 +1086,17 @@ public class Analysis {
                 return false;
         }
         visited.add(classInd);
-        for (final GeneralClass c : classes) {
-            if ((c instanceof DalvikClass) && (c.getType().hashCode() == classInd)){
+        
+        if (classes.containsKey(classInd)){
+            GeneralClass c = classes.get(classInd);
+            if (c instanceof DalvikClass){
+                
+            }
+        }
+        
+        if (classes.containsKey(classInd)){
+            GeneralClass c = classes.get(classInd);
+            if (c instanceof DalvikClass){
                 final DalvikClass dc = (DalvikClass) c;
                 final Set <GeneralClass> interfaces = dc.getInterfaces();
 
@@ -1118,9 +1106,10 @@ public class Analysis {
                             return true;
                     }
                 }
-                return isThread(c, visited);
-            }			
-        } 
+                return isThread(c, visited);   
+            }  
+        }
+        
         return false;
     }
     

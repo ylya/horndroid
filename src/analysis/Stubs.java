@@ -5,9 +5,9 @@ import horndroid.options;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -23,7 +23,7 @@ import strings.ConstString;
 import com.google.common.collect.Ordering;
 
 public class Stubs {
-    final private Set<GeneralClass> classes;
+    final private Map<Integer,GeneralClass> classes;
     final private Set<DalvikInstance> instances;
     final private Set<ArrayData> arrayDataPayload;
     final private Set<PackedSwitch> packedSwitchPayload;
@@ -34,14 +34,14 @@ public class Stubs {
 
     public Stubs(options options){
         //TODO: beautiful definitions like the one for classes
-        this.classes = Collections.synchronizedSet(new HashSet<GeneralClass>());
-        this.instances = Collections.synchronizedSet(Collections.newSetFromMap(new HashMap<DalvikInstance, Boolean>()));
-        this.constStrings = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <ConstString, Boolean>()));
-        this.arrayDataPayload = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <ArrayData, Boolean>()));
-        this.packedSwitchPayload = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <PackedSwitch, Boolean>()));
-        this.sparseSwitchPayload = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <SparseSwitch, Boolean>()));
+        this.classes = new ConcurrentHashMap<Integer, GeneralClass>();
+        this.instances = Collections.synchronizedSet(new HashSet<DalvikInstance>());
+        this.constStrings = Collections.synchronizedSet(new HashSet <ConstString>());
+        this.arrayDataPayload = Collections.synchronizedSet(new HashSet <ArrayData>());
+        this.packedSwitchPayload = Collections.synchronizedSet(new HashSet <PackedSwitch>());
+        this.sparseSwitchPayload = Collections.synchronizedSet(new HashSet <SparseSwitch>());
         this.options = options;
-        this.staticConstructor = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<Integer, Boolean>()));
+        this.staticConstructor = Collections.synchronizedSet(new HashSet<Integer>());
     }
     public void process(){
         File andFile = new File("android.dex");
@@ -63,7 +63,33 @@ public class Stubs {
         DataExtraction de = new DataExtraction(classes, instances, arrayDataPayload, packedSwitchPayload, sparseSwitchPayload, staticConstructor, constStrings);
         de.collectDataFromStandard(classDefs);
     }
-    public Set<GeneralClass> getClasses() {
+    public Map<Integer,GeneralClass> getClasses() {
         return classes;
     }
+    
+    
+    public Set<DalvikInstance> getInstances(){
+        return instances;
+    }
+    
+    public Set<PackedSwitch> getPackedSwitchPayload(){
+        return packedSwitchPayload;
+    }
+    
+    public Set<SparseSwitch> getSparseSwitchPayload(){
+        return sparseSwitchPayload;
+    }
+    
+    public Set<Integer> getStaticConstructor(){
+        return staticConstructor;
+    }
+    
+    public Set<ConstString> getConstStrings(){
+        return constStrings;
+    }
+    
+    public Set<ArrayData> getArrayDataPayload(){
+        return arrayDataPayload;
+    }
+
 }

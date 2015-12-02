@@ -47,7 +47,7 @@ import util.Utils;
 import com.google.common.collect.ImmutableList;
 
 public class DataExtraction {
-    final private Set<GeneralClass> classes;
+    final private Map<Integer,GeneralClass> classes;
     final private Set<DalvikInstance> instances;
     final private Set<ArrayData> arrayDataPayload;
     final private Set<PackedSwitch> packedSwitchPayload;
@@ -55,7 +55,7 @@ public class DataExtraction {
     final private Set<Integer> staticConstructor;
     final private Set<ConstString> constStrings;
 
-    public DataExtraction(Set<GeneralClass> classes, Set<DalvikInstance> instances, Set<ArrayData> arrayDataPayload, 
+    public DataExtraction(Map<Integer,GeneralClass> classes, Set<DalvikInstance> instances, Set<ArrayData> arrayDataPayload, 
              Set<PackedSwitch> packedSwitchPayload, Set<SparseSwitch> sparseSwitchPayload, Set<Integer> staticConstructor, Set<ConstString> constStrings){
         this.classes = classes;
         this.instances = instances;
@@ -66,37 +66,30 @@ public class DataExtraction {
         this.constStrings = constStrings;
     }
     private void formClassStructure(){
-        for (final GeneralClass c: classes){
+        for (final GeneralClass c: classes.values()){
             if (c instanceof DalvikClass){
                 final DalvikClass cd = (DalvikClass) c;
-                int superClass;
-                if (cd.getSuperClass().getType() == null)
-                    superClass = "null".hashCode();
-                else
-                    superClass = cd.getSuperClass().getType().hashCode();
-                for (final GeneralClass cs: classes){
+                if (cd.getSuperClass().getType() == null){
+                    cd.putSuperClass(null);
+                }else{
+                    GeneralClass cs = classes.get(cd.getSuperClass().getType().hashCode());
+                    cd.putSuperClass(cs);
                     if (cs instanceof DalvikClass){
-                        if (cs.getType().hashCode() == superClass){
-                            cd.putSuperClass(cs);
-                            ((DalvikClass) cs).putChildClass(cd);
-                            break;
-                        }
+                        ((DalvikClass) cs).putChildClass(cd);
                     }
                 }
+                
                 final Set<GeneralClass> interfaces = cd.getInterfaces();
                 for (final GeneralClass ic: interfaces){
                     final int interfaceClass = ic.getType().hashCode();
-                    for (final GeneralClass cs: classes){
-                        if (cs instanceof DalvikClass){
-                            if (cs.getType().hashCode() == interfaceClass){
-                                interfaces.remove(ic);
-                                interfaces.add(cs);
-                                cd.putInterfaces(interfaces);
-                                break;
-                            }
-                        }
+                    GeneralClass cs = classes.get(interfaceClass);
+                    if (cs instanceof DalvikClass && !(ic instanceof DalvikClass)){
+                        interfaces.remove(ic);
+                        interfaces.add(cs);
+                        cd.putInterfaces(interfaces);
                     }
                 }
+
                 for (final DalvikInstance i: instances){
                     final int type = i.getType().getType().hashCode();
                     if (cd.getType().hashCode() == type){
@@ -106,18 +99,23 @@ public class DataExtraction {
             }
         }
     }
+    
     public void collectDataFromApk(final List<? extends ClassDef> classDefs) {
         for (final ClassDef classDef: classDefs) {
-            if (classDef.getType().contains("Landroid")) continue;
-            classes.add(collectDataFromClass(classDefs, classDef));
+            if (!classDef.getType().contains("Landroid")){
+                DalvikClass c = collectDataFromClass(classDefs, classDef);
+                classes.put(c.getType().hashCode(),c);
+            }
         }
+        System.out.println("Number of classes loaded: " + classes.size());
         formClassStructure();
     }    
 
 
     public void collectDataFromStandard(final List<? extends ClassDef> classDefs) {
         for (final ClassDef classDef: classDefs) {
-            classes.add(collectDataFromClass(classDefs, classDef));
+            DalvikClass c = collectDataFromClass(classDefs, classDef);
+            classes.put(c.getType().hashCode(),c);
         }
         formClassStructure();
     }       
@@ -211,7 +209,6 @@ public class DataExtraction {
         if (!AccessFlags.STATIC.isSet(method.getAccessFlags())) {
             parameterRegisterCount++;
         }
-        //refClassElement.putMethod(method.getDefiningClass(), methodString);
 
         if (methodString.equals((String) "<clinit>()V")){
             this.putStaticConstructor(method.getDefiningClass().hashCode());
@@ -228,9 +225,6 @@ public class DataExtraction {
         final String returnType = method.getReturnType();
         if (returnType.equals((String) "V")) callReturns = false;
         else callReturns = true;
-
-        //numLoc.putp(Integer.parseInt(classIndex), Integer.parseInt(methodIndex), parameterRegisterCount);
-        //numLoc.put(Integer.parseInt(classIndex), Integer.parseInt(methodIndex), methodImpl.getRegisterCount());
         Iterable<? extends Instruction> instructions = methodImpl.getInstructions();
         DalvikMethod dm = new DalvikMethod(methodString, parameterRegisterCount, methodImpl.getRegisterCount(), returnType, callReturns, ImmutableList.copyOf(instructions));
         int codeAddress = 0;
@@ -247,7 +241,6 @@ public class DataExtraction {
         int referenceClassIndex = -1;
         int referenceIntIndex = -1;
         String returnType = null;
-        //int nextCode;
         if (instruction instanceof ReferenceInstruction) {
             ReferenceInstruction referenceInstruction = (ReferenceInstruction)instruction;
             Reference reference = referenceInstruction.getReference();
@@ -306,9 +299,6 @@ public class DataExtraction {
                     ArrayPayload apInst = (ArrayPayload) methodDef.findSwitchPayload(codeAddress + ((Instruction31t)instruction).getCodeOffset(),
                             payloadOpcode);
                     List<Number> elements = apInst.getArrayElements();
-                    //for (Number number: elements) {
-                    //  elements.add(number.longValue());
-                    //}
                     arrayDataPayload.add(new ArrayData(c, m, payloadAddress, elements));
                     break;
                 default:
@@ -344,9 +334,7 @@ public class DataExtraction {
                 break;
             }
 
-            //int nextCode = codeAddress + instruction.getCodeUnits();
 
-            //reflection
             if  ((referenceClassIndex == "Ljava/lang/Class;".hashCode()) && 
                     ("newInstance()Ljava/lang/Object;".hashCode() == referenceIntIndex)){
                 FiveRegisterInstruction instruction1 = (FiveRegisterInstruction)instruction;
@@ -357,8 +345,7 @@ public class DataExtraction {
                     }
                 }
             }
-            //
-
+            
             if  ((referenceClassIndex == "Landroid/content/ComponentName;".hashCode()) && 
                     ("<init>(Landroid/content/Context;Ljava/lang/String;)V".hashCode() == referenceIntIndex)){
                 FiveRegisterInstruction instruction1 = (FiveRegisterInstruction)instruction;
@@ -380,31 +367,6 @@ public class DataExtraction {
                     }
                 }
             }
-
-            /*if  ("startActivity(Landroid/content/Intent;)V".hashCode() == referenceIntIndex){
-                FiveRegisterInstruction instruction1 = (FiveRegisterInstruction)instruction;
-                for (final ConstString constString: constStrings){
-                    if ((constString.getC() == c) && (constString.getM() == m) && (constString.getPC() < codeAddress) && (constString.getV() == instruction1.getRegisterD())){
-                        launcherActivities.add(constString.getVAL());
-                    }
-                }
-            }*/
-
-            /*refClassElement.addCallRef(referenceClassIndex, referenceIntIndex, c, m, nextCode);
-             * */
-            /*if (referenceStringClass != null){
-                final Boolean isSourceSink = isSourceSink(classDefs, referenceStringClass, referenceString, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
-                if (isSourceSink != null){
-                    if (isSourceSink)
-                        refSources.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
-                    else
-                        refSinks.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
-                }
-                else{
-                    refNull.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
-                }
-
-            }*/
 
             if ((referenceClassIndex == "Landroid/content/Intent;".hashCode())
                     && (referenceIntIndex == "<init>(Landroid/content/Context;Ljava/lang/Class;)V".hashCode())){
@@ -441,23 +403,6 @@ public class DataExtraction {
                 instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass(referenceString), false));
                 break;
             }
-            //nextCode = codeAddress + instruction.getCodeUnits();
-
-            /*refClassElement.addCallRef(referenceClassIndex, referenceIntIndex, c, m, nextCode);
-             */
-            /*if (referenceStringClass != null){
-                final Boolean isSourceSink = isSourceSink(classDefs, referenceStringClass, referenceString, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
-                if (isSourceSink != null){
-                    if (isSourceSink)
-                        refSources.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
-                    else
-                        refSinks.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
-                }
-                else{
-                    refNull.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
-                }
-
-            }*/
 
             if ((referenceClassIndex == "Landroid/content/Intent;".hashCode())
                     && (referenceIntIndex == "<init>(Landroid/content/Context;Ljava/lang/Class;)V".hashCode())){

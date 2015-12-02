@@ -15,7 +15,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.xml.parsers.ParserConfigurationException;
 
-import com.microsoft.z3.BoolExpr;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -37,19 +36,17 @@ import analysis.Analysis;
 import analysis.Stubs;
 import util.SourceSinkMethod;
 import util.SourceSinkParser;
-import util.Utils;
 import z3.FSEngine;
 import z3.Z3Engine;
-import z3.Z3Query;
 
 public class main {
     private static final Options options;
     private static options hornDroidOptions = new options();
     private static String[] otherArgs;
     private static Option[] clOptions;
-    private static String z3Folder;
     private static String apktoolFolder;
     private static String inputApk;
+    private static String z3Folder;
     static {
         options = new Options();
         options.addOption("q", false, "precise query results");
@@ -62,8 +59,13 @@ public class main {
     public static void main(String[] args) {
         parseCommandLine(args);
 
+        long startTimeA = System.nanoTime();
+        System.out.print("Loading Standard Java and Android libraries ...");
         Stubs stubs = new Stubs(hornDroidOptions);
         stubs.process();
+        long endTimeA = System.nanoTime();
+        System.out.println("done in " + Long.toString((endTimeA - startTimeA) / 1000000) + " milliseconds");
+
         
         //add all known sources and sinks
         final Set<SourceSinkMethod> sourcesSinks = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <SourceSinkMethod, Boolean>()));
@@ -263,6 +265,7 @@ public class main {
 
         }
     }
+    
     private static void clean(){
         if (new File(hornDroidOptions.outputDirectory).exists()){
             Runtime runtime = Runtime.getRuntime();
@@ -293,92 +296,10 @@ public class main {
                 proc.destroy();
             }
             catch (IOException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         }
     }
-    //	private static void printQueries(final Gen gen){
-    //		Runtime runtime = Runtime.getRuntime();
-    //		Process proc;
-    //        System.out.println("Solved queries:");
-    //        File dir = new File (hornDroidOptions.outputDirectory);
-    //		 File[] files = dir.listFiles();
-    //	        if (files != null) {
-    //	            for(File file: files) {
-    //	                if (file.isFile()) {
-    //	                   if (file.getName().endsWith(".txt") && file.getName().startsWith("solved") && (file.length() > 0)) {
-    //
-    //	                		try {
-    //	                			proc = runtime.exec(new String[]{"/bin/sh", "-c",
-    //	                					"cd " + hornDroidOptions.outputDirectory + ';' +
-    //	                	" cat "  + file.getAbsolutePath()});
-    //
-    //	                		BufferedReader stdInput = new BufferedReader(new
-    //	                	             InputStreamReader(proc.getInputStream()));
-    //
-    //	                	    BufferedReader stdError = new BufferedReader(new
-    //	                	             InputStreamReader(proc.getErrorStream()));
-    //
-    //	                	    // read the output from the command
-    //	                	    String s = null;
-    //	                	    while ((s = stdInput.readLine()) != null) {
-    //	                	    	System.out.println(s);
-    //	                	    }
-    //
-    //	                	    // read any errors from the attempted command
-    //	                	    if (stdError.readLine() != null)
-    //	                	    	System.out.println("Here is the standard error of the command (if any):\n");
-    //	                	    	while ((s = stdError.readLine()) != null) {
-    //	                	    		System.out.println(s);
-    //	                	        }
-    //	                	    proc.destroy();
-    //	                		}
-    //	                	    catch (IOException e) {
-    //	                			// TODO Auto-generated catch block
-    //	                			e.printStackTrace();
-    //	                		}
-    //	                   }
-    //	                }
-    //	            }
-    //	        }
-    //    }
-    //    private static void runZ3(final String z3Folder, final String smtFile, final Gen gen) throws IOException, InterruptedException{
-    //		System.out.println("Run Z3...");
-    //		long startTime = System.nanoTime();
-    //        Runtime runtime = Runtime.getRuntime();
-    //		Process proc = runtime.exec(new String[]{"/bin/sh", "-c",
-    //			"cd " + z3Folder + ';' + " ./z3 " + smtFile});
-    //		BufferedReader stdInput = new BufferedReader(new
-    //             InputStreamReader(proc.getInputStream()));
-    //
-    //        BufferedReader stdError = new BufferedReader(new
-    //             InputStreamReader(proc.getErrorStream()));
-    //
-    //        // read the output from the command
-    //        String s = null;
-    //        while ((s = stdInput.readLine()) != null) {
-    //            System.out.println(s);
-    //        }
-    //
-    //        // read any errors from the attempted command
-    //        if (stdError.readLine() != null)
-    //        	System.out.println("Here is the standard error of the command (if any):\n");
-    //        while ((s = stdError.readLine()) != null) {
-    //            System.out.println(s);
-    //        }
-    //    	proc.destroy();
-    //        printQueries(gen);
-    //        System.out.println("Analysis...done in " + Long.toString((System.nanoTime() - startTime) / 1000000) + " milliseconds");
-    //    }
-    //    private static String runZ3(String directory, String z3Folder, String filename, String fullpath, int numberOfQuery) throws IOException{
-    //    	String smtFile = directory + '/' + "clauses" + Integer.toString(numberOfQuery) + ".smt2";
-    //    	File output = new File(fullpath + "out/");
-    //    	if (output.exists()){}
-    //    	else
-    //    		output.mkdirs();
-    //    	return "cd " + z3Folder + ';' + " ./z3 " + smtFile + " > " + fullpath + "out/" + filename + Integer.toString(numberOfQuery) +".txt";
-    //    }
 
     public static void parseCommandLine(String[] args){
         System.out.println("Starting Horndroid...");
@@ -440,15 +361,6 @@ public class main {
         }
     }
 
-    //DONE
-    //	private static void initGen(final Gen gen, final options options){
-    //
-    //        gen.addMain("(rule (=> (and " + Utils.hPred("cn", "cn", Utils.hexDec64("parent".hashCode(), options.bitvectorSize), "f", "lf", "bf") + ' ' +
-    //        		Utils.hPred("cn", "cn", Utils.hexDec64("result".hashCode(), options.bitvectorSize), "val", "lval", "bval") + ' ' +
-    //        		Utils.hPred("f", "f", "fpp", "vfp", "lfp", "bfp") + ')' + ' ' +
-    //        		Utils.hPred("f", "f", Utils.hexDec64("result".hashCode(), options.bitvectorSize), "val", "lval", "bval")
-    //        		+ "))", 0);
-    //   }
 
     private static void usage() {
         SmaliHelpFormatter formatter = new SmaliHelpFormatter();

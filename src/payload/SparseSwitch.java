@@ -14,9 +14,12 @@ public class SparseSwitch {
 		this.targets = targets;
 	}
 	public Map<Integer, Integer> getTargets(final int c, final int m, final int codeAddress){
-		if ((this.c == c) && (this.m == m) && (this.codeAddress == codeAddress)){
+		if ((this.getC() == c) && (this.m == m) && (this.codeAddress == codeAddress)){
 			return targets;
 		}
 		return null;
 	}
+    public int getC() {
+        return c;
+    }
 }
