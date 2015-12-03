@@ -5,10 +5,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -68,7 +68,7 @@ public class main {
 
         
         //add all known sources and sinks
-        final Set<SourceSinkMethod> sourcesSinks = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <SourceSinkMethod, Boolean>()));
+        final Set<SourceSinkMethod> sourcesSinks = Collections.synchronizedSet(new HashSet<SourceSinkMethod>());
         File sourceSinkFile = new File("SourcesAndSinksDroidSafe.txt");
         long startTime = System.nanoTime();
         System.out.print("Parsing sources and sinks...");

@@ -64,9 +64,9 @@ public class Analysis {
     final private Stubs stubs;
     
     final ExecutorService instructionExecutorService;
-    private final Set<CMPair> refSources;
-    private final Set<CMPair> refSinks;
-    private final Set<CMPair> refNull;
+    private Set<CMPair> refSources;
+    private Set<CMPair> refSinks;
+    private Set<CMPair> refNull;
     private final Set<CMPair> isNotDefined;
     private final Set<CMPair> isNotImpl;
     final private Map<CMPair, Set<DalvikImplementation>> allImplementations;
@@ -207,8 +207,11 @@ public class Analysis {
         return allocationPointOffset.keySet();
     }
     public void collectDataFromApk( List<? extends ClassDef> classDefs){
-        DataExtraction de = new DataExtraction(classes, instances, arrayDataPayload, packedSwitchPayload, sparseSwitchPayload, staticConstructor, constStrings);
+        DataExtraction de = new DataExtraction(classes, instances, arrayDataPayload, packedSwitchPayload, sparseSwitchPayload, staticConstructor, constStrings, sourcesSinks, launcherActivities);
         de.collectDataFromStandard(classDefs);
+        refNull = de.getRefNull();
+        refSinks = de.getRefSinks();
+        refSources = de.getRefSources();
     }
     
     public Integer staticFieldLookup(final GeneralClass ci, final int fi, final Set<Integer> visited){
@@ -1113,61 +1116,7 @@ public class Analysis {
         return false;
     }
     
-    public Boolean isSourceSink(final List<? extends ClassDef> classDefs, final String className, final String methodName, final Set<Integer> visited){
-        if (!visited.isEmpty())
-        {
-            if (visited.contains(className.hashCode()))
-                return false;
-        }
-        visited.add(className.hashCode());
-        if (!refSources.isEmpty())
-            if (refSources.contains(new CMPair(className.hashCode(), methodName.hashCode())))
-                return true;
-        if (!refSinks.isEmpty())
-            if (refSinks.contains(new CMPair(className.hashCode(), methodName.hashCode())))
-                return false;
-        if (!refNull.isEmpty())
-            if (refNull.contains(new CMPair(className.hashCode(), methodName.hashCode())))
-                return null;
-        final int classIndex = className.hashCode();
-        final String classNameFormat = className.substring(1, className.length()-1);
-        final String methodNameFormat = methodName.substring(0, methodName.indexOf('('));
-        for (SourceSinkMethod sourceSink: sourcesSinks){
-            if (classNameFormat.hashCode() == sourceSink.className.hashCode()){		
-                if (methodNameFormat.hashCode() == sourceSink.name.hashCode()){
-                    if (sourceSink.source)
-                        return true;
-                    else
-                        return false;
-                }
-            }	
-        }
-        for (final ClassDef classDef: classDefs){
-            if (classIndex == classDef.getType().hashCode()){
-                for (final String interfaceName: classDef.getInterfaces()){
-                    final String interfaceNameFormat = interfaceName.substring(1, interfaceName.length()-1);
-                    for (SourceSinkMethod sourceSink: sourcesSinks){
-                        if (interfaceNameFormat.hashCode() == sourceSink.className.hashCode()){		
-                            if (methodNameFormat.hashCode() == sourceSink.name.hashCode()){
-                                if (sourceSink.source)
-                                    return true;
-                                else
-                                    return false;
-                            }
-                        }	
-                    }
-                }
-            }
-        }
-        for (final ClassDef classDef: classDefs){
-            if (classIndex == classDef.getType().hashCode()){
-                if (classDef.getSuperclass()!= null){
-                    return isSourceSink(classDefs, classDef.getSuperclass(), methodName, visited);
-                }
-            }
-        }
-        return null;
-    }
+ 
 
     public boolean isSource(final int c, final int m){
         return refSources.contains(new CMPair(c,m));

@@ -4,6 +4,7 @@ package analysis;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -42,6 +43,8 @@ import payload.ArrayData;
 import payload.PackedSwitch;
 import payload.SparseSwitch;
 import strings.ConstString;
+import util.CMPair;
+import util.SourceSinkMethod;
 import util.Utils;
 
 import com.google.common.collect.ImmutableList;
@@ -54,9 +57,21 @@ public class DataExtraction {
     final private Set<SparseSwitch> sparseSwitchPayload;
     final private Set<Integer> staticConstructor;
     final private Set<ConstString> constStrings;
+    
+    private final Set<CMPair> refSources;
+    private final Set<CMPair> refSinks;
+    private final Set<CMPair> refNull;
+    
+    private final Set<Integer> launcherActivities;
+    
+    final private Set<SourceSinkMethod> sourcesSinks;
+
+    
+
 
     public DataExtraction(Map<Integer,GeneralClass> classes, Set<DalvikInstance> instances, Set<ArrayData> arrayDataPayload, 
-             Set<PackedSwitch> packedSwitchPayload, Set<SparseSwitch> sparseSwitchPayload, Set<Integer> staticConstructor, Set<ConstString> constStrings){
+             Set<PackedSwitch> packedSwitchPayload, Set<SparseSwitch> sparseSwitchPayload, 
+             Set<Integer> staticConstructor, Set<ConstString> constStrings, Set<SourceSinkMethod> sourcesSinks, Set<Integer> launcherActivities){
         this.classes = classes;
         this.instances = instances;
         this.arrayDataPayload = arrayDataPayload;
@@ -64,7 +79,25 @@ public class DataExtraction {
         this.sparseSwitchPayload = sparseSwitchPayload;
         this.staticConstructor = staticConstructor;
         this.constStrings = constStrings;
+        
+        refSources = new HashSet<CMPair>();
+        refSinks = new HashSet<CMPair>();
+        refNull = new HashSet<CMPair>();
+        
+        this.sourcesSinks = sourcesSinks;
+        this.launcherActivities = launcherActivities;
     }
+    
+    public Set<CMPair> getRefNull(){
+        return refNull;
+    }
+    public Set<CMPair> getRefSources(){
+        return refSources;
+    }
+    public Set<CMPair> getRefSinks(){
+        return refSinks;
+    }
+    
     private void formClassStructure(){
         for (final GeneralClass c: classes.values()){
             if (c instanceof DalvikClass){
@@ -368,6 +401,32 @@ public class DataExtraction {
                 }
             }
 
+            //REMOVED
+            if  ("startActivity(Landroid/content/Intent;)V".hashCode() == referenceIntIndex){
+                FiveRegisterInstruction instruction1 = (FiveRegisterInstruction)instruction;
+                for (final ConstString constString: constStrings){
+                    if ((constString.getC() == c) && (constString.getM() == m) && (constString.getPC() < codeAddress) && (constString.getV() == instruction1.getRegisterD())){
+                        launcherActivities.add(constString.getVAL());
+                    }
+                }
+            }
+
+            if (referenceStringClass != null){
+                final Boolean isSourceSink = isSourceSink(classDefs, referenceStringClass, referenceString, Collections.synchronizedSet(new HashSet<Integer>()));
+                if (isSourceSink != null){
+                    if (isSourceSink)
+                        refSources.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
+                    else
+                        refSinks.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
+                }
+                else{
+                    refNull.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
+                }
+
+            }
+            //ENDREMOVED
+
+            
             if ((referenceClassIndex == "Landroid/content/Intent;".hashCode())
                     && (referenceIntIndex == "<init>(Landroid/content/Context;Ljava/lang/Class;)V".hashCode())){
                 instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass("Landroid/content/Intent;"), true));
@@ -377,6 +436,22 @@ public class DataExtraction {
                     && (referenceIntIndex == "<init>(Ljava/lang/String;)V".hashCode())){
                 instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass("Landroid/content/Intent;"), true));
             }
+
+            //REMOVED
+            if (referenceStringClass != null){
+                final Boolean isSourceSink = isSourceSink(classDefs, referenceStringClass, referenceString, Collections.synchronizedSet(new HashSet <Integer>()));
+                if (isSourceSink != null){
+                    if (isSourceSink)
+                        refSources.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
+                    else
+                        refSinks.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
+                }
+                else{
+                    refNull.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
+                }
+
+            }
+            //ENDREMOVED
 
             if ((referenceClassIndex == "Landroid/content/Intent;".hashCode())
                     && (referenceIntIndex == "<init>()V".hashCode())){
@@ -432,5 +507,61 @@ public class DataExtraction {
     }
     public void putStaticConstructor(int c){
         staticConstructor.add(c);
+    }
+    
+    public Boolean isSourceSink(final List<? extends ClassDef> classDefs, final String className, final String methodName, final Set<Integer> visited){
+        if (!visited.isEmpty())
+        {
+            if (visited.contains(className.hashCode()))
+                return false;
+        }
+        visited.add(className.hashCode());
+        if (!refSources.isEmpty())
+            if (refSources.contains(new CMPair(className.hashCode(), methodName.hashCode())))
+                return true;
+        if (!refSinks.isEmpty())
+            if (refSinks.contains(new CMPair(className.hashCode(), methodName.hashCode())))
+                return false;
+        if (!refNull.isEmpty())
+            if (refNull.contains(new CMPair(className.hashCode(), methodName.hashCode())))
+                return null;
+        final int classIndex = className.hashCode();
+        final String classNameFormat = className.substring(1, className.length()-1);
+        final String methodNameFormat = methodName.substring(0, methodName.indexOf('('));
+        for (SourceSinkMethod sourceSink: sourcesSinks){
+            if (classNameFormat.hashCode() == sourceSink.className.hashCode()){     
+                if (methodNameFormat.hashCode() == sourceSink.name.hashCode()){
+                    if (sourceSink.source)
+                        return true;
+                    else
+                        return false;
+                }
+            }   
+        }
+        for (final ClassDef classDef: classDefs){
+            if (classIndex == classDef.getType().hashCode()){
+                for (final String interfaceName: classDef.getInterfaces()){
+                    final String interfaceNameFormat = interfaceName.substring(1, interfaceName.length()-1);
+                    for (SourceSinkMethod sourceSink: sourcesSinks){
+                        if (interfaceNameFormat.hashCode() == sourceSink.className.hashCode()){     
+                            if (methodNameFormat.hashCode() == sourceSink.name.hashCode()){
+                                if (sourceSink.source)
+                                    return true;
+                                else
+                                    return false;
+                            }
+                        }   
+                    }
+                }
+            }
+        }
+        for (final ClassDef classDef: classDefs){
+            if (classIndex == classDef.getType().hashCode()){
+                if (classDef.getSuperclass()!= null){
+                    return isSourceSink(classDefs, classDef.getSuperclass(), methodName, visited);
+                }
+            }
+        }
+        return null;
     }
 }
