@@ -1280,7 +1280,7 @@ public class FSInstructionAnalysis{
         case SGET_BYTE://((short)0x64, "sget-byte", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case SGET_CHAR://((short)0x65, "sget-char", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case SGET_SHORT:
-            staticFieldClassName = analysis.staticFieldLookup(referenceClassIndex, referenceIntIndex, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
+            staticFieldClassName = analysis.staticFieldLookup(referenceClassIndex, referenceIntIndex);
             if (staticFieldClassName == null){
                 staticFieldClassName = referenceClassIndex;
             }
@@ -1316,7 +1316,7 @@ public class FSInstructionAnalysis{
         case SPUT_BYTE://((short)0x6b, "sput-byte", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
         case SPUT_CHAR://((short)0x6c, "sput-char", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
         case SPUT_SHORT:
-            staticFieldClassName = analysis.staticFieldLookup(referenceClassIndex, referenceIntIndex, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
+            staticFieldClassName = analysis.staticFieldLookup(referenceClassIndex, referenceIntIndex);
             if (staticFieldClassName == null){
                 staticFieldClassName = referenceClassIndex;
             }

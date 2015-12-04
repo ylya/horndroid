@@ -39,7 +39,7 @@ public class DalvikClass extends GeneralClass {
 	    //TODO: this is a quick fix, need to check that this does not break anything
 	    if (superClass == null){
 	        if (!(this.getType().equals("Ljava/lang/Object;"))){
-	            System.out.println("Warning: DalvikClass " + this.getType() + " has no superClass. Set ot Ljava/lang/Object; by default");
+	            //System.out.println("Warning: DalvikClass " + this.getType() + " has no superClass. Set ot Ljava/lang/Object; by default");
 	            return new GeneralClass("Ljava/lang/Object;");
 	        }else{
 	            return null;

@@ -216,43 +216,31 @@ public class Analysis {
         
     }
     
-    public Integer staticFieldLookup(final GeneralClass ci, final int fi, final Set<Integer> visited){
-        if (!visited.isEmpty())
-        {
-            if (visited.contains(ci.getType().hashCode()))
-                return null;
-        }
-        visited.add(ci.getType().hashCode());
+    /*
+     * Should only be used in staticFieldLookUp(int, int)
+     */
+    private Integer staticFieldLookup(final GeneralClass ci, final int fi){
         if (ci instanceof DalvikClass){
             final DalvikClass dc = (DalvikClass) ci;
             for (final DalvikField f: dc.getExactFields()){
                 if (f.getName().hashCode() == fi)
                     return ci.getType().hashCode();
             }
-            return staticFieldLookup(dc.getSuperClass(), fi, visited);
-        }
-        else return null;
-    }
-    public Integer staticFieldLookup(final int ci, final int fi, final Set<Integer> visited){
-        if (!visited.isEmpty())
-        {
-            if (visited.contains(ci))
-                return null;
-        }
-        visited.add(ci);
-        
-        if (classes.containsKey(ci)){
-            GeneralClass c = classes.get(ci);
-            if (c instanceof DalvikClass){
-                final DalvikClass dc = (DalvikClass) c;
-                for (final DalvikField f: dc.getExactFields()){
-                    if (f.getName().hashCode() == fi)
-                        return ci;
-                }
-                return staticFieldLookup(dc.getSuperClass(), fi, visited);
+            if(dc.getSuperClass() != null){
+                return staticFieldLookup(dc.getSuperClass(), fi);
             }
         }
-        
+        return null;
+    }
+    
+    /*
+     * Return the hashcode of the name of the super class of ci where fi is defined
+     */
+    public Integer staticFieldLookup(final int ci, final int fi){
+        if (classes.containsKey(ci)){
+            GeneralClass c = classes.get(ci);
+            return staticFieldLookup(c,fi);
+        }
         return null;
     }
     
@@ -722,7 +710,9 @@ public class Analysis {
             
             classes.put(cp.getType().hashCode(),cp);
             if (cp instanceof DalvikClass){
-                addClassFromStubs(((DalvikClass)cp).getSuperClass(), toProcess, processed, stubProcessed);
+                if (((DalvikClass) cp).getSuperClass() != null){
+                    addClassFromStubs(((DalvikClass)cp).getSuperClass(), toProcess, processed, stubProcessed);
+                }
             }
             
         }
@@ -736,7 +726,8 @@ public class Analysis {
         if (cp instanceof DalvikClass){
             GeneralClass superClass = ((DalvikClass)cp).getSuperClass();
             if (superClass == null){
-                System.out.println("This class has no super class " + cp.getType());
+                //TODO: why some classes have no super class? Uncomment the next line to get those classes' name
+                //System.out.println("This class has no super class " + cp.getType());
             }else{
                 if (!classes.containsKey(superClass.getType().hashCode())){
                     GeneralClass stub = stubs.getClasses().get(superClass.getType().hashCode());
