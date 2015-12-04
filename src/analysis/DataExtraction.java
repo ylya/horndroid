@@ -516,6 +516,7 @@ public class DataExtraction {
             break;
         }
     }
+    
     public void putStaticConstructor(int c){
         staticConstructor.add(c);
     }

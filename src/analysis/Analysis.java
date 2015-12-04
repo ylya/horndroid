@@ -578,28 +578,35 @@ public class Analysis {
     }
     
     /*
-     * Check if c is in Overapprox
-     * Weird that it checks for parent and child: have a look
+     * Return true if c'.getType().hashCode() is in overapprox where c' is either c or a super class of c
      */
-    private boolean testOverapprox(final GeneralClass c){
+    private boolean superIsInOverapprox(GeneralClass c){
         if (overapprox.contains(c.getType().hashCode())){
             return true;
         }else{
             if (c instanceof DalvikClass){
+                if (((DalvikClass) c).getSuperClass() != null){
+                    return superIsInOverapprox(((DalvikClass) c).getSuperClass());   
+                }
+            }
+        }
+        return false;
+    }    
+
+    
+    /*
+     * Check if c is in Overapprox:
+     * more precisely if a child of c is in overapprox, or a superclass of c is in overapprox
+     */
+    private boolean testOverapprox(final GeneralClass c){
+        if (superIsInOverapprox(c)){
+            return true;
+        }else{
+            if (c instanceof DalvikClass){
                 final DalvikClass dc = (DalvikClass) c;
-                boolean launcherChild = false;
                 for (final DalvikClass childClass: dc.getChildClasses()){
                     if (overapprox.contains(childClass.getType().hashCode())){
-                        launcherChild = true;
-                    }
-                }
-                if (launcherChild){
-                    return true;
-                }else{
-                    //TODO: checking for the child of this class before testing the child of the super class.
-                    //It is inefficient
-                    if (dc.getSuperClass() != null){
-                        return testOverapprox(dc.getSuperClass());
+                        return true;
                     }
                 }
             }
@@ -607,74 +614,76 @@ public class Analysis {
         return false;
     }
     
+    /*
+     * Return true if makeName(c').hashCode() is in set where c' is either c or a super class of c
+     */
+    private boolean superIsInSet(Set<Integer> set, GeneralClass c){
+        if (set.contains(makeName(c).hashCode())){
+            return true;
+        }else{
+            if (c instanceof DalvikClass){
+                if (((DalvikClass) c).getSuperClass() != null){
+                    return superIsInSet(set,((DalvikClass) c).getSuperClass());   
+                }
+            }
+        }
+        return false;
+    }
+
+    /*
+     * Check if c is in launcherActivities:
+     * more precisely if a child of c is in launcherActivities, or a superclass of c is in launcherActivities
+     */
     private boolean testLauncherActivity(final GeneralClass c){
-        if (c.getType() == null){//TODO child + super?
+        if (c.getType() == null){
             return false;
         }
         
-        if (launcherActivities.contains(makeName(c).hashCode())){
+        if (superIsInSet(launcherActivities,c)){
             return true;
         }
         else{
             if (c instanceof DalvikClass){
                 final DalvikClass dc = (DalvikClass) c;
-                boolean launcherChild = false;
                 for (final DalvikClass childClass: dc.getChildClasses()){
                     if (launcherActivities.contains(makeName(childClass).hashCode())){
-                        launcherChild = true;
-                    }
-                }
-                if (launcherChild){
-                    return true;
-                }
-                else {
-                    if (dc.getSuperClass() != null){
-                        return testLauncherActivity(dc.getSuperClass());
-                    }else{
-                        return false;
+                        return true;
                     }
                 }
             }
         }
         return false;
     }
-    
+
     private boolean testDisabledActivity(final GeneralClass c){
         return disabledActivities.contains(makeName(c).hashCode());
     }
     
+    /*
+     * Check if c is in applications:
+     * more precisely if a child of c is in applications, or a superclass of c is in applications
+     */
     private boolean testApplication(final GeneralClass c){
-        if (c.getType() == null){//TODO child + super?
+        if (c.getType() == null){
             return false;
         }
         
-        if (applications.contains(makeName(c).hashCode())){
+        if (superIsInSet(applications,c)){
             return true;
         }
         else{
             if (c instanceof DalvikClass){
                 final DalvikClass dc = (DalvikClass) c;
-                boolean launcherChild = false;
                 for (final DalvikClass childClass: dc.getChildClasses()){
                     if (applications.contains(makeName(childClass).hashCode())){
-                        launcherChild = true;
-                    }
-                }
-                if (launcherChild){
-                    return true;
-                }
-                else {
-                    if (dc.getSuperClass() != null){
-                        return testApplication(dc.getSuperClass());
-                    }else{
-                        return false;
+                        return true;
                     }
                 }
             }
         }
         return false;
     }
-    
+
     // generate labels for the R predicates
     public String mkLabel(DalvikClass c, DalvikMethod m, int pc){
         return Integer.toString(c.getType().hashCode()) + "_" + Integer.toString(m.getName().hashCode()) + "_" + Integer.toString(pc);

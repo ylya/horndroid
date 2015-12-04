@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class DalvikClass extends GeneralClass {
 	private GeneralClass superClass;
@@ -51,6 +50,10 @@ public class DalvikClass extends GeneralClass {
 	public Set<GeneralClass> getInterfaces(){
 		return interfaces;
 	}
+	
+	/*
+	 * Return the fields of the class, always in the same order.
+	 */
 	public Set<DalvikField> getFields(){
 	    TreeSet<DalvikField> f = new TreeSet<DalvikField>(fields);
 	    if (this.superClass instanceof DalvikClass){
