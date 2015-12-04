@@ -76,14 +76,14 @@ public class Analysis {
     @Nonnull private final Set<CMPair> methodIsEntryPoint;
     @Nonnull private final Set<Integer> staticConstructor;
     
-    private Map<Integer, Integer> allocationPointNumbers = Collections.synchronizedMap(new HashMap <Integer, Integer>());
-    private Map<Integer, Integer> allocationPointNumbersReverse = Collections.synchronizedMap(new HashMap <Integer, Integer>());
-    private Map<Integer, Integer> allocationPointSize = Collections.synchronizedMap(new HashMap <Integer, Integer>());
-    private Map<Integer, Integer> allocationPointOffset = Collections.synchronizedMap(new HashMap <Integer, Integer>());
-    private Map<Integer, String> allocationPointClass = Collections.synchronizedMap(new HashMap <Integer, String>());
-    private Map<Integer, String> allocationPointClassDebug = Collections.synchronizedMap(new HashMap <Integer, String>());
-    private Map<Integer, String> allocationPointMethod = Collections.synchronizedMap(new HashMap <Integer, String>());
-    private Map<Integer, Integer> allocationPointPC = Collections.synchronizedMap(new HashMap <Integer, Integer>());
+    private Map<Integer, Integer> allocationPointNumbers = new HashMap <Integer, Integer>();
+    private Map<Integer, Integer> allocationPointNumbersReverse = new HashMap <Integer, Integer>();
+    private Map<Integer, Integer> allocationPointSize = new HashMap <Integer, Integer>();
+    private Map<Integer, Integer> allocationPointOffset = new HashMap <Integer, Integer>();
+    private Map<Integer, String> allocationPointClass = new HashMap <Integer, String>();
+    private Map<Integer, String> allocationPointClassDebug = new HashMap <Integer, String>();
+    private Map<Integer, String> allocationPointMethod = new HashMap <Integer, String>();
+    private Map<Integer, Integer> allocationPointPC = new HashMap <Integer, Integer>();
     
     private Integer localHeapNumberEntries;
     private Integer localHeapSize;
@@ -97,18 +97,18 @@ public class Analysis {
             final Set<SourceSinkMethod> sourcesSinks, final options options, final ExecutorService instructionExecutorService,
             final Stubs stubs){
         this.classes = new ConcurrentHashMap<Integer,GeneralClass>();
-        this.instances = Collections.synchronizedSet(new HashSet<DalvikInstance>());
-        this.disabledActivities = Collections.synchronizedSet(new HashSet<Integer>());
-        this.activities = Collections.synchronizedSet(new HashSet<Integer>());
-        this.applications = Collections.synchronizedSet(new HashSet<Integer>());
-        this.launcherActivities = Collections.synchronizedSet(new HashSet <Integer>());
-        this.constStrings = Collections.synchronizedSet(new HashSet <ConstString>());
-        this.callbackImplementations = Collections.synchronizedSet(new HashSet <Integer>());
-        this.callbacks = Collections.synchronizedSet(new HashSet <String>());
-        this.arrayDataPayload = Collections.synchronizedSet(new HashSet <ArrayData>());
-        this.packedSwitchPayload = Collections.synchronizedSet(new HashSet <PackedSwitch>());
-        this.sparseSwitchPayload = Collections.synchronizedSet(new HashSet <SparseSwitch>());
-        this.overapprox = Collections.synchronizedSet(new HashSet <Integer>());
+        this.instances = new HashSet<DalvikInstance>();
+        this.disabledActivities = new HashSet<Integer>();
+        this.activities = new HashSet<Integer>();
+        this.applications = new HashSet<Integer>();
+        this.launcherActivities = new HashSet <Integer>();
+        this.constStrings = new HashSet <ConstString>();
+        this.callbackImplementations = new HashSet <Integer>();
+        this.callbacks = new HashSet <String>();
+        this.arrayDataPayload = new HashSet <ArrayData>();
+        this.packedSwitchPayload = new HashSet <PackedSwitch>();
+        this.sparseSwitchPayload = new HashSet <SparseSwitch>();
+        this.overapprox = new HashSet <Integer>();
         this.instructionExecutorService = instructionExecutorService;
         this.sourcesSinks = sourcesSinks;
         this.z3engine = z3engine;
@@ -119,14 +119,14 @@ public class Analysis {
         
         this.stubs = stubs;
 
-        this.refSources = Collections.synchronizedSet(new HashSet <CMPair>());
-        this.refSinks = Collections.synchronizedSet(new HashSet <CMPair>());
-        this.refNull = Collections.synchronizedSet(new HashSet <CMPair>());
+        this.refSources = new HashSet <CMPair>();
+        this.refSinks = new HashSet <CMPair>();
+        this.refNull = new HashSet <CMPair>();
         this.allImplementations = new ConcurrentHashMap <CMPair, Set<DalvikImplementation>>();
         this.allDefinitions = new ConcurrentHashMap <CMPair, Map<DalvikClass, DalvikMethod>>();
 
-        this.isNotDefined = Collections.synchronizedSet(new HashSet <CMPair>());
-        this.isNotImpl = Collections.synchronizedSet(new HashSet <CMPair>());
+        this.isNotDefined = new HashSet <CMPair>();
+        this.isNotImpl = new HashSet <CMPair>();
 
         this.overapprox.add("Landroid/content/ContentProvider;".hashCode());
         this.overapprox.add("Landroid/app/Service;".hashCode());
@@ -138,8 +138,8 @@ public class Analysis {
         this.overapprox.add("Landroid/support/v4/app/ListFragment;".hashCode());
         this.overapprox.add("Landroid/os/Handler;".hashCode());
         
-        this.methodIsEntryPoint = Collections.synchronizedSet(new HashSet<CMPair>());
-        this.staticConstructor = Collections.synchronizedSet(new HashSet<Integer>());
+        this.methodIsEntryPoint = new HashSet<CMPair>();
+        this.staticConstructor = new HashSet<Integer>();
 
         //this.numberAllocationPoints = 0;
         //this.allocationsPoints = new HashSet<Integer,String>();
@@ -921,7 +921,7 @@ public class Analysis {
         if (allImplementations.containsKey(new CMPair(ci, mi))){
             return allImplementations.get(new CMPair(ci, mi));
         }
-        final Set<DalvikImplementation> implementations = Collections.synchronizedSet(new HashSet<DalvikImplementation>());
+        final Set<DalvikImplementation> implementations = new HashSet<DalvikImplementation>();
         final Map<DalvikClass, DalvikMethod> definitions = isDefined(ci, mi);
         if (definitions == null) 
         {
@@ -956,7 +956,7 @@ public class Analysis {
      * Return null if no implementation was found
      */
     public Set<DalvikImplementation> getSuperImplementations(final int ci, final int mi){
-        final Set<DalvikImplementation> implementations = Collections.synchronizedSet(new HashSet<DalvikImplementation>());
+        final Set<DalvikImplementation> implementations = new HashSet<DalvikImplementation>();
         final AbstractMap.SimpleEntry<DalvikClass, DalvikMethod> definition = isSuperDefined(ci, mi);
         if (definition == null){
             return null;

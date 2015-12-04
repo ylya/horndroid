@@ -450,7 +450,7 @@ public class DataExtraction {
             /*
              * The following code appears a few line above unchanged. I guess it is some copy pasting mistake
             if (referenceStringClass != null){
-                final Boolean isSourceSink = isSourceSink(classDefs, referenceStringClass, referenceString, Collections.synchronizedSet(new HashSet <Integer>()));
+                final Boolean isSourceSink = isSourceSink(classDefs, referenceStringClass, referenceString, new HashSet <Integer>());
                 if (isSourceSink != null){
                     if (isSourceSink)
                         refSources.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
