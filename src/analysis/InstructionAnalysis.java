@@ -3,12 +3,6 @@ package analysis;
 import com.microsoft.z3.BitVecExpr;
 import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Expr;
-//import gen.Clause;
-//import gen.Gen;
-
-
-
-
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -67,7 +61,6 @@ public class InstructionAnalysis {
         final Z3Engine z3engine = analysis.getZ3Engine();
         final Z3Variable var = z3engine.getVars();
 		BoolExpr negationString = null;
-		boolean moreToNegate = false;
 	  	int jump = 0;
     	int referenceReg;
     	boolean isDefined;
@@ -118,7 +111,6 @@ public class InstructionAnalysis {
         String classIndex = Utils.Dec(ci);
         final int numRegLoc = dm.getNumReg();
         final int numParLoc = dm.getNumArg();
-        String head = "";
         BoolExpr returnLabel;
         Map<Integer, BitVecExpr> regUpdate = new HashMap<>();
         Map<Integer, BoolExpr> regUpdateL = new HashMap<>();
@@ -2597,15 +2589,16 @@ public class InstructionAnalysis {
 
         	case IPUT_OBJECT_VOLATILE://((short)0xfc, "iput-object-volatile", minApi(9), ReferenceType.FIELD, Format.Format22c, Opcode.ODEX_ONLY | Opcode.ODEXED_INSTANCE_VOLATILE | Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
         	case SGET_OBJECT_VOLATILE://((short)0xfd, "sget-object-volatile", minApi(9), ReferenceType.FIELD, Format.Format21c, Opcode.ODEX_ONLY | Opcode.ODEXED_STATIC_VOLATILE | Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-        	case SPUT_OBJECT_VOLATILE:
-        		break;//((short)0xfe, "sput-object-volatile", minApi(9), ReferenceType.FIELD, Format.Format21c, Opcode.ODEX_ONLY | Opcode.ODEXED_STATIC_VOLATILE | Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
-
+        	case SPUT_OBJECT_VOLATILE://((short)0xfe, "sput-object-volatile", minApi(9), ReferenceType.FIELD, Format.Format21c, Opcode.ODEX_ONLY | Opcode.ODEXED_STATIC_VOLATILE | Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
+        	    throw new RuntimeException("InstructionAnalysis: not supported "+ opcode.toString());
         	case PACKED_SWITCH_PAYLOAD:
         		break;//((short)0x100, "packed-switch-payload", ReferenceType.NONE, Format.PackedSwitchPayload, 0),
         	case SPARSE_SWITCH_PAYLOAD:
         		break;//((short)0x200, "sparse-switch-payload", ReferenceType.NONE, Format.SparseSwitchPayload, 0),
         	case ARRAY_PAYLOAD:
         		break;//((short)0x300, "array-payload", ReferenceType.NONE, Format.ArrayPayload, 0);
+        	default:
+        	    throw new RuntimeException("InstructionAnalysis: not supported " + opcode.toString());
         }
 	}
 
@@ -3876,7 +3869,7 @@ public class InstructionAnalysis {
 			if (this.instruction instanceof FiveRegisterInstruction
                     ||  this.instruction instanceof RegisterRangeInstruction ) {
 
-                int registerC, registerD, registerE;
+                int registerE;
                 if(this.instruction instanceof FiveRegisterInstruction){
                     registerE = ((FiveRegisterInstruction) instruction).getRegisterE();
                 } else {

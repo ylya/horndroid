@@ -50,6 +50,7 @@ public class main {
     static {
         options = new Options();
         options.addOption("q", false, "precise query results");
+        options.addOption("d", false, "print debugging information");
         options.addOption("f", false, "flow-sensitive heap");
         options.addOption("w", false, "sensitive array indexes");
         options.addOption("s", true, "number of queries per file, run Z3 in parallel saving results to the /out folder");
@@ -59,6 +60,12 @@ public class main {
     public static void main(String[] args) {
         parseCommandLine(args);
 
+        if (hornDroidOptions.fsanalysis){
+            System.out.println("Flow Sensitive Analysis on "+ hornDroidOptions.bitvectorSize + " bitvectors size");
+        }else{
+            System.out.println("Standard Analysis on "+ hornDroidOptions.bitvectorSize + " bitvectors size");
+        }
+        
         long startTimeA = System.nanoTime();
         System.out.print("Loading Standard Java and Android libraries ...");
         Stubs stubs = new Stubs(hornDroidOptions);
@@ -99,9 +106,6 @@ public class main {
             final String fullPath      = '/' + FilenameUtils.getPath(file.getPath());
             final String inputApkFileName = '/' + FilenameUtils.getPath(file.getPath()) + file.getName();
             hornDroidOptions.outputDirectory  = fullPath + shortFilename;
-            //        	clean();
-            //            final Gen gen = new Gen(hornDroidOptions.outputDirectory + '/');
-            //            initGen(gen, hornDroidOptions);
             final Z3Engine z3engine = new Z3Engine(hornDroidOptions);
             final FSEngine fsengine = new FSEngine(hornDroidOptions);
 
@@ -187,7 +191,6 @@ public class main {
             try {
                 instructionExecutorService.awaitTermination(2, TimeUnit.DAYS);
             } catch (InterruptedException e1) {
-                // TODO Auto-generated catch block
                 e1.printStackTrace();
             }
             endTime = System.nanoTime();
@@ -198,12 +201,6 @@ public class main {
             System.out.println("Executing all queries...");
             startTime = System.nanoTime();
 
-            //            BoolExpr b = z3engine.mkBool(false);
-            //            BoolExpr alwaysFalse = z3engine.eq(b, z3engine.mkTrue());
-            //            z3engine.addQuery(new Z3Query(alwaysFalse, "Always False", false));
-            //            BoolExpr alwaysTrue = z3engine.eq(b, z3engine.mkFalse());
-            //            z3engine.addQuery(new Z3Query(alwaysTrue, "Always True", false));
-
             if (!hornDroidOptions.fsanalysis)
                 z3engine.executeAllQueries();
             else
@@ -211,58 +208,6 @@ public class main {
             
             endTime = System.nanoTime();
             System.out.println("...done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
-
-            //            System.out.print("Writing files for analysis...");
-            //            if (hornDroidOptions.numQueries == 0){
-            //	        	 gen.writeOne(hornDroidOptions.bitvectorSize);
-            //	        	 endTime = System.nanoTime();
-            //	        	 System.out.println("...done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
-            //	        	 String smtFile = hornDroidOptions.outputDirectory + '/' + "clauses.smt2";
-            //	        	 try {
-            //	        	 startTime = System.nanoTime();
-            //	        	 	runZ3(z3Folder, smtFile, gen);
-            //	        	 } catch (InterruptedException e) {
-            //	        		 e.printStackTrace();
-            //	        	 } catch (IOException e) {
-            //	        		 // TODO Auto-generated catch block
-            //	        		 e.printStackTrace();
-            //	        	 }
-            //	        	 System.out.println("----------------------------------------------------------------------------");
-            //	        }
-            //	        else{
-            //	        	 gen.write(hornDroidOptions.bitvectorSize);
-            //	        	 final int numberOfFiles = gen.getNumFileQueries();
-            //	        	 final String outputDirectory = hornDroidOptions.outputDirectory;
-            //	        	 final String z3f = z3Folder;
-            //
-            //	        	 if (hornDroidOptions.maxQueries > 0 && hornDroidOptions.maxQueries < numberOfFiles) {System.err.println("Too many queries files!"); System.exit(1);}
-            //
-            //	        	 for (int i = 0; i < numberOfFiles; i++){
-            //	        		 final int count = i;
-            //	        		 executorService.submit(new Runnable() {
-            //	        			 @Override
-            //	        			 public void run() {
-            //	        				 try {
-            //	        					 Process process = new ProcessBuilder("/bin/sh", "-c", runZ3(outputDirectory, z3f, shortFilename, fullPath, count)).start();
-            //	        				 } catch (IOException e) {
-            //	        					 e.printStackTrace();
-            //	        				 }
-            //
-            //	        			 }
-            //	        		 });
-            //	        	 }
-            //	        	 executorService.shutdown();
-            //	        	 try {
-            //	        		 executorService.awaitTermination(2, TimeUnit.DAYS);
-            //	        	 } catch (InterruptedException e) {
-            //	        		 // TODO Auto-generated catch block
-            //	        		 e.printStackTrace();
-            //	        	 }
-            //	        	 printQueries(gen);
-            //	        	 endTime = System.nanoTime();
-            //	        	 System.out.println("...done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
-            //            }
-
         }
     }
     
@@ -327,6 +272,9 @@ public class main {
             case 'f':
                 hornDroidOptions.fsanalysis = true;
                 break;
+            case 'd':
+                hornDroidOptions.fsanalysis = true;
+                break;
             case 's':
                 hornDroidOptions.numQueries = Integer.parseInt(commandLine.getOptionValue("s"));;
                 break;
@@ -373,6 +321,7 @@ public class main {
         System.out.println("options:");
         System.out.println("-q precise query results");
         System.out.println("-f flow-sensitive heap");
+        System.out.println("-d print debugging information");
         System.out.println("-w sensitive array indexes");
         System.out.println("-s one query per file, run Z3 in parallel saving results to the /out folder");
         System.out.println("-n bitvector size (default 64)");

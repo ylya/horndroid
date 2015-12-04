@@ -5,7 +5,6 @@ import com.microsoft.z3.*;
 import analysis.Analysis;
 import debugging.Debug;
 import debugging.LHInfo;
-import debugging.LHKey;
 import debugging.MethodeInfo;
 import debugging.RegInfo;
 import horndroid.options;
@@ -20,27 +19,19 @@ public class FSEngine {
 
     private Context mContext;
     private Boolean initialized = false;
-    // private Fixedpoint mFixedPoint;
     private ArrayList<BoolExpr> mRules;
     private ArrayList<FuncDecl> mFuncs;
 
     private ArrayList<Z3Query> mQueries;
-    //private ArrayList<Z3Query> mQueriesDebug;
     private Z3Query mCurrentQuery;
 
     private int bvSize;
     private FSVariable var;
     private FSFunction func;
 
-    private Integer localHeapNumberEntries;
     private Integer localHeapSize;
 
     private Map<Integer, Integer> allocationPointOffset;
-    // legacy
-    // private int biggestRegisterNumber;
-    // public void updateBiggestRegister(final int i){
-    // if (i > this.biggestRegisterNumber) biggestRegisterNumber = i;
-    // }
 
     private Map<Integer, Integer> allocationPointSize;
 
@@ -89,10 +80,9 @@ public class FSEngine {
         }
     }
 
-    public void initialize(Integer localHeapNumberEntries, Integer localHeapSize, Map<Integer,Integer> allocationPointOffset, Map<Integer,Integer> allocationPointSize) {
+    public void initialize( Integer localHeapSize, Map<Integer,Integer> allocationPointOffset, Map<Integer,Integer> allocationPointSize) {
         if (this.initialized)
             throw new RuntimeException("FSEngine Failed: initialized twice");
-        this.localHeapNumberEntries = localHeapNumberEntries;
         this.localHeapSize = localHeapSize;
         this.allocationPointOffset = allocationPointOffset;
         this.allocationPointSize = allocationPointSize;
@@ -637,25 +627,24 @@ public class FSEngine {
             mCurrentQuery.setQuery(this.or(mCurrentQuery.getQuery(), query.getQuery()));
         } else {
             // start new query
-            if (mCurrentQuery != null)
+            if (mCurrentQuery != null){
                 mQueries.add(mCurrentQuery);
+            }
             mCurrentQuery = query;
         }
     }
     
     public void addQueryDebug(Z3Query query) {
-        if (!query.debugging)
-            //throw new RuntimeException("debug queries only");
         mQueries.add(query);
     }
 
     public void executeAllQueries(Analysis analysis) {    
         
         // ensure that the cached query is added
-        if (mCurrentQuery != null)
+        if (mCurrentQuery != null){
             mQueries.add(mCurrentQuery);
+        }
 
-        int threshold = 10;
         int timeout = 30; // 30 minutes
 
         // ExecutorService executor = Executors.newFixedThreadPool(threshold);
@@ -765,11 +754,7 @@ public class FSEngine {
         }
         
         debug.printToLatex();
-        try {
-            new ProcessBuilder(new String[]{ "pdflatex", "wrapper.tex"}).start();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+
 
         executor.shutdownNow();
     }

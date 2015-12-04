@@ -1,13 +1,10 @@
 package debugging;
 
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
 import analysis.Analysis;
-import analysis.DalvikInstance;
 
 public class MethodeInfo {
     public String c;

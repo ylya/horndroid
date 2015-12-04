@@ -67,7 +67,6 @@ public class Analysis {
     final ExecutorService instructionExecutorService;
     private Set<CMPair> refSources;
     private Set<CMPair> refSinks;
-    private Set<CMPair> refNull;
     private final Set<CMPair> isNotDefined;
     private final Set<CMPair> isNotImpl;
     final private Map<CMPair, Set<DalvikImplementation>> allImplementations;
@@ -87,11 +86,6 @@ public class Analysis {
     
     private Integer localHeapNumberEntries;
     private Integer localHeapSize;
-
-    
-    //private int numberAllocationPoints;
-    //private Map<Integer,String> allocationsPoints;
-    
     
     public Analysis(final Z3Engine z3engine,final FSEngine fsengine, 
             final Set<SourceSinkMethod> sourcesSinks, final options options, final ExecutorService instructionExecutorService,
@@ -121,7 +115,6 @@ public class Analysis {
 
         this.refSources = new HashSet <CMPair>();
         this.refSinks = new HashSet <CMPair>();
-        this.refNull = new HashSet <CMPair>();
         this.allImplementations = new ConcurrentHashMap <CMPair, Set<DalvikImplementation>>();
         this.allDefinitions = new ConcurrentHashMap <CMPair, Map<DalvikClass, DalvikMethod>>();
 
@@ -138,11 +131,17 @@ public class Analysis {
         this.overapprox.add("Landroid/support/v4/app/ListFragment;".hashCode());
         this.overapprox.add("Landroid/os/Handler;".hashCode());
         
+        this.callbacks.add("onCreate");
+        this.callbacks.add("onDestroy");
+        this.callbacks.add("onStart");
+        this.callbacks.add("onPause");
+        this.callbacks.add("onStop");
+        this.callbacks.add("onRestart");
+        this.callbacks.add("onResume");
+
+        
         this.methodIsEntryPoint = new HashSet<CMPair>();
         this.staticConstructor = new HashSet<Integer>();
-
-        //this.numberAllocationPoints = 0;
-        //this.allocationsPoints = new HashSet<Integer,String>();
     }
     public void putNotImpl(final int c, final int m){
         isNotImpl.add(new CMPair(c, m));
@@ -200,7 +199,9 @@ public class Analysis {
         return sparseSwitchPayload;
     }
     public FSEngine getFSEngine(){
-        if (!fsengine.isInitialized()) throw new RuntimeException("Analysis.getFSEngine:FSEngine not initialized");
+        if (!fsengine.isInitialized()) {
+            throw new RuntimeException("Analysis.getFSEngine:FSEngine not initialized");
+        }
         return fsengine;
     }
     
@@ -210,7 +211,6 @@ public class Analysis {
     public void collectDataFromApk( List<? extends ClassDef> classDefs){
         DataExtraction de = new DataExtraction(classes, instances, arrayDataPayload, packedSwitchPayload, sparseSwitchPayload, staticConstructor, constStrings, sourcesSinks, launcherActivities);
         de.collectDataFromStandard(classDefs);
-        refNull = de.getRefNull();
         refSinks = de.getRefSinks();
         refSources = de.getRefSources();
         
@@ -469,7 +469,7 @@ public class Analysis {
 
     public void processClass(final DalvikClass dc, final boolean isDisabledActivity, final boolean isCallbackImplementation,
             final boolean isLauncherActivity, final boolean isApplication, final boolean isOverApprox){
-        for (final DalvikMethod m: dc.getMethods()){
+        for (final DalvikMethod m: dc.getMethods()){            
             boolean isCallback = false;
             for (final String callback: callbacks){
                 if (m.getName().contains(callback)){
@@ -532,7 +532,6 @@ public class Analysis {
                             0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall);
 
                     BoolExpr b1tob2 = z3engine.implies(b1, b2);
-
                     z3engine.addRule(b1tob2, null);
                 }
             }
@@ -549,7 +548,7 @@ public class Analysis {
             for (final Instruction instruction: m.getInstructions()){
                 if (options.fsanalysis){
                     FSInstructionAnalysis ia = new FSInstructionAnalysis(this, instruction, dc, m, codeAddress);
-                    ia.CreateHornClauses();
+                    ia.CreateHornClauses(options);
                 }else{
                     InstructionAnalysis ia = new InstructionAnalysis(this, instruction, dc, m, codeAddress);
                     ia.CreateHornClauses();                    
@@ -558,6 +557,7 @@ public class Analysis {
             }
         }
     }
+    
     private String makeName(final GeneralClass c){
         final String formatClassName = c.getType().replaceAll("\\.", "/").substring(1, c.getType().replaceAll("\\.", "/").length() -1);
         final String[] parts = formatClassName.split("/");
@@ -826,14 +826,17 @@ public class Analysis {
     
     
     public void createHornClauses(){
-        fetchUnknownMethod(); 
-                
+        fetchUnknownMethod();
+        
+        //TODO: maybe addEntryPointsInstances should be called before fatchUnknownMethod
         addEntryPointsInstances();
+                
         addStaticFieldsValues();
+        
         // Initialize allocationPointOffset,allocationPointNumbers and allocationPointSize
         initializeAllocationMapping();
         // Correctly set the corresponding fields in the FSEngine
-        fsengine.initialize(localHeapNumberEntries, localHeapSize, allocationPointOffset, allocationPointSize);
+        fsengine.initialize(localHeapSize, allocationPointOffset, allocationPointSize);
         
         System.out.println("Ready to start generating Horn Clauses:");
         System.out.println("Number of classes : " + classes.size());
@@ -881,20 +884,15 @@ public class Analysis {
         for (final GeneralClass c: classes.values()){
             if (c instanceof DalvikClass){
                 final DalvikClass dc = (DalvikClass) c;
-                boolean execByDefault = false;
                 for (final DalvikMethod method: dc.getMethods()){
                     final int methodIndex = method.getName().hashCode();
                     if (!testDisabledActivity(dc) && testEntryPoint(dc, methodIndex)
                             && (testLauncherActivity(dc)
                                     || testApplication(dc)
                                     || testOverapprox(dc))){
-                        execByDefault = true;
+                        instances.add(new DalvikInstance(0, 0, 0, dc, true));
                         break;
                     }
-                }
-
-                if (execByDefault){
-                    instances.add(new DalvikInstance(0, 0, 0, dc, true));
                 }
             }
         }
@@ -1130,12 +1128,14 @@ public class Analysis {
         return refSinks.contains(new CMPair(c,m));
     }
 
-
+    public void putEntryPoint(int c, int m){
+        methodIsEntryPoint.add(new CMPair (c, m));
+    }
     
-    public void putEntryPoint(int c, int m){ methodIsEntryPoint.add(new CMPair (c, m));}
     public boolean isEntryPoint(int c, int m){
         return methodIsEntryPoint.contains(new CMPair(c, m));
     }
+    
     public boolean hasStaticConstructor(int c){
         return staticConstructor.contains(c);
     }

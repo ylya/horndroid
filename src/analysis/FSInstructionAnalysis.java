@@ -7,8 +7,8 @@ import com.microsoft.z3.Expr;
 //import gen.Gen;
 
 import debugging.QUERY_TYPE;
+import horndroid.options;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -138,7 +138,7 @@ public class FSInstructionAnalysis{
         }
     }
     
-    public void CreateHornClauses(){
+    public void CreateHornClauses(options options){
         boolean superBool = false;
         Integer staticFieldClassName;
         Map<DalvikClass, DalvikMethod> staticDefinitions = new ConcurrentHashMap<DalvikClass, DalvikMethod>();
@@ -197,8 +197,7 @@ public class FSInstructionAnalysis{
         BoolExpr returnLabel;
 
         
-        boolean debug = false;
-        if (debug){
+        if (options.debug){
            BoolExpr h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
            for (int i = 0; i < this.numRegLoc; i++){
                BoolExpr h1 = fsengine.and(fsvar.getH(i),h);

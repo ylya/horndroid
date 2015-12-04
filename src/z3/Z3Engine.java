@@ -1,15 +1,9 @@
 package z3;
 
 import com.microsoft.z3.*;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 
 import horndroid.options;
 
-import org.apache.commons.lang3.RandomStringUtils;
-
-import util.CMPair;
-
-import javax.annotation.Nonnull;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -36,12 +30,10 @@ public class Z3Engine  implements Z3Clauses {
             mQueries = new ArrayList<>();
 
             Global.setParameter("fixedpoint.engine", "pdr");
-            //            Global.setParameter("fixedpoint.unbound_compressor", "false");
             Global.setParameter("pp.bv-literals", "false");
 
             HashMap<String, String> cfg = new HashMap<String, String>();
-            mContext = new Context(cfg); //Context ctx = mContext;
-            //            mFixedPoint = mContext.mkFixedpoint(); //Fixedpoint fp = mFixedPoint;
+            mContext = new Context(cfg);
             mFuncs = new ArrayList<>();
             mRules = new ArrayList<>();
 
@@ -442,7 +434,9 @@ public class Z3Engine  implements Z3Clauses {
                     );
         } else {
             // start new query
-            if(mCurrentQuery != null) mQueries.add(mCurrentQuery);
+            if(mCurrentQuery != null){
+                mQueries.add(mCurrentQuery);
+            }
             mCurrentQuery = query;
         }
     }
@@ -451,7 +445,6 @@ public class Z3Engine  implements Z3Clauses {
         // ensure that the cached query is added
         if(mCurrentQuery != null) mQueries.add(mCurrentQuery);
 
-        int threshold = 10;
         int timeout = 30; // 30 minutes
 
         //		ExecutorService executor = Executors.newFixedThreadPool(threshold);
@@ -542,9 +535,6 @@ public class Z3Engine  implements Z3Clauses {
             Arrays.fill(domains, size, 3 * size, bool);
             FuncDecl f = mContext.mkFuncDecl(funcName, domains, mContext.mkBoolSort());
             this.declareRel(f);
-            //            Symbol[] symbols = new Symbol[]{mContext.mkSymbol("interval_relation"),
-            //                                            mContext.mkSymbol("bound_relation")};
-            //            mFixedPoint.setPredicateRepresentation(f, symbols);
             return f;
         } catch (Z3Exception e) {
             e.printStackTrace();
@@ -578,7 +568,6 @@ public class Z3Engine  implements Z3Clauses {
         try {
             int arraySize = numArg + numReg + 1;
             FuncDecl f = this.rPredDef(c, m, pc, arraySize);
-            //        String name = "R" + '_' + c + '_' + m + '_' + Integer.toString(pc);
 
             Expr[] e = new Expr[3 * arraySize];
             for(int i = 0, j = arraySize, k = 2*arraySize; i < arraySize; i++, j++, k++){
@@ -606,9 +595,6 @@ public class Z3Engine  implements Z3Clauses {
             FuncDecl f = mContext.mkFuncDecl(funcName, domains, bool);
 
             this.declareRel(f);
-            //            Symbol[] symbols = new Symbol[]{mContext.mkSymbol("interval_relation"),
-            //                                            mContext.mkSymbol("bound_relation")};
-            //            mFixedPoint.setPredicateRepresentation(f, symbols);
             return f;
         } catch (Z3Exception e) {
             e.printStackTrace();

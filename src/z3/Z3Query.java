@@ -4,8 +4,6 @@ import com.microsoft.z3.BoolExpr;
 
 import debugging.QUERY_TYPE;
 
-import java.util.ArrayList;
-
 /**
  * Created by rtongchenchitt on 10/19/2015.
  */

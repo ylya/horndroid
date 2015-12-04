@@ -3,6 +3,7 @@ package horndroid;
 
 public class options {
 	public boolean arrays = false;
+	public boolean debug = false;
 	public boolean fsanalysis = false;
     public boolean verboseResults = false;
     public int numQueries = 0;
