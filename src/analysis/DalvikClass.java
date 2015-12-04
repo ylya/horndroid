@@ -31,10 +31,20 @@ public class DalvikClass extends GeneralClass {
 	public void putMethods(final Set<DalvikMethod> methods){
 		this.methods = methods;
 	}
+	
+	/*
+	 * Return the superClass of the class. If no superClass were set return Ljava/lang/Object; by default
+	 * If the current class is Ljava/lang/Object; return null
+	 */
 	public GeneralClass getSuperClass(){
 	    //TODO: this is a quick fix, need to check that this does not break anything
 	    if (superClass == null){
-	        return new GeneralClass("Ljava/lang/Object;");
+	        if (!(this.getType().equals("Ljava/lang/Object;"))){
+	            System.out.println("Warning: DalvikClass " + this.getType() + " has no superClass. Set ot Ljava/lang/Object; by default");
+	            return new GeneralClass("Ljava/lang/Object;");
+	        }else{
+	            return null;
+	        }
 	    }
 		return superClass;
 	}

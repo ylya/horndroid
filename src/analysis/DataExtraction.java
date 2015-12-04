@@ -412,7 +412,7 @@ public class DataExtraction {
             }
 
             if (referenceStringClass != null){
-                final Boolean isSourceSink = isSourceSink(classDefs, referenceStringClass, referenceString, Collections.synchronizedSet(new HashSet<Integer>()));
+                final Boolean isSourceSink = isSourceSink(classDefs, referenceStringClass, referenceString);
                 if (isSourceSink != null){
                     if (isSourceSink)
                         refSources.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
@@ -437,7 +437,8 @@ public class DataExtraction {
                 instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass("Landroid/content/Intent;"), true));
             }
 
-            //REMOVED
+            /*
+             * The following code appears a few line above unchanged. I guess it is some copy pasting mistake
             if (referenceStringClass != null){
                 final Boolean isSourceSink = isSourceSink(classDefs, referenceStringClass, referenceString, Collections.synchronizedSet(new HashSet <Integer>()));
                 if (isSourceSink != null){
@@ -451,7 +452,7 @@ public class DataExtraction {
                 }
 
             }
-            //ENDREMOVED
+            */
 
             if ((referenceClassIndex == "Landroid/content/Intent;".hashCode())
                     && (referenceIntIndex == "<init>()V".hashCode())){
@@ -509,25 +510,27 @@ public class DataExtraction {
         staticConstructor.add(c);
     }
     
-    public Boolean isSourceSink(final List<? extends ClassDef> classDefs, final String className, final String methodName, final Set<Integer> visited){
-        if (!visited.isEmpty())
-        {
-            if (visited.contains(className.hashCode()))
-                return false;
+    /*
+     * Return true if className, methodName is a source, false if it is a sink and null otherwise
+     */
+    private Boolean isSourceSink(final List<? extends ClassDef> classDefs, final String className, final String methodName){
+//      TODO: should be rewritten. Cannot guarantee the result
+        if (refSources.contains(new CMPair(className.hashCode(), methodName.hashCode()))){
+            return true;
         }
-        visited.add(className.hashCode());
-        if (!refSources.isEmpty())
-            if (refSources.contains(new CMPair(className.hashCode(), methodName.hashCode())))
-                return true;
-        if (!refSinks.isEmpty())
-            if (refSinks.contains(new CMPair(className.hashCode(), methodName.hashCode())))
-                return false;
-        if (!refNull.isEmpty())
-            if (refNull.contains(new CMPair(className.hashCode(), methodName.hashCode())))
-                return null;
+
+        if (refSinks.contains(new CMPair(className.hashCode(), methodName.hashCode()))){
+            return false;
+        }
+
+        if (refNull.contains(new CMPair(className.hashCode(), methodName.hashCode()))){
+            return null;
+        }
+
         final int classIndex = className.hashCode();
         final String classNameFormat = className.substring(1, className.length()-1);
         final String methodNameFormat = methodName.substring(0, methodName.indexOf('('));
+        //Lookup in sourcesSinks to check if className, methodName appears
         for (SourceSinkMethod sourceSink: sourcesSinks){
             if (classNameFormat.hashCode() == sourceSink.className.hashCode()){     
                 if (methodNameFormat.hashCode() == sourceSink.name.hashCode()){
@@ -558,7 +561,7 @@ public class DataExtraction {
         for (final ClassDef classDef: classDefs){
             if (classIndex == classDef.getType().hashCode()){
                 if (classDef.getSuperclass()!= null){
-                    return isSourceSink(classDefs, classDef.getSuperclass(), methodName, visited);
+                    return isSourceSink(classDefs, classDef.getSuperclass(), methodName);
                 }
             }
         }

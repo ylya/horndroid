@@ -626,7 +626,6 @@ public class InstructionAnalysis {
                                 b = z3engine.rPred(classIndex, methodIndex, target.intValue(), regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                                 z3engine.addRule(z3engine.implies(h, b), null);
 							} catch (Exception e) {
-								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}
 
@@ -639,7 +638,6 @@ public class InstructionAnalysis {
                                         )
                                 );
 							} catch (Exception e) {
-								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}
         					t++;
@@ -1234,6 +1232,7 @@ public class InstructionAnalysis {
 
             case INVOKE_VIRTUAL:
         	case INVOKE_SUPER:
+                //TODO: should only look for the super implementation. CF What is done is FS analysis
         	case INVOKE_INTERFACE:
         		
         		
@@ -1487,7 +1486,7 @@ public class InstructionAnalysis {
             		}
         		}
 
-        		staticDefinitions = analysis.isDefined(referenceClassIndex, referenceIntIndex, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
+        		staticDefinitions = analysis.isDefined(referenceClassIndex, referenceIntIndex);
         		isDefined = staticDefinitions != null;
         		if (!isDefined) analysis.putNotDefined(referenceClassIndex, referenceIntIndex);
                 else analysis.putDefined(referenceClassIndex, referenceIntIndex, staticDefinitions);
@@ -1613,6 +1612,7 @@ public class InstructionAnalysis {
 
             case INVOKE_VIRTUAL_RANGE:
         	case INVOKE_SUPER_RANGE:
+        	    //TODO: should only look for the super implementation. CF What is done is FS analysis
         	case INVOKE_INTERFACE_RANGE:
 
         		modRes = false;
@@ -1820,7 +1820,7 @@ public class InstructionAnalysis {
 
             case INVOKE_DIRECT_RANGE:
         	case INVOKE_STATIC_RANGE:
-        		staticDefinitions = analysis.isDefined(referenceClassIndex, referenceIntIndex, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
+        		staticDefinitions = analysis.isDefined(referenceClassIndex, referenceIntIndex);
                 isDefined = staticDefinitions != null;
                 if (!isDefined) analysis.putNotDefined(referenceClassIndex, referenceIntIndex);
                 else analysis.putDefined(referenceClassIndex, referenceIntIndex, staticDefinitions);

@@ -5,6 +5,7 @@ import com.microsoft.z3.BoolExpr;
 
 import horndroid.options;
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -212,6 +213,13 @@ public class Analysis {
         refNull = de.getRefNull();
         refSinks = de.getRefSinks();
         refSources = de.getRefSources();
+        
+        for (CMPair c : refSinks){
+            System.out.println(c.getC() + c.getM());
+        }
+        for (CMPair c : refSources){
+            System.out.println(c.getC() + c.getM());
+        }
     }
     
     public Integer staticFieldLookup(final GeneralClass ci, final int fi, final Set<Integer> visited){
@@ -460,19 +468,6 @@ public class Analysis {
     }
     
     private void addToMainHeap(final DalvikClass dc, final int methodIndex, final int numRegCall, final int regCount){
-        /*
-        final int classIndex = dc.getType().hashCode();
-        Map<Integer, BitVecExpr> regUpdate = new HashMap<>();
-        Map<Integer, BoolExpr> regUpdateL = new HashMap<>();
-        Map<Integer, BoolExpr> regUpdateB = new HashMap<>();
-        for (int i = 0; i<= numRegCall + regCount; i++){
-            regUpdateL.put(i, z3engine.mkFalse());
-        }
-
-        BoolExpr b1 = z3engine.rPred(Integer.toString(classIndex), Integer.toString(methodIndex),
-                0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall);
-        z3engine.addRule(b1, null);
-        */
         this.addToMain(dc, methodIndex, numRegCall, regCount);
         
         final int classIndex = dc.getType().hashCode();
@@ -499,7 +494,7 @@ public class Analysis {
                     isCallback = true;
                 }
             }
-            final boolean isEntryPoint = testEntryPoint(dc, m.getName().hashCode(), Collections.synchronizedSet(new HashSet <Integer>()));
+            final boolean isEntryPoint = testEntryPoint(dc, m.getName().hashCode());
             if (isCallbackImplementation){
                 addToMain(dc, m.getName().hashCode(), m.getNumReg(), m.getNumArg());
             }
@@ -587,17 +582,15 @@ public class Analysis {
         final String classN =  parts[parts.length - 1];
         return classN;
     }
-    private boolean testOverapprox(final GeneralClass c, final Set<Integer> visited){
-        if (!visited.isEmpty())
-        {
-            if (visited.contains(c.getType().hashCode()))
-                return false;
-        }
-        visited.add(c.getType().hashCode());
+    
+    /*
+     * Check if c is in Overapprox
+     * Weird that it checks for parent and child: have a look
+     */
+    private boolean testOverapprox(final GeneralClass c){
         if (overapprox.contains(c.getType().hashCode())){
             return true;
-        }
-        else{
+        }else{
             if (c instanceof DalvikClass){
                 final DalvikClass dc = (DalvikClass) c;
                 boolean launcherChild = false;
@@ -606,21 +599,25 @@ public class Analysis {
                         launcherChild = true;
                     }
                 }
-                if (launcherChild) return true;
-                else 
-                    return testOverapprox(dc.getSuperClass(), visited);
+                if (launcherChild){
+                    return true;
+                }else{
+                    //TODO: checking for the child of this class before testing the child of the super class.
+                    //It is inefficient
+                    if (dc.getSuperClass() != null){
+                        return testOverapprox(dc.getSuperClass());
+                    }
+                }
             }
         }
         return false;
     }
-    private boolean testLauncherActivity(final GeneralClass c, final Set<Integer> visited){
-        if (c.getType() == null) return false;
-        if (!visited.isEmpty())
-        {
-            if (visited.contains(c.getType().hashCode()))
-                return false;
+    
+    private boolean testLauncherActivity(final GeneralClass c){
+        if (c.getType() == null){//TODO child + super?
+            return false;
         }
-        visited.add(c.getType().hashCode());
+        
         if (launcherActivities.contains(makeName(c).hashCode())){
             return true;
         }
@@ -633,27 +630,30 @@ public class Analysis {
                         launcherChild = true;
                     }
                 }
-                if (launcherChild) return true;
-                else 
-                    return testLauncherActivity(dc.getSuperClass(), visited);
+                if (launcherChild){
+                    return true;
+                }
+                else {
+                    if (dc.getSuperClass() != null){
+                        return testLauncherActivity(dc.getSuperClass());
+                    }else{
+                        return false;
+                    }
+                }
             }
         }
         return false;
     }
+    
     private boolean testDisabledActivity(final GeneralClass c){
-        if (disabledActivities.contains(makeName(c).hashCode())){
-            return true;
-        }
-        return false;
+        return disabledActivities.contains(makeName(c).hashCode());
     }
-    private boolean testApplication(final GeneralClass c, final Set<Integer> visited){
-        if (c.getType() == null) return false;
-        if (!visited.isEmpty())
-        {
-            if (visited.contains(c.getType().hashCode()))
-                return false;
+    
+    private boolean testApplication(final GeneralClass c){
+        if (c.getType() == null){//TODO child + super?
+            return false;
         }
-        visited.add(c.getType().hashCode());
+        
         if (applications.contains(makeName(c).hashCode())){
             return true;
         }
@@ -666,9 +666,16 @@ public class Analysis {
                         launcherChild = true;
                     }
                 }
-                if (launcherChild) return true;
-                else 
-                    return testApplication(dc.getSuperClass(), visited);
+                if (launcherChild){
+                    return true;
+                }
+                else {
+                    if (dc.getSuperClass() != null){
+                        return testApplication(dc.getSuperClass());
+                    }else{
+                        return false;
+                    }
+                }
             }
         }
         return false;
@@ -683,20 +690,21 @@ public class Analysis {
         for (GeneralClass c: classes.values()){
             if (!(c instanceof DalvikClass)) continue;
             for (DalvikField f: ((DalvikClass) c).getFields()){
-                if (!(f instanceof DalvikStaticField)) continue;
-                final EncodedValue initialValue = ((DalvikStaticField) f).getDefaultValue();
-                if (options.fsanalysis){
-                    BoolExpr rule = fsengine.sPred( fsengine.mkInt(Utils.Dec(c.getType().hashCode())),
-                            fsengine.mkInt(Utils.Dec(f.getName().hashCode())),
-                            FormatEncodedValue.toBitVec(fsengine, initialValue, options.bitvectorSize),
-                            fsengine.mkFalse(), fsvar.getBf());
-                    fsengine.addRule(rule, null);
-                }else{
-                    BoolExpr rule = z3engine.sPred( z3engine.mkInt(Utils.Dec(c.getType().hashCode())),
-                            z3engine.mkInt(Utils.Dec(f.getName().hashCode())),
-                            FormatEncodedValue.toBitVec(z3engine, initialValue, options.bitvectorSize),
-                            z3engine.mkFalse(), var.getBf());
-                    z3engine.addRule(rule, null);
+                if (f instanceof DalvikStaticField){
+                    final EncodedValue initialValue = ((DalvikStaticField) f).getDefaultValue();
+                    if (options.fsanalysis){
+                        BoolExpr rule = fsengine.sPred( fsengine.mkInt(Utils.Dec(c.getType().hashCode())),
+                                fsengine.mkInt(Utils.Dec(f.getName().hashCode())),
+                                FormatEncodedValue.toBitVec(fsengine, initialValue, options.bitvectorSize),
+                                fsengine.mkFalse(), fsvar.getBf());
+                        fsengine.addRule(rule, null);
+                    }else{
+                        BoolExpr rule = z3engine.sPred( z3engine.mkInt(Utils.Dec(c.getType().hashCode())),
+                                z3engine.mkInt(Utils.Dec(f.getName().hashCode())),
+                                FormatEncodedValue.toBitVec(z3engine, initialValue, options.bitvectorSize),
+                                z3engine.mkFalse(), var.getBf());
+                        z3engine.addRule(rule, null);
+                    }
                 }
             }
         }
@@ -738,6 +746,7 @@ public class Analysis {
     
     /*
      * Get the additional information from the added classes, by querying stubs object
+     * Should only be used once
      */
     private void fetchAdditionalInfo(final Set<Integer> stubProcessed){
         for (DalvikInstance instance : stubs.getInstances()){
@@ -840,9 +849,9 @@ public class Analysis {
                 final DalvikClass dc = (DalvikClass) c;
 
                 final boolean isDisabledActivity = testDisabledActivity(dc);
-                final boolean isLauncherActivity = testLauncherActivity(dc, Collections.synchronizedSet(new HashSet <Integer>()));
-                final boolean isApplication = testApplication(dc, Collections.synchronizedSet(new HashSet <Integer>()));
-                final boolean isOverapprox = testOverapprox(dc, Collections.synchronizedSet(new HashSet <Integer>()));
+                final boolean isLauncherActivity = testLauncherActivity(dc);
+                final boolean isApplication = testApplication(dc);
+                final boolean isOverapprox = testOverapprox(dc);
                 boolean isCallbackImplementation = false;
                 for (final GeneralClass interfaceC: dc.getInterfaces()){
                     if (callbackImplementations.contains(interfaceC.getType().hashCode())){
@@ -855,26 +864,21 @@ public class Analysis {
             }
         }
     }
-    private boolean testEntryPoint(final GeneralClass c, final int methodIndex, final Set<Integer> visited){
-        if (!visited.isEmpty())
-        {
-            if (visited.contains(c.getType().hashCode()))
-                return false;
+    
+    
+    private boolean testEntryPoint(final GeneralClass c, final int methodIndex){
+        if (this.isEntryPoint(c.getType().hashCode(), methodIndex)){
+            return true;
         }
-        visited.add(c.getType().hashCode());
+        
         if (c instanceof DalvikClass){
             final DalvikClass dc = (DalvikClass) c;
             final GeneralClass superClass = dc.getSuperClass();
-            if (superClass.getType() == null) return false;
-            if (this.isEntryPoint(superClass.getType().hashCode(), methodIndex)){
-                return true;
+            if (superClass == null){
+                return false;
+            }else{
+                return testEntryPoint(superClass, methodIndex);
             }
-           
-            
-            else{	
-                return testEntryPoint(superClass, methodIndex, visited);
-            }
-          
         }
         return false;
 
@@ -886,10 +890,10 @@ public class Analysis {
                 boolean execByDefault = false;
                 for (final DalvikMethod method: dc.getMethods()){
                     final int methodIndex = method.getName().hashCode();
-                    if (!testDisabledActivity(dc) && testEntryPoint(dc, methodIndex, Collections.synchronizedSet(new HashSet <Integer>()))
-                            && (testLauncherActivity(dc, Collections.synchronizedSet(new HashSet <Integer>()))
-                                    || testApplication(dc, Collections.synchronizedSet(new HashSet <Integer>()))
-                                    || testOverapprox(dc, Collections.synchronizedSet(new HashSet <Integer>())))){
+                    if (!testDisabledActivity(dc) && testEntryPoint(dc, methodIndex)
+                            && (testLauncherActivity(dc)
+                                    || testApplication(dc)
+                                    || testOverapprox(dc))){
                         execByDefault = true;
                         break;
                     }
@@ -911,18 +915,20 @@ public class Analysis {
         return localHeapNumberEntries;
     }
     
+
+    /*
+     * Return the implementations of mi in ci and in its child classes.
+     * Return null if no implementation was found
+     */
     public Set<DalvikImplementation> getImplementations(final int ci, final int mi){
-        if (!isNotImpl.isEmpty()){
-            if (isNotImpl.contains(new CMPair(ci, mi)))
-                return null;
+        if (isNotImpl.contains(new CMPair(ci, mi))){
+            return null;
         }
-        if (!allImplementations.isEmpty()){
-            if (allImplementations.containsKey(new CMPair(ci, mi))){
-                return allImplementations.get(new CMPair(ci, mi));
-            }
+        if (allImplementations.containsKey(new CMPair(ci, mi))){
+            return allImplementations.get(new CMPair(ci, mi));
         }
         final Set<DalvikImplementation> implementations = Collections.synchronizedSet(new HashSet<DalvikImplementation>());
-        final Map<DalvikClass, DalvikMethod> definitions = isDefined(ci, mi, Collections.synchronizedSet(new HashSet <Integer>()));
+        final Map<DalvikClass, DalvikMethod> definitions = isDefined(ci, mi);
         if (definitions == null) 
         {
             isNotDefined.add(new CMPair(ci, mi));
@@ -951,14 +957,19 @@ public class Analysis {
         return implementations;
     }
     
+    /*
+     * Return the implementation of mi in the super classes of ci only
+     * Return null if no implementation was found
+     */
     public Set<DalvikImplementation> getSuperImplementations(final int ci, final int mi){
         final Set<DalvikImplementation> implementations = Collections.synchronizedSet(new HashSet<DalvikImplementation>());
-        final Map<DalvikClass, DalvikMethod> definitions = isSuperDefined(ci, mi, Collections.synchronizedSet(new HashSet <Integer>()));
-        if (definitions == null) return null;
-        for (Map.Entry<DalvikClass, DalvikMethod> entry : definitions.entrySet()){
-            final DalvikImplementation di = new DalvikImplementation(entry.getKey(), entry.getValue());
+        final AbstractMap.SimpleEntry<DalvikClass, DalvikMethod> definition = isSuperDefined(ci, mi);
+        if (definition == null){
+            return null;
+        }else{
+            final DalvikImplementation di = new DalvikImplementation(definition.getKey(), definition.getValue());
             for (final DalvikInstance instance: instances){
-                if (entry.getKey().getType().hashCode() == instance.getType().getType().hashCode()){
+                if (definition.getKey().getType().hashCode() == instance.getType().getType().hashCode()){
                     di.putInstance(instance);
                 }
             }
@@ -968,13 +979,12 @@ public class Analysis {
         return implementations;
     }
     
-    
-    public Map<DalvikClass, DalvikMethod> isSuperDefined(final int ci, int mi, final Set<Integer> visited){  
-        Map<DalvikClass, DalvikMethod> resolvents = new ConcurrentHashMap<DalvikClass, DalvikMethod>();
-        if (visited.contains(ci)) return null;
-        else visited.add(ci);
-
-        final boolean isThread = isThread(ci, Collections.synchronizedSet(new HashSet <Integer>()));
+    /*
+     * Return the dalvik class and dalvik method implementing mi in ci super classes
+     * Return null if this method is not found
+     */
+    private AbstractMap.SimpleEntry<DalvikClass, DalvikMethod> isSuperDefined(final int ci, int mi){  
+        final boolean isThread = isThreadByInt(ci);
         if (isThread && (mi == "execute([Ljava/lang/Object;)Landroid/os/AsyncTask;".hashCode())){
             mi = "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode();
         }
@@ -986,34 +996,40 @@ public class Analysis {
             if (c instanceof DalvikClass){
                 final DalvikClass cd = ((DalvikClass) c);   
                 final GeneralClass superClass = cd.getSuperClass();
-                if (superClass instanceof DalvikClass){
-                    final DalvikClass scd = (DalvikClass) superClass;
-                    for (final DalvikMethod m: scd.getMethods()){
-                        if (m.getName().hashCode() == mi){
-                            resolvents.put(cd, m);
-                            return resolvents;
+                if (superClass == null){
+                    return null;
+                }else{
+                    if (superClass instanceof DalvikClass){
+                        final DalvikClass scd = (DalvikClass) superClass;
+                        for (final DalvikMethod m: scd.getMethods()){
+                            if (m.getName().hashCode() == mi){
+                                 return new AbstractMap.SimpleEntry<DalvikClass, DalvikMethod>(cd, m);
+                            }
                         }
+                        isSuperDefined(scd.getType().hashCode(), mi);
                     }
-                    isSuperDefined(scd.getType().hashCode(), mi, visited);
                 }
             }
         }
         return null;
     }
-
-    public Map<DalvikClass, DalvikMethod> isDefined(final int ci, int mi, final Set<Integer> visited){	
-        if (!isNotDefined.isEmpty())
-            if (isNotDefined.contains(new CMPair(ci, mi))) return null;
-        Map<DalvikClass, DalvikMethod> resolvents = new ConcurrentHashMap<DalvikClass, DalvikMethod>();
-        Map<DalvikClass, DalvikMethod> exResolvents = null;
-        if (!allDefinitions.isEmpty()){
-            exResolvents = allDefinitions.get(new CMPair(ci, mi));
+    
+    /*
+     * Return the set of classes*method implementing some method ci,mi by looking in class ci and all its child classes
+     * Return null if ci,mi is not defined
+     */
+    public Map<DalvikClass, DalvikMethod> isDefined(final int ci, int mi){	
+        if (isNotDefined.contains(new CMPair(ci, mi))){
+            return null;
         }
-        if (exResolvents != null) return exResolvents;
-        if (visited.contains(ci)) return null;
-        else visited.add(ci);
+        Map<DalvikClass, DalvikMethod> resolvents = new ConcurrentHashMap<DalvikClass, DalvikMethod>();
+        Map<DalvikClass, DalvikMethod> exResolvents = allDefinitions.get(new CMPair(ci, mi));
+        if (exResolvents != null){
+            return exResolvents;
+        }
 
-        final boolean isThread = isThread(ci, Collections.synchronizedSet(new HashSet <Integer>()));
+
+        final boolean isThread = isThreadByInt(ci);
         if (isThread && (mi == "execute([Ljava/lang/Object;)Landroid/os/AsyncTask;".hashCode())){
             mi = "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode();
         }
@@ -1036,7 +1052,7 @@ public class Analysis {
                 
                 for (final DalvikClass sc: cd.getChildClasses()){
                     if (sc != null){
-                        final Map<DalvikClass, DalvikMethod> resolventsChild = isDefined(sc.getType().hashCode(), mi, visited);
+                        final Map<DalvikClass, DalvikMethod> resolventsChild = isDefined(sc.getType().hashCode(), mi);
                         if (resolventsChild != null)
                             resolvents.putAll(resolventsChild);
                     }
@@ -1056,47 +1072,40 @@ public class Analysis {
             }
         }        
         
-        if (resolvents.isEmpty()) return null;
-        else
+        if (resolvents.isEmpty()){
+            return null;
+        }else{
         return resolvents;
+        }
     }
 
-
-    public boolean isThread(final GeneralClass c, Set<Integer> visited){
-        if (!visited.isEmpty())
-        {
-            if (visited.contains(c.getType().hashCode()))
-                return false;
-        }
-        visited.add(c.getType().hashCode());
+    /*
+     * Return true if the super class of c is a thread class
+     * Should not be used except in isThreadByInt
+     */
+    private boolean isThread(final GeneralClass c){
         if (c instanceof DalvikClass){
             final DalvikClass dc = (DalvikClass) c;
             final GeneralClass sc = dc.getSuperClass();
-            final int superClass = sc.getType().hashCode();
-            if ((superClass == "Ljava/lang/Thread;".hashCode()) || (superClass == "Landroid/os/AsyncTask;".hashCode())){
-                return true;
-            }
-            else{
-                return isThread(sc, visited);
+            if (sc != null){
+                final int superClass = sc.getType().hashCode();
+                if ((superClass == "Ljava/lang/Thread;".hashCode()) || (superClass == "Landroid/os/AsyncTask;".hashCode())){
+                    return true;
+                }
+                else{
+                    return isThread(sc);
+                }
+            }else{
+                return false;
             }
         }
         return false;
     }
-    public boolean isThread(final int classInd, Set<Integer> visited){
-        if (!visited.isEmpty())
-        {
-            if (visited.contains(classInd))
-                return false;
-        }
-        visited.add(classInd);
-        
-        if (classes.containsKey(classInd)){
-            GeneralClass c = classes.get(classInd);
-            if (c instanceof DalvikClass){
-                
-            }
-        }
-        
+
+    /*
+     * Return true is classInd is the identifier of a thread class
+     */
+    public boolean isThreadByInt(final int classInd){        
         if (classes.containsKey(classInd)){
             GeneralClass c = classes.get(classInd);
             if (c instanceof DalvikClass){
@@ -1105,11 +1114,12 @@ public class Analysis {
 
                 if (interfaces.size() != 0) {
                     for (final GeneralClass interfaceName: interfaces){
-                        if (interfaceName.getType().hashCode() == "Ljava/lang/Runnable;".hashCode())
+                        if (interfaceName.getType().hashCode() == "Ljava/lang/Runnable;".hashCode()){
                             return true;
+                        }
                     }
                 }
-                return isThread(c, visited);   
+                return isThread(c);   
             }  
         }
         

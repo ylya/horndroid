@@ -1441,7 +1441,7 @@ public class FSInstructionAnalysis{
                 }
             }
 
-            staticDefinitions = analysis.isDefined(referenceClassIndex, referenceIntIndex, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
+            staticDefinitions = analysis.isDefined(referenceClassIndex, referenceIntIndex);
             isDefined = staticDefinitions != null;
             if (!isDefined) analysis.putNotDefined(referenceClassIndex, referenceIntIndex);
             else analysis.putDefined(referenceClassIndex, referenceIntIndex, staticDefinitions);
@@ -1457,7 +1457,7 @@ public class FSInstructionAnalysis{
 
         case INVOKE_DIRECT_RANGE:
         case INVOKE_STATIC_RANGE:
-            staticDefinitions = analysis.isDefined(referenceClassIndex, referenceIntIndex, Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <Integer, Boolean>())));
+            staticDefinitions = analysis.isDefined(referenceClassIndex, referenceIntIndex);
             isDefined = staticDefinitions != null;
             if (!isDefined) analysis.putNotDefined(referenceClassIndex, referenceIntIndex);
             else analysis.putDefined(referenceClassIndex, referenceIntIndex, staticDefinitions);

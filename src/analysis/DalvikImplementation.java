@@ -1,8 +1,8 @@
 package analysis;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class DalvikImplementation {
 	final private DalvikClass dc;
@@ -11,7 +11,7 @@ public class DalvikImplementation {
 	public DalvikImplementation(final DalvikClass dc, final DalvikMethod dm){
 		this.dc = dc;
 		this.dm = dm;
-		this.di = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<DalvikInstance, Boolean>()));
+		this.di = Collections.synchronizedSet(new HashSet<DalvikInstance>());
 	}
 	public DalvikClass getDalvikClass(){
 		return dc;
