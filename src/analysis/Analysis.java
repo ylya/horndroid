@@ -214,12 +214,6 @@ public class Analysis {
         refSinks = de.getRefSinks();
         refSources = de.getRefSources();
         
-        for (CMPair c : refSinks){
-            System.out.println(c.getC() + c.getM());
-        }
-        for (CMPair c : refSources){
-            System.out.println(c.getC() + c.getM());
-        }
     }
     
     public Integer staticFieldLookup(final GeneralClass ci, final int fi, final Set<Integer> visited){

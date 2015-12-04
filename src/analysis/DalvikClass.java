@@ -14,7 +14,7 @@ public class DalvikClass extends GeneralClass {
 	private Set<DalvikMethod> methods;
 	DalvikClass(final String name){
 		super(name);
-		childClasses = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap<DalvikClass, Boolean>()));
+		childClasses = Collections.synchronizedSet(new HashSet<DalvikClass>());
 	}
 	public void putSuperClass(final GeneralClass superClass){
 		this.superClass = superClass;

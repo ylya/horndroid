@@ -134,9 +134,14 @@ public class DataExtraction {
     }
     
     public void collectDataFromApk(final List<? extends ClassDef> classDefs) {
-        for (final ClassDef classDef: classDefs) {
+        ConcurrentHashMap<Integer,ClassDef> classDefsMap = new ConcurrentHashMap<Integer,ClassDef>();
+        for (ClassDef classDef : classDefs){
+            classDefsMap.put(classDef.getType().hashCode(),classDef);
+        }
+        
+        for (final ClassDef classDef: classDefsMap.values()) {
             if (!classDef.getType().contains("Landroid")){
-                DalvikClass c = collectDataFromClass(classDefs, classDef);
+                DalvikClass c = collectDataFromClass(classDefsMap, classDef);
                 classes.put(c.getType().hashCode(),c);
             }
         }
@@ -146,18 +151,23 @@ public class DataExtraction {
 
 
     public void collectDataFromStandard(final List<? extends ClassDef> classDefs) {
-        for (final ClassDef classDef: classDefs) {
-            DalvikClass c = collectDataFromClass(classDefs, classDef);
+        ConcurrentHashMap<Integer,ClassDef> classDefsMap = new ConcurrentHashMap<Integer,ClassDef>();
+        for (ClassDef classDef : classDefs){
+            classDefsMap.put(classDef.getType().hashCode(),classDef);
+        }
+        
+        for (final ClassDef classDef: classDefsMap.values()) {
+            DalvikClass c = collectDataFromClass(classDefsMap, classDef);
             classes.put(c.getType().hashCode(),c);
         }
         formClassStructure();
     }       
 
 
-    private DalvikClass collectDataFromClass(final List<? extends ClassDef> classDefs, final ClassDef classDef) {
+    private DalvikClass collectDataFromClass(final Map<Integer,ClassDef> classDefsMap, final ClassDef classDef) {
         final DalvikClass dc = new DalvikClass(classDef.getType());
         dc.putSuperClass(new GeneralClass(classDef.getSuperclass()));
-        final Set<GeneralClass> inter = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <GeneralClass, Boolean>()));
+        final Set<GeneralClass> inter = Collections.newSetFromMap(new ConcurrentHashMap<GeneralClass,Boolean>());
         for (final String interfaceName: classDef.getInterfaces()){
             inter.add(new GeneralClass(interfaceName));
         }
@@ -166,14 +176,14 @@ public class DataExtraction {
         Set<DalvikField> dalvikFields = collectDataFromFields(classDef, false);
         dalvikFields.addAll(collectDataFromFields(classDef, true));
         dc.putFields(dalvikFields);
-        Set<DalvikMethod> dalvikMethods = collectDataFromMethods(classDefs, classDef, false); //direct
-        dalvikMethods.addAll(collectDataFromMethods(classDefs, classDef, true)); //virtual
+        Set<DalvikMethod> dalvikMethods = collectDataFromMethods(classDefsMap, classDef, false); //direct
+        dalvikMethods.addAll(collectDataFromMethods(classDefsMap, classDef, true)); //virtual
         dc.putMethods(dalvikMethods);
         return dc;
     }
 
     private Set<DalvikField> collectDataFromFields(final ClassDef classDef, final boolean dynamic){
-        final Set<DalvikField> dalvikFields = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <DalvikField, Boolean>()));
+        final Set<DalvikField> dalvikFields = Collections.newSetFromMap(new ConcurrentHashMap <DalvikField, Boolean>());
         Iterable<? extends Field> fields;
         if (!dynamic){
             if (classDef instanceof DexBackedClassDef) {
@@ -205,8 +215,8 @@ public class DataExtraction {
         return dalvikFields;
     }
 
-    private Set<DalvikMethod> collectDataFromMethods(final List<? extends ClassDef> classDefs, final ClassDef classDef, final boolean virtual) {
-        final Set<DalvikMethod> dalvikMethods = Collections.synchronizedSet(Collections.newSetFromMap(new ConcurrentHashMap <DalvikMethod, Boolean>()));
+    private Set<DalvikMethod> collectDataFromMethods(final Map<Integer,ClassDef> classDefsMap, final ClassDef classDef, final boolean virtual) {
+        final Set<DalvikMethod> dalvikMethods = Collections.newSetFromMap(new ConcurrentHashMap<DalvikMethod, Boolean>());
         Iterable<? extends Method> methods;
         if (!virtual){
             if (classDef instanceof DexBackedClassDef) {
@@ -229,12 +239,12 @@ public class DataExtraction {
             MethodImplementation methodImpl = method.getImplementation();
             if (methodImpl == null) {
             } else {
-                dalvikMethods.add(collectDataFromMethod(classDefs, method, methodImpl, methodString, classIndex, methodIndex, classDef));
+                dalvikMethods.add(collectDataFromMethod(classDefsMap, method, methodImpl, methodString, classIndex, methodIndex, classDef));
             }
         }
         return dalvikMethods;
     }
-    private DalvikMethod collectDataFromMethod(final List<? extends ClassDef> classDefs, final Method method, final MethodImplementation methodImpl, 
+    private DalvikMethod collectDataFromMethod(final Map<Integer,ClassDef> classDefsMap, final Method method, final MethodImplementation methodImpl, 
             final String methodString, final String classIndex, 
             final String methodIndex,
             final ClassDef classDef){
@@ -262,12 +272,12 @@ public class DataExtraction {
         DalvikMethod dm = new DalvikMethod(methodString, parameterRegisterCount, methodImpl.getRegisterCount(), returnType, callReturns, ImmutableList.copyOf(instructions));
         int codeAddress = 0;
         for (Instruction instruction: instructions){
-            collect(classDefs, instruction, codeAddress, Integer.parseInt(classIndex), Integer.parseInt(methodIndex), classDef, method);
+            collect(classDefsMap, instruction, codeAddress, Integer.parseInt(classIndex), Integer.parseInt(methodIndex), classDef, method);
             codeAddress += instruction.getCodeUnits();
         }    
         return dm;
     }
-    private void collect(final List<? extends ClassDef> classDefs, final Instruction instruction, final int codeAddress, final int c, final int m, 
+    private void collect(final Map<Integer,ClassDef> classDefsMap, final Instruction instruction, final int codeAddress, final int c, final int m, 
             final ClassDef classDef, final Method method){
         String referenceString = null;
         String referenceStringClass = null;
@@ -412,7 +422,7 @@ public class DataExtraction {
             }
 
             if (referenceStringClass != null){
-                final Boolean isSourceSink = isSourceSink(classDefs, referenceStringClass, referenceString);
+                final Boolean isSourceSink = isSourceSink(classDefsMap, referenceStringClass, referenceString);
                 if (isSourceSink != null){
                     if (isSourceSink)
                         refSources.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
@@ -511,10 +521,11 @@ public class DataExtraction {
     }
     
     /*
-     * Return true if className, methodName is a source, false if it is a sink and null otherwise
+     * Return true if classNameBis, methodName is a source, false if it is a sink and null otherwise
+     * Where classNameBis is either className of or super class of className
+     * 
      */
-    private Boolean isSourceSink(final List<? extends ClassDef> classDefs, final String className, final String methodName){
-//      TODO: should be rewritten. Cannot guarantee the result
+    private Boolean isSourceSink(final Map<Integer,ClassDef> classDefsMap, final String className, final String methodName){
         if (refSources.contains(new CMPair(className.hashCode(), methodName.hashCode()))){
             return true;
         }
@@ -541,28 +552,28 @@ public class DataExtraction {
                 }
             }   
         }
-        for (final ClassDef classDef: classDefs){
-            if (classIndex == classDef.getType().hashCode()){
-                for (final String interfaceName: classDef.getInterfaces()){
-                    final String interfaceNameFormat = interfaceName.substring(1, interfaceName.length()-1);
-                    for (SourceSinkMethod sourceSink: sourcesSinks){
-                        if (interfaceNameFormat.hashCode() == sourceSink.className.hashCode()){     
-                            if (methodNameFormat.hashCode() == sourceSink.name.hashCode()){
-                                if (sourceSink.source)
-                                    return true;
-                                else
-                                    return false;
-                            }
-                        }   
-                    }
+        
+        if (classDefsMap.containsKey(classIndex)){
+            ClassDef classDef = classDefsMap.get(classIndex);
+            for (final String interfaceName: classDef.getInterfaces()){
+                final String interfaceNameFormat = interfaceName.substring(1, interfaceName.length()-1);
+                for (SourceSinkMethod sourceSink: sourcesSinks){
+                    if (interfaceNameFormat.hashCode() == sourceSink.className.hashCode()){     
+                        if (methodNameFormat.hashCode() == sourceSink.name.hashCode()){
+                            if (sourceSink.source)
+                                return true;
+                            else
+                                return false;
+                        }
+                    }   
                 }
             }
         }
-        for (final ClassDef classDef: classDefs){
-            if (classIndex == classDef.getType().hashCode()){
-                if (classDef.getSuperclass()!= null){
-                    return isSourceSink(classDefs, classDef.getSuperclass(), methodName);
-                }
+
+        if (classDefsMap.containsKey(classIndex)){
+            ClassDef classDef = classDefsMap.get(classIndex);
+            if (classDef.getSuperclass()!= null){
+                return isSourceSink(classDefsMap, classDef.getSuperclass(), methodName);
             }
         }
         return null;
