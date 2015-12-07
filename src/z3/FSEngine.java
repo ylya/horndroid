@@ -658,8 +658,13 @@ public class FSEngine {
         final Debug debug = new Debug(analysis);
         //Counter of the number of queries
         int counter = 0;
+        int currentPrint = 0;
+        int percentage = 0;
+        
+        int mQueriesLength = mQueries.size();
+        
         for (int i = 0; i < mQueries.size(); i++) {
-
+            
             final Z3Query q = mQueries.get(i);
             if(!q.debugging){
                 System.out.println((i + 1) + ": ");
@@ -687,11 +692,9 @@ public class FSEngine {
                 public String call() throws Exception {
 
                     Status result = temp.query(q.getQuery());
-                    if(!q.debugging)
+                    if(!q.debugging){
                         System.out.println(result);
-
-                    /*if(q.isLocalHeap && result.equals("SATISFIABLE"))
-                        System.out.println("" + q.field);*/
+                    }
                     
                     return result.toString();
                 }
@@ -701,8 +704,15 @@ public class FSEngine {
              * Apparently the Z3 wrapper is not handling the memory correctly, need to GC manually. See:
              * http://stackoverflow.com/questions/24188626/performance-issues-about-z3-for-java#comment37349014_24190067
              */
-            if (counter % 50 == 0)
+            if (counter % 50 == 0){
                 System.gc();
+            }
+            if ((counter >= currentPrint + (mQueriesLength/10)) && (mQueriesLength > 10)){
+                currentPrint = counter;
+                percentage+= 10;
+                System.out.println(percentage + "% of queries handled");
+            }
+            
             counter++;
             
             try{
@@ -738,12 +748,16 @@ public class FSEngine {
                     case GLOBAL:
                         regInf.globalPut(k,res);
                         break;
+                    default:
+                        throw new RuntimeException("In flow sensitive mode received a standard query: " + q.queryType.toString());
                     }
                 }
 
 
-                if(!q.debugging)
+                if(!q.debugging){
                     future.get(timeout, TimeUnit.MINUTES);
+                }
+                
             } catch (TimeoutException e) {
                 future.cancel(true);
             } catch (InterruptedException e) {

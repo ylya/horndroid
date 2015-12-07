@@ -2,6 +2,9 @@ package z3;
 
 import com.microsoft.z3.*;
 
+import analysis.Analysis;
+import debugging.Debug;
+import debugging.MethodeInfo;
 import horndroid.options;
 
 
@@ -441,7 +444,16 @@ public class Z3Engine  implements Z3Clauses {
         }
     }
 
-    public void executeAllQueries(){
+    
+    public void addQueryDebug(Z3Query query){
+                mQueries.add(query);
+    }
+
+    
+    
+    public void executeAllQueries(Analysis analysis){
+        Debug debug = new Debug(analysis);
+        
         // ensure that the cached query is added
         if(mCurrentQuery != null) mQueries.add(mCurrentQuery);
 
@@ -450,14 +462,22 @@ public class Z3Engine  implements Z3Clauses {
         //		ExecutorService executor = Executors.newFixedThreadPool(threshold);
         ExecutorService executor = Executors.newSingleThreadExecutor();
         System.out.println("Number of queries: " + Integer.toString(mQueries.size()));
+        int counter = 0;
+        int currentPrint = 0;
+        int percentage = 0;
+        int mQueriesLength = mQueries.size();
 
+        
         for (int i = 0; i < mQueries.size(); i++) {
 
             final Z3Query q = mQueries.get(i);
-            System.out.print((i + 1) + ": ");
-            if (q.isVerbose())
-                System.out.println(q.getDescription());
-
+            if(!q.debugging){
+                System.out.println((i + 1) + ": ");
+                if (q.isVerbose()){
+                    System.out.println(q.getDescription());
+                }
+            }
+            
             final Fixedpoint temp = mContext.mkFixedpoint();
             for(BoolExpr rule : mRules){
                 temp.addRule(rule, null);
@@ -474,14 +494,57 @@ public class Z3Engine  implements Z3Clauses {
                 public String call() throws Exception {
 
                     Status result = temp.query(q.getQuery());
-                    System.out.println(result);
-
+                    if(!q.debugging){
+                        System.out.println(result);
+                    }
+                    
                     return result.toString();
                 }
             });
+            
+            /*
+             * Apparently the Z3 wrapper is not handling the memory correctly, need to GC manually. See:
+             * http://stackoverflow.com/questions/24188626/performance-issues-about-z3-for-java#comment37349014_24190067
+             */
+            if (counter % 50 == 0){
+                System.gc();
+            }
+
+            if ((counter >= currentPrint + (mQueriesLength/10)) && (mQueriesLength > 10)){
+                currentPrint = counter;
+                percentage+= 10;
+                System.out.println(percentage + "% of queries handled");
+            }
+            
+            counter++;
+
 
             try {
-                future.get(timeout, TimeUnit.MINUTES);
+                if (q.debugging && q.isReg){
+                    final MethodeInfo minfo = debug.get(q.getClassName(), q.getMethodName());
+                    boolean res = future.get(timeout, TimeUnit.MINUTES).equals("SATISFIABLE");
+                    /*
+                     * The queries are not stored in an obvious way inside the debug object.
+                     */
+                    switch(q.queryType){
+                    case STANDARD_REACH:
+                        minfo.regInfo[q.regNum].highPut(Integer.parseInt(q.getPc()),res);
+                        break;
+                    case STANDARD_HIGH:
+                        minfo.regInfo[q.regNum].localPut(Integer.parseInt(q.getPc()),res);
+                        break;
+                    case STANDARD_BLOCK:
+                        minfo.regInfo[q.regNum].globalPut(Integer.parseInt(q.getPc()),res);
+                        break;
+                    default:
+                        throw new RuntimeException("In standard mode received a flow sensitive query: " + q.queryType.toString());
+                    }
+                }
+
+                if(!q.debugging){
+                    future.get(timeout, TimeUnit.MINUTES);
+                }
+                
             } catch (TimeoutException e) {
                 future.cancel(true);
             } catch (InterruptedException e) {

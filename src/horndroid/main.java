@@ -202,7 +202,7 @@ public class main {
             startTime = System.nanoTime();
 
             if (!hornDroidOptions.fsanalysis)
-                z3engine.executeAllQueries();
+                z3engine.executeAllQueries(analysis);
             else
                 fsengine.executeAllQueries(analysis);
             
@@ -273,7 +273,7 @@ public class main {
                 hornDroidOptions.fsanalysis = true;
                 break;
             case 'd':
-                hornDroidOptions.fsanalysis = true;
+                hornDroidOptions.debug = true;
                 break;
             case 's':
                 hornDroidOptions.numQueries = Integer.parseInt(commandLine.getOptionValue("s"));;

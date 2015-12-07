@@ -4,6 +4,9 @@ import com.microsoft.z3.BitVecExpr;
 import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Expr;
 
+import debugging.QUERY_TYPE;
+import horndroid.options;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -51,7 +54,7 @@ public class InstructionAnalysis {
 		this.m = dm.getName().hashCode();
 		this.codeAddress = codeAddress;
 	}
-	public void CreateHornClauses(){
+	public void CreateHornClauses(options options){
 		boolean modRes;
 		Integer staticFieldClassName;
 		Set<DalvikImplementation> implementations = Collections.newSetFromMap(new ConcurrentHashMap<DalvikImplementation, Boolean>());
@@ -115,6 +118,23 @@ public class InstructionAnalysis {
         Map<Integer, BitVecExpr> regUpdate = new HashMap<>();
         Map<Integer, BoolExpr> regUpdateL = new HashMap<>();
         Map<Integer, BoolExpr> regUpdateB = new HashMap<>();
+        
+        if (options.debug && methodName.contains("onCreate")){
+            BoolExpr h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
+            for (int i = 0; i < numRegLoc; i++){
+                BoolExpr h1 = h;
+                BoolExpr h2 = z3engine.and(var.getL(i),h);
+                BoolExpr h3 = z3engine.and(var.getB(i),h);
+                Z3Query q1 = new Z3Query(h1,i,QUERY_TYPE.STANDARD_REACH,className,methodName,Integer.toString(codeAddress));
+                Z3Query q2 = new Z3Query(h2,i,QUERY_TYPE.STANDARD_HIGH,className,methodName,Integer.toString(codeAddress));
+                Z3Query q3 = new Z3Query(h3,i,QUERY_TYPE.STANDARD_BLOCK,className,methodName,Integer.toString(codeAddress));
+                z3engine.addQueryDebug(q1);
+                z3engine.addQueryDebug(q2);
+                z3engine.addQueryDebug(q3);
+                }
+         }
+
+        
         BoolExpr h, b, htob;
         switch (opcode){
         	case NOP:

@@ -551,7 +551,7 @@ public class Analysis {
                     ia.CreateHornClauses(options);
                 }else{
                     InstructionAnalysis ia = new InstructionAnalysis(this, instruction, dc, m, codeAddress);
-                    ia.CreateHornClauses();                    
+                    ia.CreateHornClauses(options);                    
                 }
                 codeAddress += instruction.getCodeUnits();
             }
