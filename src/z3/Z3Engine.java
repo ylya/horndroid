@@ -553,6 +553,8 @@ public class Z3Engine  implements Z3Clauses {
                 future.cancel(true);
             }
         }
+        
+        debug.printToLatex();
 
         executor.shutdownNow();
     }
