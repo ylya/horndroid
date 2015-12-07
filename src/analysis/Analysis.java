@@ -44,7 +44,7 @@ import z3.Z3Variable;
 
 public class Analysis {
     final private Map<Integer,GeneralClass> classes;
-    final private Set<DalvikInstance> instances;
+    final private Instances instances;
     final private Set<Integer> disabledActivities;
     final private Set<Integer> activities;
     final private Set<Integer> applications;
@@ -86,12 +86,13 @@ public class Analysis {
     
     private Integer localHeapNumberEntries;
     private Integer localHeapSize;
+    private HashSet<CMPair> apkClassesMethods;
     
     public Analysis(final Z3Engine z3engine,final FSEngine fsengine, 
             final Set<SourceSinkMethod> sourcesSinks, final options options, final ExecutorService instructionExecutorService,
             final Stubs stubs){
         this.classes = new ConcurrentHashMap<Integer,GeneralClass>();
-        this.instances = new HashSet<DalvikInstance>();
+        this.instances = new Instances();
         this.disabledActivities = new HashSet<Integer>();
         this.activities = new HashSet<Integer>();
         this.applications = new HashSet<Integer>();
@@ -115,6 +116,7 @@ public class Analysis {
 
         this.refSources = new HashSet <CMPair>();
         this.refSinks = new HashSet <CMPair>();
+        this.apkClassesMethods = new HashSet<CMPair>();
         this.allImplementations = new ConcurrentHashMap <CMPair, Set<DalvikImplementation>>();
         this.allDefinitions = new ConcurrentHashMap <CMPair, Map<DalvikClass, DalvikMethod>>();
 
@@ -179,6 +181,9 @@ public class Analysis {
             throw (new RuntimeException("Requested Z3Engine during a FS analysis"));
         }
         return z3engine;
+    }
+    public boolean isDebugging(){
+        return options.debug;
     }
     public int getSize(){
         return options.bitvectorSize;
@@ -298,7 +303,7 @@ public class Analysis {
     private void initializeAllocationMapping(){
         Integer itNumber = 0;
         Integer offset = 0;
-        for (DalvikInstance i : instances){
+        for (DalvikInstance i : instances.getAll()){
             final int instanceNum = i.hashCode();
             final String referenceString = i.getType().getType();
             final Map<Integer, Boolean> fieldsMap = getClassFields(referenceString, instanceNum);
@@ -397,15 +402,18 @@ public class Analysis {
         if (result.isEmpty()) return null;
         return result;
     }
+    
     public Integer getInstNum(final int c, final int m, final int pc){
-        // This is rather inefficient
-        for (final DalvikInstance instance: instances){
+        //TODO: this method no longer return null
+        /*
+        for (final DalvikInstance instance: instances.values()){
             if ((instance.getC() == c) && (instance.getM() == m) && (instance.getPC() == pc)){
                 return instance.hashCode();
             }
         }
-        //throw new RuntimeException("ae");
-        return null;
+        return null;*/
+
+        return DalvikInstance.hashCode(c, m, pc);
     }
     
     private void addToMain(final DalvikClass dc, final int methodIndex, final int numRegCall, final int regCount){
@@ -743,7 +751,7 @@ public class Analysis {
      * Should only be used once
      */
     private void fetchAdditionalInfo(final Set<Integer> stubProcessed){
-        for (DalvikInstance instance : stubs.getInstances()){
+        for (DalvikInstance instance: stubs.getInstances().getAll()){
             if (stubProcessed.contains(instance.getC())){
                 instances.add(instance);
             }
@@ -826,6 +834,18 @@ public class Analysis {
     
     
     public void createHornClauses(){
+        /*
+         * Initialize the set apkClassesMethods, which must be done *before* fetching
+         * the unknown implementations from Java standard library
+         */
+        for (GeneralClass c : classes.values()){
+            if (c instanceof DalvikClass){
+                for (DalvikMethod m :((DalvikClass) c).getMethods()){
+                    apkClassesMethods.add(new CMPair(c.getType().hashCode(),m.getName().hashCode()));
+                }
+            }
+        }
+        
         fetchUnknownMethod();
         
         //TODO: maybe addEntryPointsInstances should be called before fatchUnknownMethod
@@ -838,11 +858,26 @@ public class Analysis {
         // Correctly set the corresponding fields in the FSEngine
         fsengine.initialize(localHeapSize, allocationPointOffset, allocationPointSize);
         
+        //We are just counting the number of instructions and methods
+        int methodNumber = 0;
+        int instructionNumber = 0;
+        for (final GeneralClass c: classes.values()){
+            if ((c instanceof DalvikClass)){
+                for (DalvikMethod m : ((DalvikClass) c).getMethods()){
+                    methodNumber++;
+                    instructionNumber += m.getInstructions().size();
+                }
+            }
+        }
         System.out.println("Ready to start generating Horn Clauses:");
         System.out.println("Number of classes : " + classes.size());
+        System.out.println("Number of methods: " + methodNumber);
+        System.out.println("Number of instructions: "+ instructionNumber);
         System.out.println("Number of instances : " + instances.size());
+
+        
         for (final GeneralClass c: classes.values()){
-            if ((c instanceof DalvikClass) && (!c.getType().contains("Landroid"))){
+            if ((c instanceof DalvikClass)){
                 final DalvikClass dc = (DalvikClass) c;
 
                 final boolean isDisabledActivity = testDisabledActivity(dc);
@@ -931,15 +966,11 @@ public class Analysis {
         }
         for (Map.Entry<DalvikClass, DalvikMethod> entry : definitions.entrySet()){
             final DalvikImplementation di = new DalvikImplementation(entry.getKey(), entry.getValue());
-            for (final DalvikInstance instance: instances){
-                if (entry.getKey().getType().hashCode() == instance.getType().getType().hashCode()){
-                    di.putInstance(instance);
-                    for (final DalvikClass child: entry.getKey().getChildClasses()){
-                        for (final DalvikInstance childInstance: instances){
-                            if (child.getType().hashCode() == childInstance.getType().getType().hashCode()){
-                                di.putInstance(childInstance);
-                            }
-                        }
+            for (DalvikInstance instance : instances.getByType(entry.getKey().getType().hashCode())){
+                di.putInstance(instance);
+                for (final DalvikClass child: entry.getKey().getChildClasses()){
+                    for( DalvikInstance childInstance : instances.getByType(child.getType().hashCode())){
+                        di.putInstance(childInstance);
                     }
                 }
             }
@@ -948,7 +979,7 @@ public class Analysis {
         }
         return implementations;
     }
-    
+
     /*
      * Return the implementation of mi in the super classes of ci only
      * Return null if no implementation was found
@@ -960,17 +991,15 @@ public class Analysis {
             return null;
         }else{
             final DalvikImplementation di = new DalvikImplementation(definition.getKey(), definition.getValue());
-            for (final DalvikInstance instance: instances){
-                if (definition.getKey().getType().hashCode() == instance.getType().getType().hashCode()){
-                    di.putInstance(instance);
-                }
+            for (DalvikInstance instance : instances.getByType(definition.getKey().getType().hashCode())){
+                di.putInstance(instance);
             }
             implementations.add(di);
 
         }
         return implementations;
     }
-    
+
     /*
      * Return the dalvik class and dalvik method implementing mi in ci super classes
      * Return null if this method is not found
@@ -1120,12 +1149,31 @@ public class Analysis {
     
  
 
-    public boolean isSource(final int c, final int m){
+    /*
+     * Return true if c,m is a source, and if className, methodName is a method in the initial apk, and not
+     * a method fetched from Java standard library or Android library
+     */
+    public boolean isSource(String className, String methodName, final int c, final int m){
+        return (refSources.contains(new CMPair(c,m)) 
+                && (apkClassesMethods.contains(new CMPair(className.hashCode(),methodName.hashCode())))
+                && (!className.contains("Landroid"))
+                );
+    }
+    
+    //TODO: used only in processIntent in standard analysis, should probably be removed
+    public boolean isSourceBis(final int c, final int m){
         return refSources.contains(new CMPair(c,m));
     }
 
-    public boolean isSink(final int c, final int m){
-        return refSinks.contains(new CMPair(c,m));
+    /*
+     * Return true if c,m is a sink, and if className, methodName is a method in the initial apk, and not
+     * a method fetched from Java standard library or Android library
+     */
+    public boolean isSink(String className, String methodName, final int c, final int m){
+        return (refSinks.contains(new CMPair(c,m)) 
+                && (apkClassesMethods.contains(new CMPair(className.hashCode(),methodName.hashCode())))
+                && (!className.contains("Landroid")))
+                ;
     }
 
     public void putEntryPoint(int c, int m){
@@ -1139,5 +1187,4 @@ public class Analysis {
     public boolean hasStaticConstructor(int c){
         return staticConstructor.contains(c);
     }
-   
 }

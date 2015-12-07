@@ -119,7 +119,8 @@ public class InstructionAnalysis {
         Map<Integer, BoolExpr> regUpdateL = new HashMap<>();
         Map<Integer, BoolExpr> regUpdateB = new HashMap<>();
         
-        if (options.debug && methodName.contains("onCreate")){
+        
+        if (options.debug){
             BoolExpr h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
             for (int i = 0; i < numRegLoc; i++){
                 BoolExpr h1 = h;
@@ -1211,7 +1212,6 @@ public class InstructionAnalysis {
                 //TODO: should only look for the super implementation. CF What is done is FS analysis
         	case INVOKE_INTERFACE:
         		
-        		
         		modRes = false;
         		if ((referenceIntIndex == "execute(Ljava/lang/Runnable;)V".hashCode()) && (referenceClassIndex == "Ljava/util/concurrent/ExecutorService;".hashCode())){
         			implementations = analysis.getImplementations("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode());
@@ -1243,7 +1243,6 @@ public class InstructionAnalysis {
         			}
     				modRes = true;
     			}
-        		
         		if (!modRes){
     				implementations = analysis.getImplementations(referenceClassIndex, referenceIntIndex);
     				if (implementations == null){
@@ -1256,12 +1255,13 @@ public class InstructionAnalysis {
 
         		isDefined = (implementations != null);
 
+        		
                 FiveRegisterInstruction instr = (FiveRegisterInstruction)this.instruction;
             	if (isDefined){
             		for (final DalvikImplementation di : implementations){
             			numRegCall = di.getMethod().getNumReg();
             			numArgCall = di.getMethod().getNumArg();
-            			if (analysis.isSink(di.getDalvikClass().getType().hashCode(), referenceIntIndex))
+            			if (analysis.isSink(className, methodName,di.getDalvikClass().getType().hashCode(), referenceIntIndex))
                 			addQuery(z3engine, z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                                     className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
         				referenceReg = instr.getRegisterC();
@@ -1310,7 +1310,7 @@ public class InstructionAnalysis {
  
                                 regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
 
-                                returnLabel = analysis.isSource(di.getDalvikClass().getType().hashCode(), referenceIntIndex)
+                                returnLabel = analysis.isSource(className, methodName, di.getDalvikClass().getType().hashCode(), referenceIntIndex)
                                         ? z3engine.mkTrue()
                                         : var.getLrez();
                                 if (callReturns) {
@@ -1328,7 +1328,7 @@ public class InstructionAnalysis {
 
                             regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
 
-                            returnLabel = analysis.isSource(di.getDalvikClass().getType().hashCode(), referenceIntIndex)
+                            returnLabel = analysis.isSource(className, methodName,di.getDalvikClass().getType().hashCode(), referenceIntIndex)
                                     ? z3engine.mkTrue()
                                     : var.getLrez();
                 			if (callReturns) {
@@ -1343,7 +1343,7 @@ public class InstructionAnalysis {
 
             		}
         		} else {
-        			if (analysis.isSink(referenceClassIndex, referenceIntIndex)){
+        			if (analysis.isSink(className, methodName,referenceClassIndex, referenceIntIndex)){
         				addQuery(z3engine, z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                                 className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
         			}
@@ -1353,7 +1353,7 @@ public class InstructionAnalysis {
 
                     BoolExpr subh = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
 
-                    returnLabel = analysis.isSource(referenceClassIndex, referenceIntIndex)
+                    returnLabel = analysis.isSource(className, methodName,referenceClassIndex, referenceIntIndex)
                             ? z3engine.mkTrue()
                             : getLabels();
 
@@ -1468,7 +1468,7 @@ public class InstructionAnalysis {
         			for (final Map.Entry<DalvikClass, DalvikMethod> definition: staticDefinitions.entrySet()){
         				numRegCall = definition.getValue().getNumReg();
         				numArgCall = definition.getValue().getNumArg();
-        				if (analysis.isSink(referenceClassIndex, referenceIntIndex))
+        				if (analysis.isSink(className, methodName,referenceClassIndex, referenceIntIndex))
                 			addQuery(z3engine, z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                                     className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
                 		regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
@@ -1500,7 +1500,7 @@ public class InstructionAnalysis {
 
             			regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
 
-            			returnLabel = analysis.isSource(referenceClassIndex, referenceIntIndex)
+            			returnLabel = analysis.isSource(className, methodName,referenceClassIndex, referenceIntIndex)
                                         ? z3engine.mkTrue()
                                         : var.getLrez();
                         if (callReturns) {
@@ -1512,7 +1512,7 @@ public class InstructionAnalysis {
                         z3engine.addRule(z3engine.implies(h, b), null);
                     }
         		} else {
-        			if (analysis.isSink(referenceClassIndex, referenceIntIndex))
+        			if (analysis.isSink(className, methodName,referenceClassIndex, referenceIntIndex))
             			addQuery(z3engine, z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                                 className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
             		if (processIntent(z3engine, ci, mi, numParLoc, numRegLoc, nextCode, referenceClassIndex, referenceIntIndex, referenceString, size))
@@ -1521,7 +1521,7 @@ public class InstructionAnalysis {
                     BoolExpr subh = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
 
 
-                    returnLabel = analysis.isSource(referenceClassIndex, referenceIntIndex)
+                    returnLabel = analysis.isSource(className, methodName,referenceClassIndex, referenceIntIndex)
                             ? z3engine.mkTrue()
                             : getLabels();
 
@@ -1637,7 +1637,7 @@ public class InstructionAnalysis {
 
             			numRegCall = di.getMethod().getNumReg();
             			numArgCall = di.getMethod().getNumArg();
-            			if (analysis.isSink(di.getDalvikClass().getType().hashCode(), referenceIntIndex))
+            			if (analysis.isSink(className, methodName,di.getDalvikClass().getType().hashCode(), referenceIntIndex))
                 			addQueryRange(z3engine, z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                                     className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
         				referenceReg = instr3.getStartRegister();
@@ -1683,7 +1683,7 @@ public class InstructionAnalysis {
 
                                 regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
 
-                                returnLabel = analysis.isSource(di.getDalvikClass().getType().hashCode(), referenceIntIndex)
+                                returnLabel = analysis.isSource(className, methodName,di.getDalvikClass().getType().hashCode(), referenceIntIndex)
                                         ? z3engine.mkTrue()
                                         : var.getLrez();
 
@@ -1701,7 +1701,7 @@ public class InstructionAnalysis {
 
                             regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
 
-                            returnLabel = analysis.isSource(di.getDalvikClass().getType().hashCode(), referenceIntIndex)
+                            returnLabel = analysis.isSource(className, methodName,di.getDalvikClass().getType().hashCode(), referenceIntIndex)
                                     ? z3engine.mkTrue()
                                     : var.getLrez();
                             if (callReturns) {
@@ -1717,7 +1717,7 @@ public class InstructionAnalysis {
             		}
         		}
         		else{
-        			if (analysis.isSink(referenceClassIndex, referenceIntIndex)){
+        			if (analysis.isSink(className, methodName,referenceClassIndex, referenceIntIndex)){
         				addQueryRange(z3engine, z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                                 className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
         			}
@@ -1727,7 +1727,7 @@ public class InstructionAnalysis {
 
                     BoolExpr subh = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
 
-                    returnLabel = analysis.isSource(referenceClassIndex, referenceIntIndex)
+                    returnLabel = analysis.isSource(className, methodName, referenceClassIndex, referenceIntIndex)
                             ? z3engine.mkTrue()
                             : getLabelsRange();
 
@@ -1799,7 +1799,7 @@ public class InstructionAnalysis {
         			for (final Map.Entry<DalvikClass, DalvikMethod> definition: staticDefinitions.entrySet()){
         				numRegCall = definition.getValue().getNumReg();
         				numArgCall = definition.getValue().getNumArg();
-        				if (analysis.isSink(referenceClassIndex, referenceIntIndex))
+        				if (analysis.isSink(className, methodName,referenceClassIndex, referenceIntIndex))
                 			addQueryRange(z3engine, z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                                     className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
 
@@ -1838,7 +1838,7 @@ public class InstructionAnalysis {
 
                         regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
 
-                        returnLabel = analysis.isSource(referenceClassIndex, referenceIntIndex)
+                        returnLabel = analysis.isSource(className, methodName,referenceClassIndex, referenceIntIndex)
                                 ? z3engine.mkTrue()
                                 : var.getLrez();
 
@@ -1850,7 +1850,7 @@ public class InstructionAnalysis {
                         z3engine.addRule(z3engine.implies(subh, subb), null);
                     }
         		} else {
-        			if (analysis.isSink(referenceClassIndex, referenceIntIndex))
+        			if (analysis.isSink(className, methodName,referenceClassIndex, referenceIntIndex))
             			addQueryRange(z3engine, z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                                 className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
             		if (processIntent(z3engine, ci, mi, numParLoc, numRegLoc, nextCode, referenceClassIndex, referenceIntIndex, referenceString, size))
@@ -1859,7 +1859,7 @@ public class InstructionAnalysis {
 
                     BoolExpr subh = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
 
-                    returnLabel = analysis.isSource(referenceClassIndex, referenceIntIndex)
+                    returnLabel = analysis.isSource(className, methodName,referenceClassIndex, referenceIntIndex)
                             ? z3engine.mkTrue()
                             : getLabelsRange();
 
@@ -3844,7 +3844,7 @@ public class InstructionAnalysis {
                     registerC = ((RegisterRangeInstruction) instruction).getStartRegister();
                 }
 
-               if (analysis.isSource(c, m)){
+               if (analysis.isSourceBis(c, m)){
                    h = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                    regUpdate.put(numRegLoc, var.getVal());
                    regUpdateL.put(numRegLoc, z3engine.mkTrue());
@@ -3864,7 +3864,7 @@ public class InstructionAnalysis {
                    z3engine.addRule(z3engine.implies(h, b), null);
                }
            } else {
-				if (analysis.isSource(c, m)){
+				if (analysis.isSourceBis(c, m)){
                    h = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
 					regUpdate.put(numRegLoc, var.getVal());
 					regUpdateL.put(numRegLoc, z3engine.mkTrue());

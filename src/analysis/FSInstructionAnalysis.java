@@ -3,8 +3,7 @@ package analysis;
 import com.microsoft.z3.BitVecExpr;
 import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Expr;
-//import gen.Clause;
-//import gen.Gen;
+
 
 import debugging.QUERY_TYPE;
 import horndroid.options;
@@ -293,7 +292,6 @@ public class FSInstructionAnalysis{
             b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
             fsengine.addRule(fsengine.implies(h, b), null);
 
-            //System.out.println("Unsupported Intsruction! MOVE_EXCEPTION");
             break;//((short)0x0d, "move-exception", ReferenceType.NONE, Format.Format11x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
 
 
@@ -1362,7 +1360,7 @@ public class FSInstructionAnalysis{
             
             
             else {
-                returnLabel = analysis.isSource(referenceClassIndex, referenceIntIndex) ? fsengine.mkTrue() : getLabels();
+                returnLabel = analysis.isSource(className,methodName,referenceClassIndex, referenceIntIndex) ? fsengine.mkTrue() : getLabels();
                 
                 this.invokeImpNotKnown(returnLabel, ci, mi, false);
             }
@@ -1385,7 +1383,7 @@ public class FSInstructionAnalysis{
                 this.invokeImpKnown(referenceReg, implementations, true);
             }
             else{
-                returnLabel = analysis.isSource(referenceClassIndex, referenceIntIndex) ? fsengine.mkTrue() : getLabelsRange();
+                returnLabel = analysis.isSource(className,methodName,referenceClassIndex, referenceIntIndex) ? fsengine.mkTrue() : getLabelsRange();
                 
                 this.invokeImpNotKnown(returnLabel, ci, mi, true);
             }
@@ -1447,7 +1445,7 @@ public class FSInstructionAnalysis{
             if (isDefined){
                 this.staticInvokeImpKnown(staticDefinitions, false);
             } else {
-                returnLabel = analysis.isSource(referenceClassIndex, referenceIntIndex) ? fsengine.mkTrue() : getLabels();
+                returnLabel = analysis.isSource(className,methodName,referenceClassIndex, referenceIntIndex) ? fsengine.mkTrue() : getLabels();
 
                 this.invokeImpNotKnown(returnLabel, ci, mi, false);    
             }
@@ -1463,7 +1461,7 @@ public class FSInstructionAnalysis{
             if (isDefined){
                 this.staticInvokeImpKnown(staticDefinitions, true);
             } else {
-                    returnLabel = analysis.isSource(referenceClassIndex, referenceIntIndex) ? fsengine.mkTrue() : getLabelsRange();
+                    returnLabel = analysis.isSource(className,methodName,referenceClassIndex, referenceIntIndex) ? fsengine.mkTrue() : getLabelsRange();
                     this.invokeImpNotKnown(returnLabel, ci, mi, true);
             }
             break;//((short)0x74, "invoke-virtual/range", ReferenceType.METHOD, Format.Format3rc, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_RESULT),
@@ -2818,7 +2816,7 @@ public class FSInstructionAnalysis{
         for (final DalvikImplementation di : implementations){
             int numRegCall = di.getMethod().getNumReg();
             int numArgCall = di.getMethod().getNumArg();
-            if (analysis.isSink(di.getDalvikClass().getType().hashCode(), referenceIntIndex)){
+            if (analysis.isSink(className,methodName,di.getDalvikClass().getType().hashCode(), referenceIntIndex)){
                 if (range){
                     addQueryRange(fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
                             className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
@@ -2880,7 +2878,7 @@ public class FSInstructionAnalysis{
 
                 regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
 
-                BoolExpr returnLabel = analysis.isSource(di.getDalvikClass().getType().hashCode(), referenceIntIndex) ? fsengine.mkTrue() : fsvar.getHrez();
+                BoolExpr returnLabel = analysis.isSource(className,methodName,di.getDalvikClass().getType().hashCode(), referenceIntIndex) ? fsengine.mkTrue() : fsvar.getHrez();
 
                 this.liftLi();
 
@@ -2956,7 +2954,7 @@ public class FSInstructionAnalysis{
     private void invokeImpNotKnown(BoolExpr returnLabel, int ci, int mi, Boolean range){
         int size = analysis.getSize();
         
-        if (analysis.isSink(referenceClassIndex, referenceIntIndex)){
+        if (analysis.isSink(className,methodName,referenceClassIndex, referenceIntIndex)){
             if (range){
                 addQueryRange(fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
                         className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
@@ -2977,7 +2975,7 @@ public class FSInstructionAnalysis{
             regUpH.put(numRegLoc, returnLabel);
             regUpL.put(numRegLoc, fsengine.mkFalse());
             regUpG.put(numRegLoc, fsengine.mkTrue());
-        } else {
+        }else{
             if ((returnType.charAt(0) != '[') && (returnType.charAt(returnType.length() -1) == ';' )){
                 instanceNum = analysis.getInstNum(ci, mi, codeAddress);
 
@@ -3038,7 +3036,7 @@ public class FSInstructionAnalysis{
         for (final Map.Entry<DalvikClass, DalvikMethod> definition: staticDefinitions.entrySet()){
             int numRegCall = definition.getValue().getNumReg();
             int numArgCall = definition.getValue().getNumArg();
-            if (analysis.isSink(referenceClassIndex, referenceIntIndex)){
+            if (analysis.isSink(className,methodName,referenceClassIndex, referenceIntIndex)){
                 if (range) {
                     addQuery(fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
                             className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
@@ -3088,7 +3086,7 @@ public class FSInstructionAnalysis{
 
             regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
 
-            BoolExpr returnLabel = analysis.isSource(referenceClassIndex, referenceIntIndex) ? fsengine.mkTrue() : fsvar.getHrez();
+            BoolExpr returnLabel = analysis.isSource(className,methodName,referenceClassIndex, referenceIntIndex) ? fsengine.mkTrue() : fsvar.getHrez();
 
             this.liftLi();
 

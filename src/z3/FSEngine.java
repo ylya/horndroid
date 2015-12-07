@@ -9,7 +9,6 @@ import debugging.MethodeInfo;
 import debugging.RegInfo;
 import horndroid.options;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -615,8 +614,9 @@ public class FSEngine {
         }
     }
 
+    @SuppressWarnings("unused")
     public void addQuery(Z3Query query) {
-        boolean sameAsCurrentQuery = QUERY_IS_COMPACT && mCurrentQuery != null
+        boolean sameAsCurrentQuery = QUERY_IS_COMPACT && (mCurrentQuery != null)
                 && mCurrentQuery.getClassName().equals(query.getClassName())
                 && mCurrentQuery.getMethodName().equals(query.getMethodName())
                 && mCurrentQuery.getPc().equals(query.getPc())
@@ -686,7 +686,7 @@ public class FSEngine {
          
             
             Future<String> future = null;
-            future = executor.submit(new Callable() {
+            future = executor.submit(new Callable<String>() {
 
 
                 public String call() throws Exception {
@@ -729,6 +729,8 @@ public class FSEngine {
                     case GLOBAL:
                         minfo.regInfo[q.regNum].globalPut(Integer.parseInt(q.getPc()),res);
                         break;
+                    default:
+                        throw new RuntimeException("In flow sensitiv mode received a flow sensitive query: " + q.queryType.toString());
                     }
                 }
                 if (q.debugging && q.isLocalHeap){

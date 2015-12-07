@@ -20,7 +20,6 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import analysis.Analysis;
-import z3.Z3Engine;
 
 public class SourceSinkParser {
 	

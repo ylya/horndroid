@@ -51,7 +51,7 @@ import com.google.common.collect.ImmutableList;
 
 public class DataExtraction {
     final private Map<Integer,GeneralClass> classes;
-    final private Set<DalvikInstance> instances;
+    final private Instances instances;
     final private Set<ArrayData> arrayDataPayload;
     final private Set<PackedSwitch> packedSwitchPayload;
     final private Set<SparseSwitch> sparseSwitchPayload;
@@ -69,7 +69,7 @@ public class DataExtraction {
     
 
 
-    public DataExtraction(Map<Integer,GeneralClass> classes, Set<DalvikInstance> instances, Set<ArrayData> arrayDataPayload, 
+    public DataExtraction(Map<Integer,GeneralClass> classes, Instances instances, Set<ArrayData> arrayDataPayload, 
              Set<PackedSwitch> packedSwitchPayload, Set<SparseSwitch> sparseSwitchPayload, 
              Set<Integer> staticConstructor, Set<ConstString> constStrings, Set<SourceSinkMethod> sourcesSinks, Set<Integer> launcherActivities){
         this.classes = classes;
@@ -123,12 +123,7 @@ public class DataExtraction {
                     }
                 }
 
-                for (final DalvikInstance i: instances){
-                    final int type = i.getType().getType().hashCode();
-                    if (cd.getType().hashCode() == type){
-                        i.changeType(cd);
-                    }
-                }
+                instances.changeType(cd);
             }
         }
     }
@@ -449,8 +444,10 @@ public class DataExtraction {
 
             /*
              * The following code appears a few line above unchanged. I guess it is some copy pasting mistake
+             * 
+             */
             if (referenceStringClass != null){
-                final Boolean isSourceSink = isSourceSink(classDefs, referenceStringClass, referenceString, new HashSet <Integer>());
+                final Boolean isSourceSink = isSourceSink(classDefsMap, referenceStringClass, referenceString);
                 if (isSourceSink != null){
                     if (isSourceSink)
                         refSources.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
@@ -462,7 +459,7 @@ public class DataExtraction {
                 }
 
             }
-            */
+            //END
 
             if ((referenceClassIndex == "Landroid/content/Intent;".hashCode())
                     && (referenceIntIndex == "<init>()V".hashCode())){
@@ -542,6 +539,7 @@ public class DataExtraction {
         final int classIndex = className.hashCode();
         final String classNameFormat = className.substring(1, className.length()-1);
         final String methodNameFormat = methodName.substring(0, methodName.indexOf('('));
+        
         //Lookup in sourcesSinks to check if className, methodName appears
         for (SourceSinkMethod sourceSink: sourcesSinks){
             if (classNameFormat.hashCode() == sourceSink.className.hashCode()){     

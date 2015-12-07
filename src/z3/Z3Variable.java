@@ -2,8 +2,6 @@ package z3;
 
 import com.microsoft.z3.*;
 
-import java.util.ArrayList;
-
 /**
  * Created by rtongchenchitt on 10/15/2015.
  */
@@ -139,11 +137,9 @@ public class Z3Variable {
         return cnum;
     }
 
-    // TODO:
-    // cache vs remake
+
     public BitVecExpr getV(int i){
         try {
-//            if (i < 0) return ctx.mkBV(-1*i, bv64);
             return (BitVecExpr) ctx.mkBound(GUARD + 3*i + 0, bv64);
         } catch (Z3Exception e) {
             e.printStackTrace();

@@ -416,6 +416,7 @@ public class Z3Engine  implements Z3Clauses {
         }
     }
 
+    @SuppressWarnings("unused")
     public void addQuery(Z3Query query){
 
 
@@ -489,7 +490,7 @@ public class Z3Engine  implements Z3Clauses {
                 temp.setPredicateRepresentation(func, symbols);
             }
 
-            final Future<String> future = executor.submit(new Callable() {
+            final Future<String> future = executor.submit(new Callable<String>() {
                 @Override
                 public String call() throws Exception {
 
@@ -582,6 +583,7 @@ public class Z3Engine  implements Z3Clauses {
 
     public void declareVar(Sort type){
         try {
+            //TODO: it is not problematic to always do makeBound on the same int?
             Expr var = mContext.mkBound(0, type);
         } catch (Z3Exception e) {
             e.printStackTrace();

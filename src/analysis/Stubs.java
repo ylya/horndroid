@@ -25,7 +25,7 @@ import com.google.common.collect.Ordering;
 
 public class Stubs {
     final private Map<Integer,GeneralClass> classes;
-    final private Set<DalvikInstance> instances;
+    final private Instances instances;
     final private Set<ArrayData> arrayDataPayload;
     final private Set<PackedSwitch> packedSwitchPayload;
     final private Set<SparseSwitch> sparseSwitchPayload;
@@ -36,7 +36,7 @@ public class Stubs {
     public Stubs(options options){
         //TODO: beautiful definitions like the one for classes
         this.classes = new ConcurrentHashMap<Integer, GeneralClass>();
-        this.instances = Collections.synchronizedSet(new HashSet<DalvikInstance>());
+        this.instances = new Instances();
         this.constStrings = Collections.synchronizedSet(new HashSet <ConstString>());
         this.arrayDataPayload = Collections.synchronizedSet(new HashSet <ArrayData>());
         this.packedSwitchPayload = Collections.synchronizedSet(new HashSet <PackedSwitch>());
@@ -69,7 +69,7 @@ public class Stubs {
     }
     
     
-    public Set<DalvikInstance> getInstances(){
+    public Instances getInstances(){
         return instances;
     }
     

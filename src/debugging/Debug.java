@@ -94,51 +94,54 @@ public class Debug {
     
     
     public void printToLatex(){
-        try{
-            final PrintWriter writer = new PrintWriter("./debug.tex", "UTF-8");
-            for (String c : debug.keySet()){
-                for (String m : debug.get(c).keySet()){
-                    final MethodeInfo minfo = debug.get(c).get(m);
-                    this.newcm(writer,c,m);
-                    
-                    tabular(writer,minfo.regInfo[0].highKeySet().size());
-                    int length = minfo.regInfo.length;
-                    writer.print(" $ $");
-                    for (int i : minfo.regInfo[0].globalKeySet()){
-                        writer.print(" & $" + i + "$ ");
-                    }
-                    writer.println("\\\\ \\hline");
-                    
-                    for (int i = 0; i < length - 1;i++){
-                        tripleline(writer,minfo.regInfo[i],"" + i);
-                        writer.print("\n");
-                    }
-                    writer.print("\\end{tabular}\n\n\n");
-                    
-                    tabular(writer,minfo.regInfo[0].highKeySet().size());
-                    writer.print(" $ $");
-                    for (int i : minfo.regInfo[0].globalKeySet()){
-                        writer.print(" & $" + i + "$ ");
-                    }
-                    writer.println("\\\\ \\hline");
-                    
-                    for (final LHKey lhkey : minfo.getLHKeySet()){
-                        final LHInfo lhinfo = minfo.getLHInfo(lhkey.instanceNum, lhkey.field);
-                        tripleline(writer,lhinfo.getRegInfo(),
-                                "\\begin{tabular}{c}\n" + lhinfo.allocatedClass + "\\\\ \n"+ lhinfo.c + "\\\\ \n" + lhinfo.m + " " + lhinfo.pc + " " + lhinfo.field + "\n\\end{tabular}\n"
-                                );
-                        writer.print("\n");
-                    }
-                    writer.print("\\end{tabular}\n\n\\clearpage\n"); 
-                }
-            }
-            writer.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
+        if (analysis.isDebugging()){
+            System.out.println("Printing debugging information in debug.tex file");
+            System.out.println("Just compile wrapper.tex to get the reachabilities tables");
+            try{
+                final PrintWriter writer = new PrintWriter("./debug.tex", "UTF-8");
+                for (String c : debug.keySet()){
+                    for (String m : debug.get(c).keySet()){
+                        final MethodeInfo minfo = debug.get(c).get(m);
+                        this.newcm(writer,c,m);
 
+                        tabular(writer,minfo.regInfo[0].highKeySet().size());
+                        int length = minfo.regInfo.length;
+                        writer.print(" $ $");
+                        for (int i : minfo.regInfo[0].globalKeySet()){
+                            writer.print(" & $" + i + "$ ");
+                        }
+                        writer.println("\\\\ \\hline");
+
+                        for (int i = 0; i < length - 1;i++){
+                            tripleline(writer,minfo.regInfo[i],"" + i);
+                            writer.print("\n");
+                        }
+                        writer.print("\\end{tabular}\n\n\n");
+
+                        tabular(writer,minfo.regInfo[0].highKeySet().size());
+                        writer.print(" $ $");
+                        for (int i : minfo.regInfo[0].globalKeySet()){
+                            writer.print(" & $" + i + "$ ");
+                        }
+                        writer.println("\\\\ \\hline");
+
+                        for (final LHKey lhkey : minfo.getLHKeySet()){
+                            final LHInfo lhinfo = minfo.getLHInfo(lhkey.instanceNum, lhkey.field);
+                            tripleline(writer,lhinfo.getRegInfo(),
+                                    "\\begin{tabular}{c}\n" + lhinfo.allocatedClass + "\\\\ \n"+ lhinfo.c + "\\\\ \n" + lhinfo.m + " " + lhinfo.pc + " " + lhinfo.field + "\n\\end{tabular}\n"
+                                    );
+                            writer.print("\n");
+                        }
+                        writer.print("\\end{tabular}\n\n\\clearpage\n"); 
+                    }
+                }
+                writer.close();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            }
+        }
     }
-    
+
 }
