@@ -617,7 +617,7 @@ public class FSInstructionAnalysis{
                     buildRule();
                     //if the register contains a local heap pointer, lift
                     hh = fsengine.and(h,fsvar.getL(instructionA.getRegisterG()));
-                    this.liftIfLocal(hh,u);// classIndex, methodIndex, nextCode, numParLoc, numRegLoc, analysis, instanceNum, regUpV, regUpH, regUpLHL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF);
+                    this.liftIfLocal(hh,u);
                 case 4:
                     b = fsengine.hPred( fsengine.mkBitVector(referenceIntIndex, size),
                             fsengine.mkBitVector(instanceNum, size),
@@ -628,7 +628,7 @@ public class FSInstructionAnalysis{
                     buildRule();
                     //if the register contains a local heap pointer, lift
                     hh = fsengine.and(h,fsvar.getL(instructionA.getRegisterF()));
-                    this.liftIfLocal(hh,u);// classIndex, methodIndex, nextCode, numParLoc, numRegLoc, analysis, instanceNum, regUpV, regUpH, regUpLHL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF);
+                    this.liftIfLocal(hh,u);
                 case 3:
                     b = fsengine.hPred( fsengine.mkBitVector(referenceIntIndex, size),
                             fsengine.mkBitVector(instanceNum, size),
@@ -639,7 +639,7 @@ public class FSInstructionAnalysis{
                     buildRule();
                     //if the register contains a local heap pointer, lift
                     hh = fsengine.and(h,fsvar.getL(instructionA.getRegisterE()));
-                    this.liftIfLocal(hh,u);// classIndex, methodIndex, nextCode, numParLoc, numRegLoc, analysis, instanceNum, regUpV, regUpH, regUpLHL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF);
+                    this.liftIfLocal(hh,u);
                 case 2:
                     b = fsengine.hPred( fsengine.mkBitVector(referenceIntIndex, size),
                             fsengine.mkBitVector(instanceNum, size),
@@ -650,7 +650,7 @@ public class FSInstructionAnalysis{
                     buildRule();
                     //if the register contains a local heap pointer, lift
                     hh = fsengine.and(h,fsvar.getL(instructionA.getRegisterD()));
-                    this.liftIfLocal(hh,u);// classIndex, methodIndex, nextCode, numParLoc, numRegLoc, analysis, instanceNum, regUpV, regUpH, regUpLHL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF);
+                    this.liftIfLocal(hh,u);
                 case 1:
                     b = fsengine.hPred( fsengine.mkBitVector(referenceIntIndex, size),
                             fsengine.mkBitVector(instanceNum, size),
@@ -661,7 +661,7 @@ public class FSInstructionAnalysis{
                     buildRule();
                     //if the register contains a local heap pointer, lift
                     hh = fsengine.and(h,fsvar.getL(instructionA.getRegisterC()));
-                    this.liftIfLocal(hh,u);//, classIndex, methodIndex, nextCode, numParLoc, numRegLoc, analysis, instanceNum, regUpV, regUpH, regUpLHL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF);
+                    this.liftIfLocal(hh,u);
                 }
             } else {
                 switch(regCount){
@@ -675,7 +675,7 @@ public class FSInstructionAnalysis{
                     buildRule();
                     //if the register contains a local heap pointer, lift
                     hh = fsengine.and(h,fsvar.getL(instructionA.getRegisterG()));
-                    this.liftIfLocal(hh,u);// classIndex, methodIndex, nextCode, numParLoc, numRegLoc, analysis, instanceNum, regUpV, regUpH, regUpLHL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF);
+                    this.liftIfLocal(hh,u);
                 case 4:
                     b = fsengine.hPred( fsengine.mkBitVector(referenceIntIndex, size),
                             fsengine.mkBitVector(instanceNum, size),
@@ -686,7 +686,7 @@ public class FSInstructionAnalysis{
                     buildRule();
                     //if the register contains a local heap pointer, lift
                     hh = fsengine.and(h,fsvar.getL(instructionA.getRegisterF()));
-                    this.liftIfLocal(hh,u);// classIndex, methodIndex, nextCode, numParLoc, numRegLoc, analysis, instanceNum, regUpV, regUpH, regUpLHL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF);
+                    this.liftIfLocal(hh,u);
                 case 3:
                     b = fsengine.hPred( fsengine.mkBitVector(referenceIntIndex, size),
                             fsengine.mkBitVector(instanceNum, size),
@@ -697,7 +697,7 @@ public class FSInstructionAnalysis{
                     buildRule();
                     //if the register contains a local heap pointer, lift
                     hh = fsengine.and(h,fsvar.getL(instructionA.getRegisterE()));
-                    this.liftIfLocal(hh,u);// classIndex, methodIndex, nextCode, numParLoc, numRegLoc, analysis, instanceNum, regUpV, regUpH, regUpLHL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF);
+                    this.liftIfLocal(hh,u);
                 case 2:
                     b = fsengine.hPred( fsengine.mkBitVector(referenceIntIndex, size),
                             fsengine.mkBitVector(instanceNum, size),
@@ -708,7 +708,7 @@ public class FSInstructionAnalysis{
                     buildRule();
                     //if the register contains a local heap pointer, lift
                     hh = fsengine.and(h,fsvar.getL(instructionA.getRegisterD()));
-                    this.liftIfLocal(hh,u);// classIndex, methodIndex, nextCode, numParLoc, numRegLoc, analysis, instanceNum, regUpV, regUpH, regUpLHL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF);
+                    this.liftIfLocal(hh,u);
                 case 1:
                     b = fsengine.hPred( fsengine.mkBitVector(referenceIntIndex, size),
                             fsengine.mkBitVector(instanceNum, size),
@@ -719,7 +719,7 @@ public class FSInstructionAnalysis{
                     buildRule();
                     //if the register contains a local heap pointer, lift
                     hh = fsengine.and(h,fsvar.getL(instructionA.getRegisterC()));
-                    this.liftIfLocal(hh,u);// classIndex, methodIndex, nextCode, numParLoc, numRegLoc, analysis, instanceNum, regUpV, regUpH, regUpLHL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF);
+                    this.liftIfLocal(hh,u);
                 }
             }
             break;//((short)0x24, "filled-new-array", ReferenceType.TYPE, Format.Format35c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_RESULT),
@@ -755,7 +755,7 @@ public class FSInstructionAnalysis{
                 buildRule();
                 //if the register contains a local heap pointer, lift
                 hh = fsengine.and(h,fsvar.getL(reg));
-                this.liftIfLocal(hh,u);// classIndex, methodIndex, nextCode, numParLoc, numRegLoc, analysis, instanceNum, regUpV, regUpH, regUpLHL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF);
+                this.liftIfLocal(hh,u);
                 if (analysis.optionArrays()) cr++;
             }
             break;//((short)0x25, "filled-new-array/range", ReferenceType.TYPE, Format.Format3rc, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_RESULT),
