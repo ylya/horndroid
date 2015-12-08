@@ -4,7 +4,6 @@ package analysis;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,8 +42,6 @@ import payload.ArrayData;
 import payload.PackedSwitch;
 import payload.SparseSwitch;
 import strings.ConstString;
-import util.CMPair;
-import util.SourceSinkMethod;
 import util.Utils;
 
 import com.google.common.collect.ImmutableList;
@@ -58,20 +55,16 @@ public class DataExtraction {
     final private Set<Integer> staticConstructor;
     final private Set<ConstString> constStrings;
     
-    private final Set<CMPair> refSources;
-    private final Set<CMPair> refSinks;
-    private final Set<CMPair> refNull;
     
     private final Set<Integer> launcherActivities;
     
-    final private Set<SourceSinkMethod> sourcesSinks;
 
     
 
 
     public DataExtraction(Map<Integer,GeneralClass> classes, Instances instances, Set<ArrayData> arrayDataPayload, 
              Set<PackedSwitch> packedSwitchPayload, Set<SparseSwitch> sparseSwitchPayload, 
-             Set<Integer> staticConstructor, Set<ConstString> constStrings, Set<SourceSinkMethod> sourcesSinks, Set<Integer> launcherActivities){
+             Set<Integer> staticConstructor, Set<ConstString> constStrings, Set<Integer> launcherActivities){
         this.classes = classes;
         this.instances = instances;
         this.arrayDataPayload = arrayDataPayload;
@@ -80,22 +73,7 @@ public class DataExtraction {
         this.staticConstructor = staticConstructor;
         this.constStrings = constStrings;
         
-        refSources = new HashSet<CMPair>();
-        refSinks = new HashSet<CMPair>();
-        refNull = new HashSet<CMPair>();
-        
-        this.sourcesSinks = sourcesSinks;
         this.launcherActivities = launcherActivities;
-    }
-    
-    public Set<CMPair> getRefNull(){
-        return refNull;
-    }
-    public Set<CMPair> getRefSources(){
-        return refSources;
-    }
-    public Set<CMPair> getRefSinks(){
-        return refSinks;
     }
     
     private void formClassStructure(){
@@ -406,7 +384,6 @@ public class DataExtraction {
                 }
             }
 
-            //REMOVED
             if  ("startActivity(Landroid/content/Intent;)V".hashCode() == referenceIntIndex){
                 FiveRegisterInstruction instruction1 = (FiveRegisterInstruction)instruction;
                 for (final ConstString constString: constStrings){
@@ -415,21 +392,6 @@ public class DataExtraction {
                     }
                 }
             }
-
-            if (referenceStringClass != null){
-                final Boolean isSourceSink = isSourceSink(classDefsMap, referenceStringClass, referenceString);
-                if (isSourceSink != null){
-                    if (isSourceSink)
-                        refSources.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
-                    else
-                        refSinks.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
-                }
-                else{
-                    refNull.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
-                }
-
-            }
-            //ENDREMOVED
 
             
             if ((referenceClassIndex == "Landroid/content/Intent;".hashCode())
@@ -442,24 +404,6 @@ public class DataExtraction {
                 instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass("Landroid/content/Intent;"), true));
             }
 
-            /*
-             * The following code appears a few line above unchanged. I guess it is some copy pasting mistake
-             * 
-             */
-            if (referenceStringClass != null){
-                final Boolean isSourceSink = isSourceSink(classDefsMap, referenceStringClass, referenceString);
-                if (isSourceSink != null){
-                    if (isSourceSink)
-                        refSources.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
-                    else
-                        refSinks.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
-                }
-                else{
-                    refNull.add(new CMPair(referenceStringClass.hashCode(), referenceString.hashCode()));
-                }
-
-            }
-            //END
 
             if ((referenceClassIndex == "Landroid/content/Intent;".hashCode())
                     && (referenceIntIndex == "<init>()V".hashCode())){
@@ -518,63 +462,4 @@ public class DataExtraction {
         staticConstructor.add(c);
     }
     
-    /*
-     * Return true if classNameBis, methodName is a source, false if it is a sink and null otherwise
-     * Where classNameBis is either className of or super class of className
-     * 
-     */
-    private Boolean isSourceSink(final Map<Integer,ClassDef> classDefsMap, final String className, final String methodName){
-        if (refSources.contains(new CMPair(className.hashCode(), methodName.hashCode()))){
-            return true;
-        }
-
-        if (refSinks.contains(new CMPair(className.hashCode(), methodName.hashCode()))){
-            return false;
-        }
-
-        if (refNull.contains(new CMPair(className.hashCode(), methodName.hashCode()))){
-            return null;
-        }
-
-        final int classIndex = className.hashCode();
-        final String classNameFormat = className.substring(1, className.length()-1);
-        final String methodNameFormat = methodName.substring(0, methodName.indexOf('('));
-        
-        //Lookup in sourcesSinks to check if className, methodName appears
-        for (SourceSinkMethod sourceSink: sourcesSinks){
-            if (classNameFormat.hashCode() == sourceSink.className.hashCode()){     
-                if (methodNameFormat.hashCode() == sourceSink.name.hashCode()){
-                    if (sourceSink.source)
-                        return true;
-                    else
-                        return false;
-                }
-            }   
-        }
-        
-        if (classDefsMap.containsKey(classIndex)){
-            ClassDef classDef = classDefsMap.get(classIndex);
-            for (final String interfaceName: classDef.getInterfaces()){
-                final String interfaceNameFormat = interfaceName.substring(1, interfaceName.length()-1);
-                for (SourceSinkMethod sourceSink: sourcesSinks){
-                    if (interfaceNameFormat.hashCode() == sourceSink.className.hashCode()){     
-                        if (methodNameFormat.hashCode() == sourceSink.name.hashCode()){
-                            if (sourceSink.source)
-                                return true;
-                            else
-                                return false;
-                        }
-                    }   
-                }
-            }
-        }
-
-        if (classDefsMap.containsKey(classIndex)){
-            ClassDef classDef = classDefsMap.get(classIndex);
-            if (classDef.getSuperclass()!= null){
-                return isSourceSink(classDefsMap, classDef.getSuperclass(), methodName);
-            }
-        }
-        return null;
-    }
 }

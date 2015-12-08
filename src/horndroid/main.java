@@ -34,8 +34,8 @@ import com.google.common.collect.Ordering;
 
 import analysis.Analysis;
 import analysis.Stubs;
-import util.SourceSinkMethod;
 import util.SourceSinkParser;
+import util.SourcesSinks;
 import z3.FSEngine;
 import z3.Z3Engine;
 
@@ -75,7 +75,7 @@ public class main {
 
         
         //add all known sources and sinks
-        final Set<SourceSinkMethod> sourcesSinks = Collections.synchronizedSet(new HashSet<SourceSinkMethod>());
+        final SourcesSinks sourcesSinks = new SourcesSinks();
         File sourceSinkFile = new File("SourcesAndSinksDroidSafe.txt");
         long startTime = System.nanoTime();
         System.out.print("Parsing sources and sinks...");

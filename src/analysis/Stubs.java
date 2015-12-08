@@ -19,7 +19,6 @@ import payload.ArrayData;
 import payload.PackedSwitch;
 import payload.SparseSwitch;
 import strings.ConstString;
-import util.SourceSinkMethod;
 
 import com.google.common.collect.Ordering;
 
@@ -61,7 +60,7 @@ public class Stubs {
             System.exit(1);
         }
         List<? extends ClassDef> classDefs = Ordering.natural().sortedCopy(dexFile.getClasses());
-        DataExtraction de = new DataExtraction(classes, instances, arrayDataPayload, packedSwitchPayload, sparseSwitchPayload, staticConstructor, constStrings, new HashSet<SourceSinkMethod>(), new HashSet<Integer>());
+        DataExtraction de = new DataExtraction(classes, instances, arrayDataPayload, packedSwitchPayload, sparseSwitchPayload, staticConstructor, constStrings, new HashSet<Integer>());
         de.collectDataFromStandard(classDefs);
     }
     public Map<Integer,GeneralClass> getClasses() {

@@ -23,7 +23,7 @@ import analysis.Analysis;
 
 public class SourceSinkParser {
 	
-	public static void parseSourceSink(File sourceSinkFile, final Set<SourceSinkMethod> sourcesSinks) throws IOException{
+	public static void parseSourceSink(File sourceSinkFile, final SourcesSinks sourcesSinks) throws IOException{
 		try (BufferedReader br = new BufferedReader(new FileReader(sourceSinkFile))) {
 		    String line;
 		    String[] parts = null, parts2 = null;
@@ -37,9 +37,9 @@ public class SourceSinkParser {
 		    	methodName = parts2[1].split(" ")[1];
 		    	
 		    	if (parts[1].charAt(0) == 'O')
-		    		sourcesSinks.add(new SourceSinkMethod(methodName.substring(0, methodName.indexOf('(')), className.replaceAll("\\.", "/"), true));
+		    		sourcesSinks.put(className.replaceAll("\\.", "/"),methodName.substring(0, methodName.indexOf('(')), true);
 		    	else
-		    		sourcesSinks.add(new SourceSinkMethod(methodName.substring(0, methodName.indexOf('(')), className.replaceAll("\\.", "/"), false));
+		    		sourcesSinks.put(className.replaceAll("\\.", "/"),methodName.substring(0, methodName.indexOf('(')), false);
 		    }
 		}
 	}
@@ -66,7 +66,6 @@ public class SourceSinkParser {
 		 System.out.println("Running apktool to obtain manifest xml and layout files");
 	     Runtime runtime = Runtime.getRuntime();
 		 Process proc = runtime.exec(new String[]{"/bin/sh", "-c", "java -jar " + apktoolFolder + "apktool.jar d " + apkFileName + " -s -f -o " + outputDirectory + "/apktool"});
-//        Process proc = runtime.exec("java -jar C:\\Users\\rtongchenchitt\\Desktop\\hiwi\\horndroid-new-copy\\lib\\apktool.jar d " + apkFileName + " -s -f -o " + outputDirectory + File.separator + "apktool");
 
         BufferedReader stdInput = new BufferedReader(new
 	     InputStreamReader(proc.getInputStream()));

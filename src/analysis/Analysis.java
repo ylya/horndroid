@@ -56,7 +56,7 @@ public class Analysis {
     final private Set<PackedSwitch> packedSwitchPayload;
     final private Set<SparseSwitch> sparseSwitchPayload;
     final private Set<Integer> overapprox;
-    final private Set<SourceSinkMethod> sourcesSinks;
+    final private SourcesSinks sourcesSinks;
     final private options options;
     final private Z3Engine z3engine;
     final private FSEngine fsengine;
@@ -89,7 +89,7 @@ public class Analysis {
     private HashSet<CMPair> apkClassesMethods;
     
     public Analysis(final Z3Engine z3engine,final FSEngine fsengine, 
-            final Set<SourceSinkMethod> sourcesSinks, final options options, final ExecutorService instructionExecutorService,
+            final SourcesSinks sourcesSinks, final options options, final ExecutorService instructionExecutorService,
             final Stubs stubs){
         this.classes = new ConcurrentHashMap<Integer,GeneralClass>();
         this.instances = new Instances();
@@ -133,14 +133,15 @@ public class Analysis {
         this.overapprox.add("Landroid/support/v4/app/ListFragment;".hashCode());
         this.overapprox.add("Landroid/os/Handler;".hashCode());
         
-        this.callbacks.add("onCreate");
+        /*
+        this.callbacks.add("onCreate"); 
         this.callbacks.add("onDestroy");
         this.callbacks.add("onStart");
         this.callbacks.add("onPause");
         this.callbacks.add("onStop");
         this.callbacks.add("onRestart");
         this.callbacks.add("onResume");
-
+        */
         
         this.methodIsEntryPoint = new HashSet<CMPair>();
         this.staticConstructor = new HashSet<Integer>();
@@ -214,10 +215,8 @@ public class Analysis {
         return allocationPointOffset.keySet();
     }
     public void collectDataFromApk( List<? extends ClassDef> classDefs){
-        DataExtraction de = new DataExtraction(classes, instances, arrayDataPayload, packedSwitchPayload, sparseSwitchPayload, staticConstructor, constStrings, sourcesSinks, launcherActivities);
+        DataExtraction de = new DataExtraction(classes, instances, arrayDataPayload, packedSwitchPayload, sparseSwitchPayload, staticConstructor, constStrings, launcherActivities);
         de.collectDataFromStandard(classDefs);
-        refSinks = de.getRefSinks();
-        refSources = de.getRefSources();
         
     }
     
@@ -788,7 +787,6 @@ public class Analysis {
      * Fetch the classes from standard java and android for all unknown classes
      */
     private void fetchUnknownMethod(){
-        //TODO: remove the useless toProcess pool and use only a recursive function
         LinkedList<GeneralClass> toProcess = new LinkedList<GeneralClass>();
         Set<GeneralClass> processed = new HashSet<GeneralClass>();
         Set<Integer> stubProcessed = new HashSet<Integer>();
@@ -834,6 +832,7 @@ public class Analysis {
     
     
     public void createHornClauses(){
+
         /*
          * Initialize the set apkClassesMethods, which must be done *before* fetching
          * the unknown implementations from Java standard library
@@ -846,19 +845,21 @@ public class Analysis {
             }
         }
         
+        //Get the unknown classes from Java standard and Android libraries
         fetchUnknownMethod();
         
-        //TODO: maybe addEntryPointsInstances should be called before fatchUnknownMethod
         addEntryPointsInstances();
-                
         addStaticFieldsValues();
+        
+        //Populate refSources and refSinks with sources and sinks
+        setSourceSink();
         
         // Initialize allocationPointOffset,allocationPointNumbers and allocationPointSize
         initializeAllocationMapping();
         // Correctly set the corresponding fields in the FSEngine
         fsengine.initialize(localHeapSize, allocationPointOffset, allocationPointSize);
         
-        //We are just counting the number of instructions and methods
+        //Counting the number of instructions and methods
         int methodNumber = 0;
         int instructionNumber = 0;
         for (final GeneralClass c: classes.values()){
@@ -869,6 +870,7 @@ public class Analysis {
                 }
             }
         }
+        
         System.out.println("Ready to start generating Horn Clauses:");
         System.out.println("Number of classes : " + classes.size());
         System.out.println("Number of methods: " + methodNumber);
@@ -1187,4 +1189,74 @@ public class Analysis {
     public boolean hasStaticConstructor(int c){
         return staticConstructor.contains(c);
     }
+    
+
+    /*
+     * Return true if classNameBis, methodName is a source, false if it is a sink and null otherwise
+     * Where classNameBis is either className of or super class of className
+     * 
+     */
+    private Boolean isSourceSink(final String className, final String methodName){
+        if (refSources.contains(new CMPair(className.hashCode(), methodName.hashCode()))){
+            return true;
+        }
+
+        if (refSinks.contains(new CMPair(className.hashCode(), methodName.hashCode()))){
+            return false;
+        }
+
+
+        final int classIndex = className.hashCode();
+        final String classNameFormat = className.substring(1, className.length()-1);
+        final String methodNameFormat = methodName.substring(0, methodName.indexOf('('));
+        
+        //Lookup in sourcesSinks to check if className, methodName appears
+        Boolean bool = sourcesSinks.isSourceSink(classNameFormat, methodNameFormat);
+        if (bool != null){
+            return bool;
+        }
+
+        if (classes.containsKey(classIndex)){
+            GeneralClass classDef = classes.get(classIndex);
+            if (classDef instanceof DalvikClass){
+                DalvikClass cd = (DalvikClass) classDef;
+                for (GeneralClass interfaceClass: cd.getInterfaces()){
+                    final String interfaceNameFormat = interfaceClass.getType().substring(1, interfaceClass.getType().length()-1);
+                    
+                    Boolean boolInterface = sourcesSinks.isSourceSink(interfaceNameFormat, methodNameFormat);
+                    if (boolInterface != null){
+                        return bool;
+                    }
+                }
+
+                if (cd.getSuperClass() != null){
+                    return isSourceSink(cd.getSuperClass().getType(), methodName);
+                }
+            }
+        }
+        return null;
+    }
+
+    /*
+     * Populate the sets refSources and refSinks with sources and sinks
+     * Should be called only once
+     */
+    private void setSourceSink() {
+        for (GeneralClass generalC : classes.values()){
+            if (generalC instanceof DalvikClass){
+                DalvikClass dc = (DalvikClass) generalC;
+                for (DalvikMethod dm : dc.getMethods()){
+                    Boolean isSourceSink = isSourceSink(dc.getType(), dm.getName());
+                    if (isSourceSink != null){
+                        if (isSourceSink){
+                            refSources.add(new CMPair(dc.getType().hashCode(), dm.getName().hashCode()));
+                        }else{
+                            refSinks.add(new CMPair(dc.getType().hashCode(), dm.getName().hashCode()));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 }

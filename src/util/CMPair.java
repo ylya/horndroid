@@ -19,8 +19,7 @@ public class CMPair {
 	}
 	@Override
 	public int hashCode() {
-        return new HashCodeBuilder(17, 31). // two randomly chosen prime numbers
-            // if deriving: appendSuper(super.hashCode()).
+        return new HashCodeBuilder(17, 31).
             append(c).
             append(m).
             toHashCode();
@@ -34,7 +33,6 @@ public class CMPair {
 
         CMPair p = (CMPair) obj;
         return new EqualsBuilder().
-            // if deriving: appendSuper(super.equals(obj)).
             append(c, p.c).
             append(m, p.m).
             isEquals();
