@@ -1,4 +1,4 @@
-package analysis;
+package Dalvik;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -11,7 +11,8 @@ public class DalvikClass extends GeneralClass {
 	private Set<GeneralClass> interfaces;
 	private Set<DalvikField> fields;
 	private Set<DalvikMethod> methods;
-	DalvikClass(final String name){
+	
+	public DalvikClass(final String name){
 		super(name);
 		childClasses = Collections.synchronizedSet(new HashSet<DalvikClass>());
 	}

@@ -22,6 +22,9 @@ import strings.ConstString;
 
 import com.google.common.collect.Ordering;
 
+import Dalvik.GeneralClass;
+import Dalvik.Instances;
+
 public class Stubs {
     final private Map<Integer,GeneralClass> classes;
     final private Instances instances;

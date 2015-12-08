@@ -1,9 +1,10 @@
-package analysis;
+package Dalvik;
 
 public class DalvikInstance {
 	final private int c, m, pc;
 	private GeneralClass type;
 	final boolean isObj;
+	
 	public DalvikInstance(final int c, final int m , final int pc, final GeneralClass type, final boolean isObj){
 		this.c = c;
 		this.m = m;

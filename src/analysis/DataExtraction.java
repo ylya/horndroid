@@ -46,6 +46,14 @@ import util.Utils;
 
 import com.google.common.collect.ImmutableList;
 
+import Dalvik.DalvikClass;
+import Dalvik.DalvikField;
+import Dalvik.DalvikInstance;
+import Dalvik.DalvikMethod;
+import Dalvik.DalvikStaticField;
+import Dalvik.GeneralClass;
+import Dalvik.Instances;
+
 public class DataExtraction {
     final private Map<Integer,GeneralClass> classes;
     final private Instances instances;

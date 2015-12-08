@@ -7,8 +7,8 @@ import java.util.HashMap;
 
 import org.jf.dexlib2.iface.instruction.Instruction;
 
+import Dalvik.DalvikMethod;
 import analysis.Analysis;
-import analysis.DalvikMethod;
 
 public class Debug {
     private Analysis analysis;

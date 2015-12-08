@@ -1,4 +1,4 @@
-package analysis;
+package Dalvik;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -8,6 +8,7 @@ public class DalvikImplementation {
 	final private DalvikClass dc;
 	final private DalvikMethod dm;
 	final private Set<DalvikInstance> di;
+	
 	public DalvikImplementation(final DalvikClass dc, final DalvikMethod dm){
 		this.dc = dc;
 		this.dm = dm;

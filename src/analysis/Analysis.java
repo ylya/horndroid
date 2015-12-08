@@ -3,6 +3,14 @@ package analysis;
 import com.microsoft.z3.BitVecExpr;
 import com.microsoft.z3.BoolExpr;
 
+import Dalvik.DalvikClass;
+import Dalvik.DalvikField;
+import Dalvik.DalvikImplementation;
+import Dalvik.DalvikInstance;
+import Dalvik.DalvikMethod;
+import Dalvik.DalvikStaticField;
+import Dalvik.GeneralClass;
+import Dalvik.Instances;
 import horndroid.options;
 
 import java.util.AbstractMap;
@@ -403,15 +411,6 @@ public class Analysis {
     }
     
     public Integer getInstNum(final int c, final int m, final int pc){
-        //TODO: this method no longer return null
-        /*
-        for (final DalvikInstance instance: instances.values()){
-            if ((instance.getC() == c) && (instance.getM() == m) && (instance.getPC() == pc)){
-                return instance.hashCode();
-            }
-        }
-        return null;*/
-
         return DalvikInstance.hashCode(c, m, pc);
     }
     

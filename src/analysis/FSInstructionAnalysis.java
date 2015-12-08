@@ -4,7 +4,10 @@ import com.microsoft.z3.BitVecExpr;
 import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Expr;
 
-
+import Dalvik.DalvikClass;
+import Dalvik.DalvikImplementation;
+import Dalvik.DalvikInstance;
+import Dalvik.DalvikMethod;
 import debugging.QUERY_TYPE;
 import horndroid.options;
 

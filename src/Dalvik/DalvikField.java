@@ -1,8 +1,9 @@
-package analysis;
+package Dalvik;
 
 public class DalvikField implements Comparable<DalvikField>{
 	final private String name;
-	DalvikField(final String name){
+	
+	public DalvikField(final String name){
 		this.name = name;
 	}
 	public String getName(){

@@ -1,4 +1,4 @@
-package analysis;
+package Dalvik;
 
 import org.jf.dexlib2.iface.instruction.Instruction;
 
@@ -11,7 +11,8 @@ public class DalvikMethod {
 	final private String returnType;
 	final private boolean isVoid;
 	final private ImmutableList<Instruction> instructions;
-	DalvikMethod(final String name, final int numArg, final int numReg, final String returnType, final boolean isVoid, final ImmutableList<Instruction> instructions){
+	
+	public DalvikMethod(final String name, final int numArg, final int numReg, final String returnType, final boolean isVoid, final ImmutableList<Instruction> instructions){
 		this.name = name;
 		this.numArg = numArg;
 		this.numReg = numReg;
