@@ -1,75 +1,545 @@
 package z3;
 
 import com.microsoft.z3.*;
+import analysis.Analysis;
+import java.util.ArrayList;
 
-import java.util.Map;
+public abstract class Z3Clauses {
+    final protected boolean QUERY_IS_COMPACT = false;
 
-/**
- * Created by rtongchenchitt on 10/15/2015.
- */
-public interface Z3Clauses {
+    protected Context mContext;
+    protected ArrayList<BoolExpr> mRules;
+    protected ArrayList<FuncDecl> mFuncs;
 
+    protected ArrayList<Z3Query> mQueries;
+    protected Z3Query mCurrentQuery;
+
+    protected int bvSize;
+   
     /*
-     *  Expression from Context
+     * Abstract methods
      */
-    public BoolExpr mkTrue();
-    public BoolExpr mkFalse();
-    public BoolExpr mkBool(boolean b);
-    public BitVecExpr mkBitVector(String data, int len);
-    public BitVecExpr mkBitVector(int data, int len);
-    public BitVecExpr mkBitVector(long data, int len);
-    public IntExpr mkInt(String data);
-    public IntExpr mkInt(int data);
+    abstract void addQuery(Z3Query query);
+    
+    abstract void addQueryDebug(Z3Query query);
 
-    public BoolExpr and(BoolExpr... b);
-    public BoolExpr or(BoolExpr... b);
-    public BoolExpr not(BoolExpr b);
-    public BoolExpr eq(BoolExpr b1, BoolExpr b2);
-    public BoolExpr eq(BitVecExpr bv1, BitVecExpr bv2);
-    public Expr ite(BoolExpr b, Expr e1, Expr e2);
-    public BoolExpr implies(BoolExpr b1, BoolExpr b2);
-    public BoolExpr bvugt(BitVecExpr bv1, BitVecExpr bv2);
-    public BoolExpr bvuge(BitVecExpr bv1, BitVecExpr bv2);
-    public BoolExpr bvule(BitVecExpr bv1, BitVecExpr bv2);
-    public BoolExpr bvult(BitVecExpr bv1, BitVecExpr bv2);
-    public BitVecExpr bvneg(BitVecExpr bv);
-    public BitVecExpr bvnot(BitVecExpr bv);
-    public BitVecExpr bvadd(BitVecExpr bv1, BitVecExpr bv2);
-    public BitVecExpr bvmul(BitVecExpr bv1, BitVecExpr bv2);
-    public BitVecExpr bvudiv(BitVecExpr bv1, BitVecExpr bv2);
-    public BitVecExpr bvurem(BitVecExpr bv1, BitVecExpr bv2);
-    public BitVecExpr bvshl(BitVecExpr bv1, BitVecExpr bv2);
-    public BitVecExpr bvlshr(BitVecExpr bv1, BitVecExpr bv2);
-    public BitVecExpr bvashr(BitVecExpr bv1, BitVecExpr bv2);
-    public BitVecExpr bvsub(BitVecExpr bv1, BitVecExpr bv2);
-    public BitVecExpr bvxor(BitVecExpr bv1, BitVecExpr bv2);
-    public BitVecExpr bvor(BitVecExpr bv1, BitVecExpr bv2);
-    public BitVecExpr bvand(BitVecExpr bv1, BitVecExpr bv2);
-
-
+    abstract void executeAllQueries(Analysis analysis);
+    
+    
     /*
-     *  Custom Predicate
+     * Methods
      */
-    public BoolExpr rPred(String c, String m, int pc, Map<Integer, BitVecExpr> rUp, Map<Integer, BoolExpr> rUpL, Map<Integer, BoolExpr> rUpB, int numArg, int numReg);
-    public BoolExpr rInvokePred(String c, String m, int pc, Map<Integer, BitVecExpr> rUp, Map<Integer, BoolExpr> rUpL, Map<Integer, BoolExpr> rUpB, int numArg, int numReg, int size);
-    //    public void rPredDef(String c, String m, int pc, int size);
+    public void declareRel(FuncDecl funcDecl) {
+        try {
+            mFuncs.add(funcDecl);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: declareRel");
+        }
+    }
 
-    public BoolExpr resPred(String c, String m, Map<Integer, BitVecExpr> rUp, Map<Integer, BoolExpr> rUpL, Map<Integer, BoolExpr> rUpB, int numArg);
-    //    public void resPredDef(String c, String m, int size);
+    public void declareRel(String name, Sort[] domain, Sort range) {
+        try {
+            FuncDecl f = mContext.mkFuncDecl(name, domain, range);
+            this.declareRel(f);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: declareRel");
+        }
+    }
+    
+    public Context getContext(){ return mContext; }
+    
+    public void addRule(BoolExpr rule, String symbol){
+        try {
+            mRules.add(rule);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Z3Engine Failed: addRule");
+        }
+    }
 
-    public BoolExpr hPred(BitVecExpr cname, BitVecExpr inst, BitVecExpr element, BitVecExpr value, BoolExpr label, BoolExpr block);
-    public BoolExpr hiPred(BitVecExpr cname, BitVecExpr inst, BitVecExpr value, BoolExpr label, BoolExpr block);
-    public BoolExpr iPred(BitVecExpr cname, BitVecExpr inst, BitVecExpr value, BoolExpr label, BoolExpr block);
-    public BoolExpr sPred(IntExpr v1, IntExpr v2, BitVecExpr v3, BoolExpr v4, BoolExpr v5);
 
-    /*
-     *  Fixed-point
-     */
-    public void declareRel(FuncDecl function);
-    public void declareRel(String name, Sort[] domain, Sort range);
-    public void declareVar(Sort type);
+    public BoolExpr mkTrue() {
+        try {
+            return mContext.mkBool(true);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Z3Engine Failed: true");
+        }
+    }
+
+    public BoolExpr mkFalse() {
+        try {
+            return mContext.mkBool(false);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Z3Engine Failed: false");
+        }
+    }
+
+    public BoolExpr mkBool(boolean b) {
+        try {
+            return mContext.mkBool(b);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Z3Engine Failed: mkBool");
+        }
+    }
+
+    public BitVecExpr mkBitVector(String data, int len) {
+        try {
+            return mContext.mkBV(data, len);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Z3Engine Failed: mkBitVector String");
+        }
+    }
+
+    public BitVecExpr mkBitVector(int data, int len) {
+        try {
+            return mContext.mkBV(data, len);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Z3Engine Failed: mkBitVector int");
+        }
+    }
+
+    public BitVecExpr mkBitVector(long data, int len) {
+        try {
+            return mContext.mkBV(data, len);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Z3Engine Failed: mkBitVector long");
+        }
+    }
+
+    public IntExpr mkInt(String data) {
+        try {
+            return mContext.mkInt(data);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Z3Engine Failed: mkInt");
+        }
+    }
+
+    public IntExpr mkInt(int data) {
+        try {
+            return mContext.mkInt(data);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Z3Engine Failed: mkInt");
+        }
+    }
+
+    public BoolExpr and(BoolExpr... b) {
+        try {
+            return mContext.mkAnd(b);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Z3Engine Failed: and");
+        }
+    }
+
+    public BoolExpr or(BoolExpr... b) {
+        try {
+            return mContext.mkOr(b);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Z3Engine Failed: or");
+        }
+    }
+
+    public BoolExpr not(BoolExpr b) {
+        try {
+            return mContext.mkNot(b);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Z3Engine Failed: not");
+        }
+    }
+
+    public BoolExpr eq(BoolExpr b1, BoolExpr b2) {
+        try {
+            return mContext.mkEq(b1, b2);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Z3Engine Failed: eq");
+        }
+    }
+
+    public BoolExpr eq(BitVecExpr bv1, BitVecExpr bv2) {
+        try {
+            return mContext.mkEq(bv1, bv2);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Z3Engine Failed: eq");
+        }
+    }
+
+    public Expr ite(BoolExpr b, Expr e1, Expr e2) {
+        try {
+            return mContext.mkITE(b, e1, e2);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Z3Engine Failed: ite");
+        }
+    }
 
 
+    public BitVecExpr bvneg(BitVecExpr bv, Type type) {
+        try {
+            switch(type){
+            case FLOAT:
+                return floatToIEEEBV(mContext.mkFPNeg(toFloat(bv)));
+            case DOUBLE:
+                return doubleToIEEEBV(mContext.mkFPNeg(toDouble(bv)));
+            case INT:
+                return toLong(mContext.mkBVNeg(toInt(bv)));
+            case LONG:
+                return mContext.mkBVNeg(bv);
+            }
+            return mContext.mkBVNeg(bv);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: bvneg");
+        }
+    }
+
+    public BitVecExpr bvnot(BitVecExpr bv, Type type) {
+        try {
+            switch(type){
+            case INT:
+                return toLong(mContext.mkBVNot(toInt(bv)));
+            case LONG:
+                return mContext.mkBVNot(bv);
+            default:
+                throw new RuntimeException("BVNOT on wrong type");                    
+            }
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: bvnot");
+        }
+    }
+
+    private FPRMExpr rM(){
+        return mContext.mkFPRoundNearestTiesToEven();
+    }
+    
+    public BitVecExpr bvadd(BitVecExpr bv1, BitVecExpr bv2, Type type) {
+        try {
+            switch(type){
+            case FLOAT:
+                return floatToIEEEBV(mContext.mkFPAdd(rM(),toFloat(bv1), toFloat(bv2)));
+            case DOUBLE:
+                return doubleToIEEEBV(mContext.mkFPAdd(rM(),toDouble(bv1), toDouble(bv2)));
+            case INT:
+                return toLong(mContext.mkBVAdd(toInt(bv1),toInt(bv2)));
+            case LONG:
+                return mContext.mkBVAdd(bv1, bv2);
+            }
+            return mContext.mkBVAdd(bv1, bv2);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: bvadd");
+        }
+    }
+
+    public BitVecExpr bvmul(BitVecExpr bv1, BitVecExpr bv2, Type type) {
+        try {
+            switch(type){
+            case FLOAT:
+                return floatToIEEEBV(mContext.mkFPMul(rM(),toFloat(bv1), toFloat(bv2)));
+            case DOUBLE:
+                return doubleToIEEEBV(mContext.mkFPMul(rM(),toDouble(bv1), toDouble(bv2)));
+            case INT:
+                return toLong(mContext.mkBVMul(toInt(bv1),toInt(bv2)));
+            case LONG:
+                return mContext.mkBVMul(bv1, bv2);
+            }
+            return mContext.mkBVMul(bv1, bv2);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: bvmul");
+        }
+    }
+
+    public BitVecExpr bvdiv(BitVecExpr bv1, BitVecExpr bv2, Type type) {
+        try {
+            switch(type){
+            case FLOAT:
+                return floatToIEEEBV(mContext.mkFPDiv(rM(),toFloat(bv1), toFloat(bv2)));
+            case DOUBLE:
+                return doubleToIEEEBV(mContext.mkFPDiv(rM(),toDouble(bv1), toDouble(bv2)));
+            case INT:
+                return toLong(mContext.mkBVSDiv(toInt(bv1),toInt(bv2)));
+            case LONG:
+                return mContext.mkBVSDiv(bv1, bv2);
+            }
+            return mContext.mkBVSDiv(bv1, bv2);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: bvudiv");
+        }
+    }
+
+    public BitVecExpr bvrem(BitVecExpr bv1, BitVecExpr bv2, Type type) {
+        try {
+            switch(type){
+            //TODO: I think that mkFPRem follows the IEEE754 standard, whereas Dalvik reminder is a bit different
+            case FLOAT:
+                return floatToIEEEBV(mContext.mkFPRem(toFloat(bv1), toFloat(bv2)));
+            case DOUBLE:
+                return doubleToIEEEBV(mContext.mkFPRem(toDouble(bv1), toDouble(bv2)));
+            case INT:
+                return toLong(mContext.mkBVSRem(toInt(bv1),toInt(bv2)));
+            case LONG:
+                return mContext.mkBVSRem(bv1, bv2);
+            }
+            return mContext.mkBVSRem(bv1, bv2);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: bvurem");
+        }
+    }
+
+    public BoolExpr bvugt(BitVecExpr bv1, BitVecExpr bv2) {
+        try {
+            return mContext.mkBVUGT(bv1, bv2);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: bvugt");
+        }
+    }
+
+    public BoolExpr bvuge(BitVecExpr bv1, BitVecExpr bv2) {
+        try {
+            return mContext.mkBVUGE(bv1, bv2);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: bvuge");
+        }
+    }
+
+    public BoolExpr bvule(BitVecExpr bv1, BitVecExpr bv2) {
+        try {
+            return mContext.mkBVULE(bv1, bv2);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: bvule");
+        }
+    }
+
+    public BoolExpr bvult(BitVecExpr bv1, BitVecExpr bv2) {
+        try {
+            return mContext.mkBVULE(bv1, bv2);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: bvult");
+        }
+    }
 
 
+    public BitVecExpr bvlshr(BitVecExpr bv1, BitVecExpr bv2, Type type) {
+        try {
+            switch(type){
+            case INT:
+                return toLong(mContext.mkBVLSHR(toInt(bv1), toInt(bv2)));
+            case LONG:
+                return mContext.mkBVLSHR(bv1, bv2);
+            default:
+                    throw new RuntimeException("FSEngine: wrong type in LSHR");
+            }
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: bvlshr");
+        }
+    }
+
+    public BitVecExpr bvashr(BitVecExpr bv1, BitVecExpr bv2, Type type) {
+        try {
+            switch(type){
+            case INT:
+                return toLong(mContext.mkBVASHR(toInt(bv1), toInt(bv2)));
+            case LONG:
+                return mContext.mkBVASHR(bv1, bv2);
+            default:
+                    throw new RuntimeException("FSEngine: wrong type in ASHR");
+            }
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: bvashr");
+        }
+    }
+    
+
+    public BitVecExpr bvshl(BitVecExpr bv1, BitVecExpr bv2, Type type) {
+        try {
+            switch(type){
+            case INT:
+                return toLong(mContext.mkBVSHL(toInt(bv1), toInt(bv2)));
+            case LONG:
+                return mContext.mkBVSHL(bv1, bv2);
+            default:
+                    throw new RuntimeException("FSEngine: wrong type in SHL");
+            }
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: bvshl");
+        }
+    }
+
+    public BitVecExpr bvsub(BitVecExpr bv1, BitVecExpr bv2, Type type) {
+        try {
+            switch(type){
+            case FLOAT:
+                return floatToIEEEBV(mContext.mkFPSub(rM(),toFloat(bv1), toFloat(bv2)));
+            case DOUBLE:
+                return doubleToIEEEBV(mContext.mkFPSub(rM(),toDouble(bv1), toDouble(bv2)));
+            case INT:
+                return toLong(mContext.mkBVSub(toInt(bv1),toInt(bv2)));
+            case LONG:
+                return mContext.mkBVSub(bv1, bv2);
+            }
+            return mContext.mkBVSub(bv1, bv2);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: bvsub");
+        }
+    }
+
+    public BitVecExpr bvxor(BitVecExpr bv1, BitVecExpr bv2, Type type) {
+        try {
+            switch(type){
+            case INT:
+                return toLong(mContext.mkBVXOR(toInt(bv1),toInt(bv2)));
+            case LONG:
+                return mContext.mkBVXOR(bv1,bv2);
+            default:
+                throw new RuntimeException("BVXOR on wrong type");                    
+            }
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: bvxor");
+        }
+    }
+
+    public BitVecExpr bvor(BitVecExpr bv1, BitVecExpr bv2, Type type) {
+        try {
+            switch(type){
+            case INT:
+                return toLong(mContext.mkBVOR(toInt(bv1),toInt(bv2)));
+            case LONG:
+                return mContext.mkBVOR(bv1,bv2);
+            default:
+                throw new RuntimeException("BVOR on wrong type");                    
+            }
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: bvor");
+        }
+    }
+
+    public BitVecExpr bvand(BitVecExpr bv1, BitVecExpr bv2, Type type) {
+        try {
+            switch(type){
+            case INT:
+                return toLong(mContext.mkBVAND(toInt(bv1),toInt(bv2)));
+            case LONG:
+                return mContext.mkBVAND(bv1,bv2);
+            default:
+                throw new RuntimeException("BVAND on wrong type");                    
+            }
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: bvand");
+        }
+    }
+    
+    public BitVecExpr toInt(BitVecExpr longBV){
+        return mContext.mkExtract(31, 0, longBV);
+    }
+
+    public BitVecExpr toLong(BitVecExpr longBV){
+        return mContext.mkConcat(mkBitVector(0, 32),longBV);
+    }
+
+    public FPExpr toFloat(BitVecExpr longBV){
+        return mContext.mkFPToFP(toInt(longBV), mContext.mkFPSort32());
+    }
+    
+    public FPExpr toDouble(BitVecExpr longBV){
+        return mContext.mkFPToFP(longBV, mContext.mkFPSort64());
+    }
+    
+    public BitVecExpr floatToIEEEBV(FPExpr floatExpr){
+        return toLong(mContext.mkFPToIEEEBV(floatExpr));        
+    }
+    
+    public BitVecExpr doubleToIEEEBV(FPExpr doubleExpr){
+        return mContext.mkFPToIEEEBV(doubleExpr);
+    }
+    
+    public BitVecExpr uOpIntToFloat(BitVecExpr bv){
+        return(floatToIEEEBV(mContext.mkFPToFP(rM(),bv,mContext.mkFPSort32(),true)));
+    }
+    
+    
+    public BitVecExpr uOpIntToDouble(BitVecExpr bv){
+        return(doubleToIEEEBV(mContext.mkFPToFP(rM(),bv,mContext.mkFPSort64(),true)));
+    }
+    
+    public BitVecExpr uOpLongToFloat(BitVecExpr bv){
+        return(floatToIEEEBV(mContext.mkFPToFP(rM(),bv,mContext.mkFPSort32(),true)));
+    }
+    
+    
+    public BitVecExpr uOpLongToDouble(BitVecExpr bv){
+        return(doubleToIEEEBV(mContext.mkFPToFP(rM(),bv,mContext.mkFPSort64(),true)));
+    }
+
+    public BitVecExpr floatRoundToInt(BitVecExpr bv){
+        return toLong(mContext.mkFPToBV(rM(),toFloat(bv),32, true));
+    }
+
+    public BitVecExpr floatRoundToLong(BitVecExpr bv){
+        return mContext.mkFPToBV(rM(),toFloat(bv),64, true);
+    }
+    
+    public BitVecExpr doubleRoundToInt(BitVecExpr bv){
+        return toLong(mContext.mkFPToBV(rM(),toDouble(bv),32, true));
+    }
+
+    public BitVecExpr doubleRoundToLong(BitVecExpr bv){
+        return mContext.mkFPToBV(rM(),toDouble(bv),64, true);
+    }
+    
+    public BitVecExpr floatToDouble(BitVecExpr bv){
+        return doubleToIEEEBV(mContext.mkFPToFP(rM(),toFloat(bv),mContext.mkFPSort64()));
+    }
+    
+    public BitVecExpr doubleToFloat(BitVecExpr bv){
+        return floatToIEEEBV(mContext.mkFPToFP(rM(),toDouble(bv),mContext.mkFPSort32()));
+    }
+    
+    public BitVecExpr intToShort(BitVecExpr bv){
+        return bvashr(bvshl(bv, mkBitVector(16, 64), Type.INT),mkBitVector(16, 64), Type.INT);
+    }
+    
+    public BitVecExpr intToByte(BitVecExpr bv){
+        return bvashr(bvshl(bv, mkBitVector(24, 64), Type.INT),mkBitVector(24, 64), Type.INT);
+    }
+    
+    public BitVecExpr intToChar(BitVecExpr bv){
+        return this.bvand(bv, mkBitVector(65535,64), Type.INT);
+    }
+
+    public BoolExpr implies(BoolExpr b1, BoolExpr b2){
+        try {
+            return mContext.mkImplies(b1, b2);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Z3Engine Failed: implies");
+        }
+    }
 }
