@@ -152,7 +152,6 @@ public class FSInstructionAnalysis{
         final int size = analysis.getSize();
         fsvar = fsengine.getVars();
         BoolExpr negationString = null;
-        int jump = 0;
         int referenceReg;
         boolean isDefined;
         callReturns = false;
@@ -815,9 +814,8 @@ public class FSInstructionAnalysis{
         case GOTO://((short)0x28, "goto", ReferenceType.NONE, Format.Format10t),
         case GOTO_16://((short)0x29, "goto/16", ReferenceType.NONE, Format.Format20t),
         case GOTO_32:
-            jump = codeAddress + ((OffsetInstruction)instruction).getCodeOffset();
             buildH();
-            b = fsengine.rPred(classIndex, methodIndex, jump, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+            b = fsengine.rPred(classIndex, methodIndex, codeAddress + ((OffsetInstruction)instruction).getCodeOffset(), regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
             buildRule();
             break;//((short)0x2a, "goto/32", ReferenceType.NONE, Format.Format30t),
 

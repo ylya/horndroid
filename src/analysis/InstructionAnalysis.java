@@ -36,7 +36,6 @@ import org.jf.dexlib2.iface.reference.Reference;
 import payload.ArrayData;
 import payload.PackedSwitch;
 import payload.SparseSwitch;
-import util.CMPair;
 import util.Utils;
 import z3.*;
 
@@ -102,8 +101,6 @@ public class InstructionAnalysis {
         Map<DalvikClass, DalvikMethod> staticDefinitions = new ConcurrentHashMap<DalvikClass, DalvikMethod>();
         DalvikMethod dmc;
         final int size = analysis.getSize();
-        BoolExpr negationString = null;
-        int jump = 0;
         int referenceReg;
         boolean isDefined;
         int instanceNum;
@@ -118,27 +115,8 @@ public class InstructionAnalysis {
         referenceIntIndex = -1;
         referenceString = null;
         referenceIndex = null;
-        /*
-        <<<<<<< HEAD
-		BoolExpr negationString = null;
-	  	int jump = 0;
-    	int referenceReg;
-    	boolean isDefined;
-    	int instanceNum;
-    	boolean callReturns = false;
-    	int numRegCall;
-    	int numArgCall;
-    	String referenceStringClass = null;
-    	String referenceStringClassIndex = null;
-    	String returnType = null;
-    	int returnTypeInt = 0;
-    	int referenceClassIndex = -1;
-    	int referenceIntIndex = -1;
-        Opcode opcode = instruction.getOpcode();
-        String referenceString = null;
-        String referenceIndex = null;*/
 
-        int nextCode = codeAddress + instruction.getCodeUnits();
+        nextCode = codeAddress + instruction.getCodeUnits();
 
         Map<Integer, Boolean> fields = Collections.synchronizedMap(new HashMap <Integer, Boolean>());
 
@@ -173,11 +151,7 @@ public class InstructionAnalysis {
         BoolExpr returnLabel;
         regUpdate = new HashMap<>();
         regUpdateL = new HashMap<>();
-        regUpdateB = new HashMap<>();
-
-        Map<Integer, BitVecExpr> regUpdate = new HashMap<>();
-        Map<Integer, BoolExpr> regUpdateL = new HashMap<>();
-        Map<Integer, BoolExpr> regUpdateB = new HashMap<>();        
+        regUpdateB = new HashMap<>();       
         
         if ((options.debug) && apkClassesMethods.contains(new AbstractMap.SimpleEntry<String,String>(className, methodName)) && !methodName.contains("Landroid")){
             BoolExpr h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
@@ -652,15 +626,14 @@ public class InstructionAnalysis {
         case GOTO://((short)0x28, "goto", ReferenceType.NONE, Format.Format10t),
         case GOTO_16://((short)0x29, "goto/16", ReferenceType.NONE, Format.Format20t),
         case GOTO_32:
-            jump = codeAddress + ((OffsetInstruction)instruction).getCodeOffset();
             buildH();
-            b = z3engine.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
+            b = z3engine.rPred(classIndex, methodIndex, codeAddress + ((OffsetInstruction)instruction).getCodeOffset(), regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
             buildRule();
             break;//((short)0x2a, "goto/32", ReferenceType.NONE, Format.Format30t),
 
 
         case PACKED_SWITCH:
-            negationString = z3engine.mkFalse();
+            BoolExpr negationString = z3engine.mkFalse();
             for (final PackedSwitch ps: analysis.getPackedSwitch()){
                 List<Number> targets = ps.getTargets(c, m, codeAddress + ((Instruction31t)instruction).getCodeOffset());
                 if (targets != null){
@@ -778,302 +751,110 @@ public class InstructionAnalysis {
 
 
         case IF_EQ:
-            jump = codeAddress + ((OffsetInstruction)instruction).getCodeOffset();
-            h = z3engine.and(
-                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                    z3engine.not( z3engine.eq(
-                            var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB())
-                            ))
+            BoolExpr boolexpr = z3engine.eq(
+                    var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
+                    var.getV(((TwoRegisterInstruction) instruction).getRegisterB())
                     );
-            buildB();
-            buildRule();
-
-            h = z3engine.and(
-                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                    z3engine.eq(
-                            var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                            var.getV(((TwoRegisterInstruction) instruction).getRegisterB())
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            buildRule();
+            this.cmpInstruction(boolexpr, analysis);
             break;//((short)0x32, "if-eq", ReferenceType.NONE, Format.Format22t, Opcode.CAN_CONTINUE),
 
 
         case IF_NE:
-            jump = codeAddress + ((OffsetInstruction)instruction).getCodeOffset();
-            h = z3engine.and(
-                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                    z3engine.eq(
-                            var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                            var.getV(((TwoRegisterInstruction) instruction).getRegisterB())
-                            )
-                    );
-            buildB();
-            buildRule();
-
-            h = z3engine.and(
-                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                    z3engine.not( z3engine.eq(
-                            var.getV(((OneRegisterInstruction)instruction).getRegisterA()),
-                            var.getV(((TwoRegisterInstruction)instruction).getRegisterB())
-                            ))
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            buildRule();
-
-            break;//((short)0x33, "if-ne", ReferenceType.NONE, Format.Format22t, Opcode.CAN_CONTINUE),
-
-
+            boolexpr = z3engine.not(z3engine.eq(
+                    var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
+                    var.getV(((TwoRegisterInstruction) instruction).getRegisterB())
+                    ));
+            this.cmpInstruction(boolexpr, analysis);
+            break;//((short)0x32, "if-eq", ReferenceType.NONE, Format.Format22t, Opcode.CAN_CONTINUE),
+            
         case IF_LT:
-            jump = codeAddress + ((OffsetInstruction)instruction).getCodeOffset();
-            h = z3engine.and(
-                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                    z3engine.not(z3engine.bvult(
-                            var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                            var.getV(((TwoRegisterInstruction) instruction).getRegisterB())
-                            ))
+            boolexpr = z3engine.bvult(
+                    var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
+                    var.getV(((TwoRegisterInstruction) instruction).getRegisterB())
                     );
-            buildB();
-            buildRule();
-
-            h = z3engine.and(
-                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                    z3engine.bvult(
-                            var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                            var.getV(((TwoRegisterInstruction) instruction).getRegisterB())
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            buildRule();
-
+            this.cmpInstruction(boolexpr, analysis);
             break;//((short)0x34, "if-lt", ReferenceType.NONE, Format.Format22t, Opcode.CAN_CONTINUE),
 
 
         case IF_GE:
-            jump = codeAddress + ((OffsetInstruction)instruction).getCodeOffset();
-            h = z3engine.and(
-                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                    z3engine.not( z3engine.bvuge(
-                            var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                            var.getV(((TwoRegisterInstruction) instruction).getRegisterB())
-                            ))
+            boolexpr = z3engine.bvuge(
+                    var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
+                    var.getV(((TwoRegisterInstruction) instruction).getRegisterB())
                     );
-            buildB();
-            buildRule();
-
-            h = z3engine.and(
-                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                    z3engine.bvuge(
-                            var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                            var.getV(((TwoRegisterInstruction) instruction).getRegisterB())
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            buildRule();
+            this.cmpInstruction(boolexpr, analysis);
             break;//((short)0x35, "if-ge", ReferenceType.NONE, Format.Format22t, Opcode.CAN_CONTINUE),
 
 
         case IF_GT:
-            jump = codeAddress + ((OffsetInstruction)instruction).getCodeOffset();
-            h = z3engine.and(
-                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                    z3engine.not( z3engine.bvugt(
-                            var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                            var.getV(((TwoRegisterInstruction) instruction).getRegisterB())
-                            ))
+            boolexpr = z3engine.bvugt(
+                    var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
+                    var.getV(((TwoRegisterInstruction) instruction).getRegisterB())
                     );
-            buildB();
-            buildRule();
-
-            h = z3engine.and(
-                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                    z3engine.bvugt(
-                            var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                            var.getV(((TwoRegisterInstruction) instruction).getRegisterB())
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            buildRule();
-
-            break;//((short)0x36, "if-gt", ReferenceType.NONE, Format.Format22t, Opcode.CAN_CONTINUE),
+            this.cmpInstruction(boolexpr, analysis);
+             break;//((short)0x36, "if-gt", ReferenceType.NONE, Format.Format22t, Opcode.CAN_CONTINUE),
 
 
         case IF_LE:
-            jump = codeAddress + ((OffsetInstruction)instruction).getCodeOffset();
-            h = z3engine.and(
-                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                    z3engine.not( z3engine.bvule(
-                            var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                            var.getV(((TwoRegisterInstruction) instruction).getRegisterB())
-                            ))
+            boolexpr = z3engine.bvule(
+                    var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
+                    var.getV(((TwoRegisterInstruction) instruction).getRegisterB())
                     );
-            buildB();
-            buildRule();
-
-            h = z3engine.and(
-                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                    z3engine.bvule(
-                            var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                            var.getV(((TwoRegisterInstruction) instruction).getRegisterB())
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            buildRule();
-
+            this.cmpInstruction(boolexpr, analysis);
             break;//((short)0x37, "if-le", ReferenceType.NONE, Format.Format22t, Opcode.CAN_CONTINUE),
 
 
         case IF_EQZ:
-            jump = codeAddress + ((OffsetInstruction)instruction).getCodeOffset();
-            h = z3engine.and(
-                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                    z3engine.not( z3engine.eq(
-                            var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                            z3engine.mkBitVector(0, size)
-                            ))
+            boolexpr = z3engine.eq(
+                    var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
+                    z3engine.mkBitVector(0, size)
                     );
-            buildB();
-            buildRule();
-
-            h = z3engine.and(
-                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                    z3engine.eq(
-                            var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                            z3engine.mkBitVector(0, size)
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            buildRule();
-
+            this.cmpInstruction(boolexpr, analysis);
             break;//((short)0x38, "if-eqz", ReferenceType.NONE, Format.Format21t, Opcode.CAN_CONTINUE),
 
 
         case IF_NEZ:
-            jump = codeAddress + ((OffsetInstruction)instruction).getCodeOffset();
-            h = z3engine.and(
-                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                    z3engine.eq(
-                            var.getV(((OneRegisterInstruction)instruction).getRegisterA()),
-                            z3engine.mkBitVector(0, size)
-                            )
-                    );
-            buildB();
-            buildRule();
-
-            h = z3engine.and(
-                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                    z3engine.not( z3engine.eq(
-                            var.getV(((OneRegisterInstruction)instruction).getRegisterA()),
-                            z3engine.mkBitVector(0, size)
-                            ))
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            buildRule();
-
+            boolexpr = z3engine.not(z3engine.eq(
+                    var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
+                    z3engine.mkBitVector(0, size)
+                    ));
+            this.cmpInstruction(boolexpr, analysis);
             break;//((short)0x39, "if-nez", ReferenceType.NONE, Format.Format21t, Opcode.CAN_CONTINUE),
 
 
         case IF_LTZ:
-            jump = codeAddress + ((OffsetInstruction)instruction).getCodeOffset();
-            h = z3engine.and(
-                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                    z3engine.not( z3engine.bvult(
-                            var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                            z3engine.mkBitVector(0, size)
-                            ))
+            boolexpr = z3engine.bvult(
+                    var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
+                    z3engine.mkBitVector(0, size)
                     );
-            buildB();
-            buildRule();
-
-            h = z3engine.and(
-                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                    z3engine.bvult(
-                            var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                            z3engine.mkBitVector(0, size)
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            buildRule();
-
+            this.cmpInstruction(boolexpr, analysis);
             break;//((short)0x3a, "if-ltz", ReferenceType.NONE, Format.Format21t, Opcode.CAN_CONTINUE),
 
 
         case IF_GEZ:
-            jump = codeAddress + ((OffsetInstruction)instruction).getCodeOffset();
-            h = z3engine.and(
-                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                    z3engine.not( z3engine.bvuge(
-                            var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                            z3engine.mkBitVector(0, size)
-                            ))
+            boolexpr = z3engine.bvuge(
+                    var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
+                    z3engine.mkBitVector(0, size)
                     );
-            buildB();
-            buildRule();
-
-            h = z3engine.and(
-                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                    z3engine.bvuge(
-                            var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                            z3engine.mkBitVector(0, size)
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            buildRule();
-
+            this.cmpInstruction(boolexpr, analysis);
             break;//((short)0x3b, "if-gez", ReferenceType.NONE, Format.Format21t, Opcode.CAN_CONTINUE),
 
 
         case IF_GTZ:
-            jump = codeAddress + ((OffsetInstruction)instruction).getCodeOffset();
-            h = z3engine.and(
-                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                    z3engine.not( z3engine.bvugt(
-                            var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                            z3engine.mkBitVector(0, size)
-                            ))
+            boolexpr = z3engine.bvugt(
+                    var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
+                    z3engine.mkBitVector(0, size)
                     );
-            buildB();
-            buildRule();
-
-            h = z3engine.and(
-                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                    z3engine.bvugt(
-                            var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                            z3engine.mkBitVector(0, size)
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            buildRule();
-
+            this.cmpInstruction(boolexpr, analysis);
             break;//((short)0x3c, "if-gtz", ReferenceType.NONE, Format.Format21t, Opcode.CAN_CONTINUE),
 
 
         case IF_LEZ:
-            jump = codeAddress + ((OffsetInstruction)instruction).getCodeOffset();
-            h = z3engine.and(
-                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                    z3engine.not( z3engine.bvule(
-                            var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                            z3engine.mkBitVector(0, size)
-                            ))
+            boolexpr = z3engine.bvule(
+                    var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
+                    z3engine.mkBitVector(0, size)
                     );
-            buildB();
-            buildRule();
-
-            h = z3engine.and(
-                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                    z3engine.bvule(
-                            var.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                            z3engine.mkBitVector(0, size)
-                            )
-                    );
-            b = z3engine.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            buildRule();
-
+            this.cmpInstruction(boolexpr, analysis);
             break;//((short)0x3d, "if-lez", ReferenceType.NONE, Format.Format21t, Opcode.CAN_CONTINUE),
-
 
         case AGET://((short)0x44, "aget", ReferenceType.NONE, Format.Format23x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case AGET_WIDE://((short)0x45, "aget-wide", ReferenceType.NONE, Format.Format23x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
@@ -2686,6 +2467,21 @@ public class InstructionAnalysis {
     private BitVecExpr regC(){
         return var.getV(((ThreeRegisterInstruction)instruction).getRegisterC());
     }
+    
+    // For comparison instruction. Jump iff boolexpr is true
+    private void cmpInstruction(BoolExpr boolexpr,Analysis analysis){
+        int jump = codeAddress + ((OffsetInstruction)instruction).getCodeOffset();
+        buildH();
+        h = z3engine.and(h,boolexpr);
+        b = z3engine.rPred(classIndex, methodIndex, jump, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
+        buildRule();
+
+        buildH();
+        h = z3engine.and(h,z3engine.not(boolexpr));
+        buildB();
+        buildRule();
+    }
+
 
 
     private void unaryOp(BitVecExpr bv){
