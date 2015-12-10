@@ -11,18 +11,8 @@ import horndroid.options;
 import java.util.*;
 import java.util.concurrent.*;
 
-public class Z3Engine  implements Z3Clauses {
+public class Z3Engine extends Z3Clauses{
 
-    final private boolean QUERY_IS_COMPACT = false;
-
-    private Context mContext;
-    private ArrayList<BoolExpr> mRules;
-    private ArrayList<FuncDecl> mFuncs;
-
-    private ArrayList<Z3Query> mQueries;
-    private Z3Query mCurrentQuery;
-
-    private int bvSize;
     private Z3Variable var;
     private Z3Function func;
 
@@ -73,348 +63,12 @@ public class Z3Engine  implements Z3Clauses {
     }
 
 
-    public Context getContext(){ return mContext; }
 
     public Z3Variable getVars(){ return var; }
 
     public Z3Function getFunc(){ return func; }
 
-    public void addRule(BoolExpr rule, String symbol){
-        try {
-            //            mFixedPoint.addRule(rule, null);
-            mRules.add(rule);
-            //                    mContext.mkSymbol(RandomStringUtils.random(16,true,true)));
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: addRule");
-        }
-    }
 
-
-    @Override
-    public BoolExpr mkTrue() {
-        try {
-            return mContext.mkBool(true);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: true");
-        }
-    }
-
-    @Override
-    public BoolExpr mkFalse() {
-        try {
-            return mContext.mkBool(false);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: false");
-        }
-    }
-
-    @Override
-    public BoolExpr mkBool(boolean b) {
-        try {
-            return mContext.mkBool(b);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: mkBool");
-        }
-    }
-
-    @Override
-    public BitVecExpr mkBitVector(String data, int len) {
-        try {
-            return mContext.mkBV(data, len);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: mkBitVector String");
-        }
-    }
-
-    @Override
-    public BitVecExpr mkBitVector(int data, int len) {
-        try {
-            return mContext.mkBV(data, len);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: mkBitVector int");
-        }
-    }
-
-    @Override
-    public BitVecExpr mkBitVector(long data, int len) {
-        try {
-            return mContext.mkBV(data, len);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: mkBitVector long");
-        }
-    }
-
-    @Override
-    public IntExpr mkInt(String data) {
-        try {
-            return mContext.mkInt(data);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: mkInt");
-        }
-    }
-
-    @Override
-    public IntExpr mkInt(int data) {
-        try {
-            return mContext.mkInt(data);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: mkInt");
-        }
-    }
-
-    @Override
-    public BoolExpr and(BoolExpr... b) {
-        try {
-            return mContext.mkAnd(b);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: and");
-        }
-    }
-
-    @Override
-    public BoolExpr or(BoolExpr... b) {
-        try {
-            return mContext.mkOr(b);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: or");
-        }
-    }
-
-    @Override
-    public BoolExpr not(BoolExpr b) {
-        try {
-            return mContext.mkNot(b);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: not");
-        }
-    }
-
-    @Override
-    public BoolExpr eq(BoolExpr b1, BoolExpr b2) {
-        try {
-            return mContext.mkEq(b1, b2);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: eq");
-        }
-    }
-
-    @Override
-    public BoolExpr eq(BitVecExpr bv1, BitVecExpr bv2) {
-        try {
-            return mContext.mkEq(bv1, bv2);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: eq");
-        }
-    }
-
-    @Override
-    public Expr ite(BoolExpr b, Expr e1, Expr e2) {
-        try {
-            return mContext.mkITE(b, e1, e2);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: ite");
-        }
-    }
-
-    @Override
-    public BitVecExpr bvneg(BitVecExpr bv) {
-        try {
-            return mContext.mkBVNeg(bv);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvneg");
-        }
-    }
-
-    @Override
-    public BitVecExpr bvnot(BitVecExpr bv) {
-        try {
-            return mContext.mkBVNot(bv);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvnot");
-        }
-    }
-
-
-    @Override
-    public BitVecExpr bvadd(BitVecExpr bv1, BitVecExpr bv2) {
-        try {
-            return mContext.mkBVAdd(bv1, bv2);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvadd");
-        }
-    }
-
-
-    @Override
-    public BitVecExpr bvmul(BitVecExpr bv1, BitVecExpr bv2) {
-        try {
-            return mContext.mkBVMul(bv1, bv2);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvmul");
-        }
-    }
-
-
-    @Override
-    public BitVecExpr bvudiv(BitVecExpr bv1, BitVecExpr bv2) {
-        try {
-            return mContext.mkBVUDiv(bv1, bv2);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvudiv");
-        }
-    }
-
-
-    @Override
-    public BitVecExpr bvurem(BitVecExpr bv1, BitVecExpr bv2) {
-        try {
-            return mContext.mkBVURem(bv1, bv2);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvurem");
-        }
-    }
-
-
-    @Override
-    public BoolExpr bvugt(BitVecExpr bv1, BitVecExpr bv2) {
-        try {
-            return mContext.mkBVUGT(bv1, bv2);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvugt");
-        }
-    }
-
-    @Override
-    public BoolExpr bvuge(BitVecExpr bv1, BitVecExpr bv2) {
-        try {
-            return mContext.mkBVUGE(bv1, bv2);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvuge");
-        }
-    }
-
-    @Override
-    public BoolExpr bvule(BitVecExpr bv1, BitVecExpr bv2) {
-        try {
-            return mContext.mkBVULE(bv1, bv2);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvule");
-        }
-    }
-
-    @Override
-    public BoolExpr bvult(BitVecExpr bv1, BitVecExpr bv2) {
-        try {
-            return mContext.mkBVULE(bv1, bv2);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvult");
-        }
-    }
-
-    @Override
-    public BitVecExpr bvshl(BitVecExpr bv1, BitVecExpr bv2) {
-        try {
-            return mContext.mkBVSHL(bv1, bv2);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvshl");
-        }
-    }
-
-    @Override
-    public BitVecExpr bvlshr(BitVecExpr bv1, BitVecExpr bv2) {
-        try {
-            return mContext.mkBVLSHR(bv1, bv2);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvlshr");
-        }
-    }
-
-    @Override
-    public BitVecExpr bvashr(BitVecExpr bv1, BitVecExpr bv2) {
-        try {
-            return mContext.mkBVASHR(bv1, bv2);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvashr");
-        }
-    }
-
-    @Override
-    public BitVecExpr bvsub(BitVecExpr bv1, BitVecExpr bv2) {
-        try {
-            return mContext.mkBVASHR(bv1, bv2);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvsub");
-        }
-    }
-
-    @Override
-    public BitVecExpr bvxor(BitVecExpr bv1, BitVecExpr bv2) {
-        try {
-            return mContext.mkBVXOR(bv1, bv2);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvxor");
-        }
-    }
-
-    @Override
-    public BitVecExpr bvor(BitVecExpr bv1, BitVecExpr bv2) {
-        try {
-            return mContext.mkBVOR(bv1, bv2);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvor");
-        }
-    }
-
-    @Override
-    public BitVecExpr bvand(BitVecExpr bv1, BitVecExpr bv2) {
-        try {
-            return mContext.mkBVAND(bv1, bv2);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: bvand");
-        }
-    }
-
-    @Override
-    public BoolExpr implies(BoolExpr b1, BoolExpr b2){
-        try {
-            return mContext.mkImplies(b1, b2);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: implies");
-        }
-    }
 
     @SuppressWarnings("unused")
     public void addQuery(Z3Query query){
@@ -561,36 +215,6 @@ public class Z3Engine  implements Z3Clauses {
     }
 
 
-    public void declareRel(FuncDecl funcDecl){
-        try {
-            //            mFixedPoint.registerRelation(funcDecl);
-            mFuncs.add(funcDecl);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: declareRel");
-        }
-    }
-
-    public void declareRel(String name, Sort[] domain, Sort range){
-        try {
-            FuncDecl f = mContext.mkFuncDecl(name, domain, range);
-            this.declareRel(f);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: declareRel");
-        }
-    }
-
-    public void declareVar(Sort type){
-        try {
-            //TODO: it is not problematic to always do makeBound on the same int?
-            Expr var = mContext.mkBound(0, type);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: declareVar");
-        }
-    }
-
     private FuncDecl rPredDef(String c, String m, int pc, int size) {
         try {
             BitVecSort bv64 = mContext.mkBitVecSort(bvSize);
@@ -609,7 +233,6 @@ public class Z3Engine  implements Z3Clauses {
         }
     }
 
-    @Override
     public BoolExpr rPred(final String c, final String m, final int pc, final Map<Integer, BitVecExpr> rUp, final Map<Integer, BoolExpr> rUpL, final Map<Integer, BoolExpr> rUpB, final int numArg, final int numReg) {
         try {
             int size = numArg + numReg + 1; // include return register
@@ -630,7 +253,6 @@ public class Z3Engine  implements Z3Clauses {
     }
 
 
-    @Override
     public BoolExpr rInvokePred(final String c, final String m, final int pc, final Map<Integer, BitVecExpr> rUp, final Map<Integer, BoolExpr> rUpL, final Map<Integer, BoolExpr> rUpB, final int numArg, final int numReg, final int size) {
         try {
             int arraySize = numArg + numReg + 1;
@@ -669,7 +291,6 @@ public class Z3Engine  implements Z3Clauses {
         }
     }
 
-    @Override
     public BoolExpr resPred(final String c, final String m, final Map<Integer, BitVecExpr> rUp, final Map<Integer, BoolExpr> rUpL, final Map<Integer, BoolExpr> rUpB, final int numArg) {
         try {
             int size = numArg + 1; // include return register
@@ -692,7 +313,6 @@ public class Z3Engine  implements Z3Clauses {
         }
     }
 
-    @Override
     public BoolExpr hPred(BitVecExpr cname, BitVecExpr inst, BitVecExpr element, BitVecExpr value, BoolExpr label, BoolExpr block) {
         try {
             return (BoolExpr) func.getH().apply(cname, inst, element, value, label, block);
@@ -702,7 +322,6 @@ public class Z3Engine  implements Z3Clauses {
         }
     }
 
-    @Override
     public BoolExpr hiPred(BitVecExpr cname, BitVecExpr inst, BitVecExpr value, BoolExpr label, BoolExpr block) {
         try {
             return (BoolExpr) func.getHi().apply(cname, inst, value, label, block);
@@ -712,7 +331,6 @@ public class Z3Engine  implements Z3Clauses {
         }
     }
 
-    @Override
     public BoolExpr iPred(BitVecExpr cname, BitVecExpr inst, BitVecExpr value, BoolExpr label, BoolExpr block) {
         try {
             return (BoolExpr) func.getI().apply(cname, inst, value, label, block);
@@ -722,7 +340,6 @@ public class Z3Engine  implements Z3Clauses {
         }
     }
 
-    @Override
     public BoolExpr sPred(IntExpr v1, IntExpr v2, BitVecExpr v3, BoolExpr v4, BoolExpr v5) {
         try {
             return (BoolExpr) func.getS().apply(v1, v2, v3, v4, v5);
