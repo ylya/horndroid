@@ -22,4 +22,7 @@ public class SparseSwitch {
     public int getC() {
         return c;
     }
+    public int getM(){
+        return m;
+    }
 }

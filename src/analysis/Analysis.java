@@ -14,6 +14,7 @@ import Dalvik.Instances;
 import horndroid.options;
 
 import java.util.AbstractMap;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -21,6 +22,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -51,7 +53,9 @@ import z3.Z3Engine;
 import z3.Z3Variable;
 
 public class Analysis {
+    final private Map<Integer,GeneralClass> apkClasses;
     final private Map<Integer,GeneralClass> classes;
+    final private Instances apkInstances;
     final private Instances instances;
     final private Set<Integer> disabledActivities;
     final private Set<Integer> activities;
@@ -94,12 +98,14 @@ public class Analysis {
     
     private Integer localHeapNumberEntries;
     private Integer localHeapSize;
-    private HashSet<CMPair> apkClassesMethods;
+    private HashSet<AbstractMap.SimpleEntry<String, String>> apkClassesMethods;
     
     public Analysis(final Z3Engine z3engine,final FSEngine fsengine, 
             final SourcesSinks sourcesSinks, final options options, final ExecutorService instructionExecutorService,
             final Stubs stubs){
+        this.apkClasses = new ConcurrentHashMap<Integer,GeneralClass>();
         this.classes = new ConcurrentHashMap<Integer,GeneralClass>();
+        this.apkInstances = new Instances();
         this.instances = new Instances();
         this.disabledActivities = new HashSet<Integer>();
         this.activities = new HashSet<Integer>();
@@ -124,7 +130,7 @@ public class Analysis {
 
         this.refSources = new HashSet <CMPair>();
         this.refSinks = new HashSet <CMPair>();
-        this.apkClassesMethods = new HashSet<CMPair>();
+        this.apkClassesMethods = new HashSet<AbstractMap.SimpleEntry<String, String>>();
         this.allImplementations = new ConcurrentHashMap <CMPair, Set<DalvikImplementation>>();
         this.allDefinitions = new ConcurrentHashMap <CMPair, Map<DalvikClass, DalvikMethod>>();
 
@@ -222,9 +228,14 @@ public class Analysis {
     public Set<Integer> getAllocationPoints(){
         return allocationPointOffset.keySet();
     }
+    
+    /*
+     * Populate apkClasses and apkInstances with the classes and instances from the analysed apk
+     * Also gather additional information: payloads data, switches information, static constructor and strings
+     */
     public void collectDataFromApk( List<? extends ClassDef> classDefs){
-        DataExtraction de = new DataExtraction(classes, instances, arrayDataPayload, packedSwitchPayload, sparseSwitchPayload, staticConstructor, constStrings, launcherActivities);
-        de.collectDataFromStandard(classDefs);
+        DataExtraction de = new DataExtraction(apkClasses, apkInstances, arrayDataPayload, packedSwitchPayload, sparseSwitchPayload, staticConstructor, constStrings, launcherActivities);
+        de.collectData(classDefs);
         
     }
     
@@ -554,10 +565,10 @@ public class Analysis {
             for (final Instruction instruction: m.getInstructions()){
                 if (options.fsanalysis){
                     FSInstructionAnalysis ia = new FSInstructionAnalysis(this, instruction, dc, m, codeAddress);
-                    ia.CreateHornClauses(options);
+                    ia.CreateHornClauses(options, apkClassesMethods);
                 }else{
                     InstructionAnalysis ia = new InstructionAnalysis(this, instruction, dc, m, codeAddress);
-                    ia.CreateHornClauses(options);                    
+                    ia.CreateHornClauses(options, apkClassesMethods);                    
                 }
                 codeAddress += instruction.getCodeUnits();
             }
@@ -707,150 +718,212 @@ public class Analysis {
         }
     }
     
-    private void addClassFromStubs(final GeneralClass cp, final LinkedList<GeneralClass> toProcess,
-            final Set<GeneralClass> processed, final Set<Integer> stubProcessed){
-        if(!processed.contains(cp) && cp != null){
-            processed.add(cp);
-            toProcess.add(cp);
-            stubProcessed.add(cp.getType().hashCode());
+
+    private void addClass(final GeneralClass cp, final Set<GeneralClass> addedInPool){
+        if(!addedInPool.contains(cp) && cp != null){
+            addedInPool.add(cp);
             
             classes.put(cp.getType().hashCode(),cp);
             if (cp instanceof DalvikClass){
-                if (((DalvikClass) cp).getSuperClass() != null){
-                    addClassFromStubs(((DalvikClass)cp).getSuperClass(), toProcess, processed, stubProcessed);
+                // Add the superclass of cp
+                GeneralClass superClass = ((DalvikClass)cp).getSuperClass();
+                if (! (superClass == null)){
+                    if(apkClasses.containsKey(superClass.getType().hashCode())){
+                        GeneralClass supClass = apkClasses.get(superClass.getType().hashCode());
+                        addClass(supClass, addedInPool);
+                    }else{                    
+                        GeneralClass stub = stubs.getClasses().get(superClass.getType().hashCode());
+                        ((DalvikClass) cp).putSuperClass(stub);
+                        addClass(stub,addedInPool);
+                    }
                 }
             }
             
         }
-        else return;
     }
     
-    private void addClassFromApk(final GeneralClass cp, final LinkedList<GeneralClass> toProcess,
-            final Set<GeneralClass> processed, final Set<Integer> stubProcessed){
-        processed.add(cp);
-        toProcess.add(cp);
-        if (cp instanceof DalvikClass){
-            GeneralClass superClass = ((DalvikClass)cp).getSuperClass();
-            if (superClass == null){
-                //TODO: why some classes have no super class? Uncomment the next line to get those classes' name
-                //System.out.println("This class has no super class " + cp.getType());
-            }else{
-                if (!classes.containsKey(superClass.getType().hashCode())){
-                    GeneralClass stub = stubs.getClasses().get(superClass.getType().hashCode());
-                    ((DalvikClass) cp).putSuperClass(stub);
-                    addClassFromStubs(stub, toProcess, processed, stubProcessed);
+
+    private void addClassFromApk(final GeneralClass cp, final LinkedList<SimpleEntry<GeneralClass,String>> pool,
+            final Set<GeneralClass> addedInPool, final Set<CMPair> processCM){
+        if(!addedInPool.contains(cp) && cp != null){
+            addedInPool.add(cp);
+
+            classes.put(cp.getType().hashCode(), cp);
+            if (cp instanceof DalvikClass){
+                // Add all cp's methods to the pool and processCM set
+                for (DalvikMethod m : ((DalvikClass)cp).getMethods()){
+                    pool.add(new SimpleEntry<GeneralClass,String>(cp,m.getName()));
+                    processCM.add(new CMPair(cp.getType().hashCode(),m.getName().hashCode()));
+                }
+
+                // Add the superclass of cp
+                GeneralClass superClass = ((DalvikClass)cp).getSuperClass();
+                if (superClass != null){
+                    if(apkClasses.containsKey(superClass.getType().hashCode())){
+                        GeneralClass supClass = apkClasses.get(superClass.getType().hashCode());
+                        addClass(supClass, addedInPool);
+                    }else{                    
+                        GeneralClass stub = stubs.getClasses().get(superClass.getType().hashCode());
+                        ((DalvikClass) cp).putSuperClass(stub);
+                        addClass(stub,addedInPool);
+                    }
                 }
             }
         }
     }
     
-    /*
-     * Get the additional information from the added classes, by querying stubs object
-     * Should only be used once
-     */
-    private void fetchAdditionalInfo(final Set<Integer> stubProcessed){
-        for (DalvikInstance instance: stubs.getInstances().getAll()){
-            if (stubProcessed.contains(instance.getC())){
-                instances.add(instance);
+    private void addToPool(LazyUnion lazyUnion, final LinkedList<SimpleEntry<GeneralClass,String>> pool,
+            final Set<CMPair> processCM, Map<DalvikClass,DalvikMethod> cmMap){
+        if (cmMap != null){
+            for (Entry<DalvikClass,DalvikMethod> entry : cmMap.entrySet()){
+                CMPair cmp = new CMPair(entry.getKey().getType().hashCode(),entry.getValue().getName().hashCode());
+                if (!processCM.contains(cmp)){
+                    System.out.println("      " + entry.getKey().getType() + " " + entry.getValue().getName());
+                    processCM.add(cmp);
+                    pool.add(new SimpleEntry<GeneralClass,String>(entry.getKey(),entry.getValue().getName()));
+                }
             }
         }
-        
-        for (ArrayData aData : stubs.getArrayDataPayload()){
-            if (stubProcessed.contains(aData.getC())){
-                arrayDataPayload.add(aData);
-            }
-        }
-        
-        for (ConstString cString : stubs.getConstStrings()){
-            if (stubProcessed.contains(cString.getC())){
-                constStrings.add(cString);
-            }
-        }
-
-        for (PackedSwitch pSwitch : stubs.getPackedSwitchPayload()){
-            if (stubProcessed.contains(pSwitch.getC())){
-                packedSwitchPayload.add(pSwitch);
-            }
-        }
-
-        for (SparseSwitch sSwitch : stubs.getSparseSwitchPayload()){
-            if (stubProcessed.contains(sSwitch.getC())){
-                sparseSwitchPayload.add(sSwitch);
-            }
-        }
-        
-        staticConstructor.addAll(stubs.getStaticConstructor());
     }
     
     /*
      * Fetch the classes from standard java and android for all unknown classes
      */
-    private void fetchUnknownMethod(){
-        LinkedList<GeneralClass> toProcess = new LinkedList<GeneralClass>();
-        Set<GeneralClass> processed = new HashSet<GeneralClass>();
-        Set<Integer> stubProcessed = new HashSet<Integer>();
+    private Set<CMPair> fetchUnknownMethod(){
+        LinkedList<SimpleEntry<GeneralClass,String>> pool = new LinkedList<SimpleEntry<GeneralClass,String>>();
+        Set<GeneralClass> addedInPool = new HashSet<GeneralClass>();
+        Set<CMPair> processCM  = new HashSet<CMPair>();
+        
+        LazyUnion lazyUnion = new LazyUnion(apkClasses, stubs.getClasses());
+        
+        // We initialize the pool
         for (final GeneralClass c: classes.values()){
-            addClassFromApk(c, toProcess, processed, stubProcessed);
+            addClassFromApk(c, pool, addedInPool, processCM);
         }
-        while(!toProcess.isEmpty()){
-            GeneralClass c = toProcess.poll();
-            if (c instanceof DalvikClass){
-                final DalvikClass dc = (DalvikClass) c;
-                for (DalvikMethod m : dc.getMethods()){
-                    for (Instruction instruction : m.getInstructions()){
-                        String referenceStringClass;
-                        Integer referenceClassIndex = null;
-                        if (instruction instanceof ReferenceInstruction) {
-                            ReferenceInstruction referenceInstruction = (ReferenceInstruction)instruction;
-                            Reference reference = referenceInstruction.getReference();
 
-                            if (reference instanceof FieldReference) {
-                                referenceStringClass = ((FieldReference) reference).getDefiningClass();
-                                referenceClassIndex = referenceStringClass.hashCode();
-                            }
-                            else
-                                if (reference instanceof MethodReference){
-                                    referenceStringClass = ((MethodReference) reference).getDefiningClass();
-                                    referenceClassIndex = referenceStringClass.hashCode();
+        // We treat the pool until it is empty
+        while(!pool.isEmpty()){
+            SimpleEntry<GeneralClass,String> entry = pool.poll();
+            GeneralClass c = entry.getKey();
+            String mString = entry.getValue();
+
+            addClass(c,addedInPool);
+
+            //TODO:
+                if (c.getType().equals("Landroid/app/Activity;")){
+                }else{
+                    if (c instanceof DalvikClass){
+                        final DalvikClass dc = (DalvikClass) c;
+                        DalvikMethod m = dc.getMethod(mString.hashCode());
+
+                        // We look for classes and method in the instructions of m
+                        for (Instruction instruction : m.getInstructions()){
+                            if (instruction instanceof ReferenceInstruction) {
+                                Reference reference = ((ReferenceInstruction)instruction).getReference();
+                                if (reference instanceof FieldReference) {
+                                    int referenceClassIndex = ((FieldReference) reference).getDefiningClass().hashCode();
+                                    addClass(lazyUnion.get(referenceClassIndex),addedInPool);
                                 }
-
-                        }
-                        if ((referenceClassIndex != null) && !classes.containsKey(referenceClassIndex)){
-                            GeneralClass cp = stubs.getClasses().get(referenceClassIndex);
-                            if (cp instanceof DalvikClass){
-                                addClassFromStubs(cp, toProcess, processed, stubProcessed);
+                                else{
+                                    if (reference instanceof MethodReference){
+                                        String referenceString = Utils.getShortReferenceString(reference);
+                                        int referenceClassIndex = ((MethodReference) reference).getDefiningClass().hashCode();
+                                        Map<DalvikClass,DalvikMethod> cmMap = isDefined(lazyUnion,referenceClassIndex,referenceString.hashCode());
+                                        addClass(lazyUnion.get(referenceClassIndex),addedInPool);
+                                        if (cmMap != null){
+                                            System.out.println(c.getType() + " " + m.getName() + " " + m.getInstructions().size());
+                                        }
+                                        addToPool(lazyUnion,pool, processCM, cmMap);
+                                    }
+                                }
                             }
                         }
                     }
                 }
-            }
         }
-        fetchAdditionalInfo(stubProcessed);
+        fetchAdditionalInfo(processCM);
+        return processCM;
     }
 
-    
-    
-    public void createHornClauses(){
-
-        /*
-         * Initialize the set apkClassesMethods, which must be done *before* fetching
-         * the unknown implementations from Java standard library
-         */
-        for (GeneralClass c : classes.values()){
-            if (c instanceof DalvikClass){
-                for (DalvikMethod m :((DalvikClass) c).getMethods()){
-                    apkClassesMethods.add(new CMPair(c.getType().hashCode(),m.getName().hashCode()));
-                }
+    /*
+     * Get the additional information from the added classes, by querying stubs object and apkInstances
+     * Should only be used once
+     */
+    private void fetchAdditionalInfo(Set<CMPair> processCM){
+        for (DalvikInstance instance: stubs.getInstances().getAll()){
+            if (processCM.contains(new CMPair(instance.getC(), instance.getM()))){
+                instances.add(instance);
+            }
+        }
+        for (DalvikInstance instance: apkInstances.getAll()){
+            if (processCM.contains(new CMPair(instance.getC(), instance.getM()))){
+                instances.add(instance);
             }
         }
         
-        //Get the unknown classes from Java standard and Android libraries
-        fetchUnknownMethod();
+        for (ArrayData aData : stubs.getArrayDataPayload()){
+            if (processCM.contains(new CMPair(aData.getC(), aData.getM()))){
+                arrayDataPayload.add(aData);
+            }
+        }
+        
+        for (ConstString cString : stubs.getConstStrings()){
+            if (processCM.contains(new CMPair(cString.getC(),cString.getM()))){
+                constStrings.add(cString);
+            }
+        }
+
+        for (PackedSwitch pSwitch : stubs.getPackedSwitchPayload()){
+            if (processCM.contains(new CMPair(pSwitch.getC(),pSwitch.getM()))){
+                packedSwitchPayload.add(pSwitch);
+            }
+        }
+
+        for (SparseSwitch sSwitch : stubs.getSparseSwitchPayload()){
+            if (processCM.contains(new CMPair(sSwitch.getC(),sSwitch.getM()))){
+                sparseSwitchPayload.add(sSwitch);
+            }
+        }
+        staticConstructor.addAll(stubs.getStaticConstructor());
+    }
+    
+    public void createHornClauses(){
+        System.out.println("Ready to start generating Horn Clauses:");
+
+        /*
+         * Initialize the set apkClassesMethods, which must be done *before* fetching
+         * the unknown implementations from Java standard library.
+         * We do not put in this set the classes or methods that contains "Landroid/support/v4/"
+         * At the same time we count the number of elements in APK only
+         */
+        int methodNumberAPK = 0;
+        int instructionNumberAPK = 0;
+        int classNumberAPK = 0;
+        for (GeneralClass c : apkClasses.values()){
+            if(!c.getType().startsWith("Landroid/support/v4/")){
+                classes.put(c.getType().hashCode(), c);
+                classNumberAPK++;
+                
+                if (c instanceof DalvikClass){
+                    for (DalvikMethod m :((DalvikClass) c).getMethods()){
+                        methodNumberAPK++;
+                        instructionNumberAPK += m.getInstructions().size();
+                    }
+                }
+            }
+        }
+        System.out.println("Number of classes in APK : " + classNumberAPK);
+        System.out.println("Number of methods in APK: " + methodNumberAPK);
+        System.out.println("Number of instructions in APK: "+ instructionNumberAPK);
+
+        
+        // Get the unknown classes from Java standard and Android libraries
+        Set<CMPair> processCM = fetchUnknownMethod();
         
         addEntryPointsInstances();
         addStaticFieldsValues();
         
-        //Populate refSources and refSinks with sources and sinks
+        // Populate refSources and refSinks with sources and sinks
         setSourceSink();
         
         // Initialize allocationPointOffset,allocationPointNumbers and allocationPointSize
@@ -858,21 +931,19 @@ public class Analysis {
         // Correctly set the corresponding fields in the FSEngine
         fsengine.initialize(localHeapSize, allocationPointOffset, allocationPointSize);
         
-        //Counting the number of instructions and methods
-        int methodNumber = 0;
+        //Counting the number of instructions
         int instructionNumber = 0;
-        for (final GeneralClass c: classes.values()){
+        for (CMPair cmp : processCM){
+            GeneralClass c = classes.get(cmp.getC());
             if ((c instanceof DalvikClass)){
-                for (DalvikMethod m : ((DalvikClass) c).getMethods()){
-                    methodNumber++;
-                    instructionNumber += m.getInstructions().size();
-                }
+                DalvikMethod m = ((DalvikClass) c).getMethod(cmp.getM());
+                instructionNumber += m.getInstructions().size();
             }
         }
         
         System.out.println("Ready to start generating Horn Clauses:");
         System.out.println("Number of classes : " + classes.size());
-        System.out.println("Number of methods: " + methodNumber);
+        System.out.println("Number of methods: " + processCM.size());
         System.out.println("Number of instructions: "+ instructionNumber);
         System.out.println("Number of instances : " + instances.size());
 
@@ -956,7 +1027,7 @@ public class Analysis {
             return allImplementations.get(new CMPair(ci, mi));
         }
         final Set<DalvikImplementation> implementations = new HashSet<DalvikImplementation>();
-        final Map<DalvikClass, DalvikMethod> definitions = isDefined(ci, mi);
+        final Map<DalvikClass, DalvikMethod> definitions = isDefined(classes, ci, mi);
         if (definitions == null) 
         {
             isNotDefined.add(new CMPair(ci, mi));
@@ -969,10 +1040,10 @@ public class Analysis {
             final DalvikImplementation di = new DalvikImplementation(entry.getKey(), entry.getValue());
             for (DalvikInstance instance : instances.getByType(entry.getKey().getType().hashCode())){
                 di.putInstance(instance);
-                for (final DalvikClass child: entry.getKey().getChildClasses()){
-                    for( DalvikInstance childInstance : instances.getByType(child.getType().hashCode())){
-                        di.putInstance(childInstance);
-                    }
+            }
+            for (final DalvikClass child: entry.getKey().getChildClasses()){
+                for( DalvikInstance childInstance : instances.getByType(child.getType().hashCode())){
+                    di.putInstance(childInstance);
                 }
             }
             implementations.add(di);
@@ -1023,12 +1094,12 @@ public class Analysis {
                 }else{
                     if (superClass instanceof DalvikClass){
                         final DalvikClass scd = (DalvikClass) superClass;
-                        for (final DalvikMethod m: scd.getMethods()){
-                            if (m.getName().hashCode() == mi){
-                                 return new AbstractMap.SimpleEntry<DalvikClass, DalvikMethod>(cd, m);
-                            }
+                        DalvikMethod m = scd.getMethod(mi);
+                        if (m != null){
+                            return new AbstractMap.SimpleEntry<DalvikClass, DalvikMethod>(cd, m);
+                        }else{
+                            return isSuperDefined(scd.getType().hashCode(), mi);
                         }
-                        isSuperDefined(scd.getType().hashCode(), mi);
                     }
                 }
             }
@@ -1036,11 +1107,21 @@ public class Analysis {
         return null;
     }
     
+    
     /*
-     * Return the set of classes*method implementing some method ci,mi by looking in class ci and all its child classes
+     * Return the set of classes*method implementing some method ci,mi in the field classes
      * Return null if ci,mi is not defined
      */
-    public Map<DalvikClass, DalvikMethod> isDefined(final int ci, int mi){	
+    public Map<DalvikClass, DalvikMethod> isDefined(final int ci, int mi){  
+        return isDefined(classes,ci,mi);
+    }
+
+        
+    /*
+     * Return the set of classes*method implementing some method ci,mi in the set of classes in argument
+     * Return null if ci,mi is not defined
+     */
+    private Map<DalvikClass, DalvikMethod> isDefined(Map<Integer,GeneralClass> classes, final int ci, int mi){	
         if (isNotDefined.contains(new CMPair(ci, mi))){
             return null;
         }
@@ -1058,36 +1139,30 @@ public class Analysis {
         if (isThread && (mi == "start()V".hashCode())){
             mi = "run()V".hashCode();
         }
-        
+
         if (classes.containsKey(ci)){
             GeneralClass c = classes.get(ci);
             if ((c instanceof DalvikClass)){
                 final DalvikClass cd = ((DalvikClass) c);
-                
-                for (final DalvikMethod m: cd.getMethods()){
-                    if (m.getName().hashCode() == mi){
 
-                        resolvents.put(cd, m);
-                        break;
-                    }
+                DalvikMethod m = cd.getMethod(mi);
+                if (m != null){
+                    resolvents.put(cd, m);
                 }
-                
+
                 for (final DalvikClass sc: cd.getChildClasses()){
                     if (sc != null){
-                        final Map<DalvikClass, DalvikMethod> resolventsChild = isDefined(sc.getType().hashCode(), mi);
+                        final Map<DalvikClass, DalvikMethod> resolventsChild = isDefined(classes, sc.getType().hashCode(), mi);
                         if (resolventsChild != null)
                             resolvents.putAll(resolventsChild);
                     }
                 }
-                
+
                 for (final GeneralClass cint: cd.getInterfaces()){
                     if ((cint.getType().hashCode() == ci)){
-                        for (final DalvikMethod m: 
-                            cd.getMethods()){
-                            if (m.getName().hashCode() == mi){
-                                resolvents.put(cd, m);
-                                break;
-                            }
+                        DalvikMethod cm = cd.getMethod(mi);
+                        if (cm != null){
+                            resolvents.put(cd, cm);
                         }
                     }
                 }
@@ -1097,7 +1172,7 @@ public class Analysis {
         if (resolvents.isEmpty()){
             return null;
         }else{
-        return resolvents;
+            return resolvents;
         }
     }
 
@@ -1156,9 +1231,7 @@ public class Analysis {
      */
     public boolean isSource(String className, String methodName, final int c, final int m){
         return (refSources.contains(new CMPair(c,m)) 
-                && (apkClassesMethods.contains(new CMPair(className.hashCode(),methodName.hashCode())))
-                && (!className.contains("Landroid"))
-                );
+                && (apkClassesMethods.contains(new AbstractMap.SimpleEntry<String,String>(className,methodName))));
     }
     
     //TODO: used only in processIntent in standard analysis, should probably be removed
@@ -1172,9 +1245,7 @@ public class Analysis {
      */
     public boolean isSink(String className, String methodName, final int c, final int m){
         return (refSinks.contains(new CMPair(c,m)) 
-                && (apkClassesMethods.contains(new CMPair(className.hashCode(),methodName.hashCode())))
-                && (!className.contains("Landroid")))
-                ;
+                && (apkClassesMethods.contains(new AbstractMap.SimpleEntry<String,String>(className,methodName))));
     }
 
     public void putEntryPoint(int c, int m){

@@ -1,7 +1,10 @@
 package Dalvik;
 
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -10,7 +13,7 @@ public class DalvikClass extends GeneralClass {
 	private Set<DalvikClass> childClasses;
 	private Set<GeneralClass> interfaces;
 	private Set<DalvikField> fields;
-	private Set<DalvikMethod> methods;
+	private Map<Integer,DalvikMethod> methods;
 	
 	public DalvikClass(final String name){
 		super(name);
@@ -29,7 +32,10 @@ public class DalvikClass extends GeneralClass {
 		this.fields = fields; 
 	}
 	public void putMethods(final Set<DalvikMethod> methods){
-		this.methods = methods;
+		this.methods = new HashMap<Integer,DalvikMethod>();
+		for (DalvikMethod dm : methods){
+		    this.methods.put(dm.getName().hashCode(), dm);
+		}
 	}
 	
 	/*
@@ -37,10 +43,8 @@ public class DalvikClass extends GeneralClass {
 	 * If the current class is Ljava/lang/Object; return null
 	 */
 	public GeneralClass getSuperClass(){
-	    //TODO: this is a quick fix, need to check that this does not break anything
 	    if (superClass == null){
 	        if (!(this.getType().equals("Ljava/lang/Object;"))){
-	            //System.out.println("Warning: DalvikClass " + this.getType() + " has no superClass. Set ot Ljava/lang/Object; by default");
 	            return new GeneralClass("Ljava/lang/Object;");
 	        }else{
 	            return null;
@@ -65,9 +69,12 @@ public class DalvikClass extends GeneralClass {
 	public Set<DalvikField> getExactFields(){
         return fields;
     }
-	public Set<DalvikMethod> getMethods(){
-		return methods;
+	public Collection<DalvikMethod> getMethods(){
+		return methods.values();
 	}
+    public DalvikMethod getMethod(int m){
+        return methods.get(m);
+    }	
 	public Set<DalvikClass> getChildClasses(){
 		return childClasses;
 	}

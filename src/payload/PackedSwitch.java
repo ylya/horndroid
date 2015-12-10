@@ -28,4 +28,7 @@ public class PackedSwitch {
     public int getC() {
         return c;
     }
+    public int getM(){
+        return m;
+    }
 }

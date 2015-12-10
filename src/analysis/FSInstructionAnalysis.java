@@ -11,6 +11,7 @@ import Dalvik.DalvikMethod;
 import debugging.QUERY_TYPE;
 import horndroid.options;
 
+import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,7 @@ import org.jf.dexlib2.iface.reference.Reference;
 import payload.ArrayData;
 import payload.PackedSwitch;
 import payload.SparseSwitch;
+import util.CMPair;
 import util.Utils;
 import z3.*;
 
@@ -140,7 +142,7 @@ public class FSInstructionAnalysis{
         }
     }
     
-    public void CreateHornClauses(options options){
+    public void CreateHornClauses(options options, Set<AbstractMap.SimpleEntry<String,String>> apkClassesMethods){
         boolean superBool = false;
         Integer staticFieldClassName;
         Map<DalvikClass, DalvikMethod> staticDefinitions = new ConcurrentHashMap<DalvikClass, DalvikMethod>();
@@ -199,7 +201,7 @@ public class FSInstructionAnalysis{
         BoolExpr returnLabel;
 
         
-        if (options.debug){
+        if ((options.debug) && apkClassesMethods.contains(new AbstractMap.SimpleEntry<String,String>(className, methodName)) && !methodName.contains("Landroid")){
            BoolExpr h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
            for (int i = 0; i < this.numRegLoc; i++){
                BoolExpr h1 = fsengine.and(fsvar.getH(i),h);

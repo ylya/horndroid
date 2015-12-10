@@ -22,4 +22,7 @@ public class ArrayData {
     public int getC() {
         return c;
     }
+    public int getM(){
+        return m;
+    }
 }

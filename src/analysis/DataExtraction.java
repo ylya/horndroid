@@ -114,24 +114,9 @@ public class DataExtraction {
         }
     }
     
-    public void collectDataFromApk(final List<? extends ClassDef> classDefs) {
-        ConcurrentHashMap<Integer,ClassDef> classDefsMap = new ConcurrentHashMap<Integer,ClassDef>();
-        for (ClassDef classDef : classDefs){
-            classDefsMap.put(classDef.getType().hashCode(),classDef);
-        }
-        
-        for (final ClassDef classDef: classDefsMap.values()) {
-            if (!classDef.getType().contains("Landroid")){
-                DalvikClass c = collectDataFromClass(classDefsMap, classDef);
-                classes.put(c.getType().hashCode(),c);
-            }
-        }
-        System.out.println("Number of classes loaded: " + classes.size());
-        formClassStructure();
-    }    
 
 
-    public void collectDataFromStandard(final List<? extends ClassDef> classDefs) {
+    public void collectData(final List<? extends ClassDef> classDefs) {
         ConcurrentHashMap<Integer,ClassDef> classDefsMap = new ConcurrentHashMap<Integer,ClassDef>();
         for (ClassDef classDef : classDefs){
             classDefsMap.put(classDef.getType().hashCode(),classDef);

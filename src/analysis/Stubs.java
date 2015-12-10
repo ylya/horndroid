@@ -64,7 +64,7 @@ public class Stubs {
         }
         List<? extends ClassDef> classDefs = Ordering.natural().sortedCopy(dexFile.getClasses());
         DataExtraction de = new DataExtraction(classes, instances, arrayDataPayload, packedSwitchPayload, sparseSwitchPayload, staticConstructor, constStrings, new HashSet<Integer>());
-        de.collectDataFromStandard(classDefs);
+        de.collectData(classDefs);
     }
     public Map<Integer,GeneralClass> getClasses() {
         return classes;

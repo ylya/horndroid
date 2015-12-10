@@ -11,6 +11,7 @@ import Dalvik.DalvikMethod;
 import debugging.QUERY_TYPE;
 import horndroid.options;
 
+import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -36,6 +37,7 @@ import org.jf.dexlib2.iface.reference.Reference;
 import payload.ArrayData;
 import payload.PackedSwitch;
 import payload.SparseSwitch;
+import util.CMPair;
 import util.Utils;
 import z3.*;
 
@@ -58,7 +60,7 @@ public class InstructionAnalysis {
 		this.m = dm.getName().hashCode();
 		this.codeAddress = codeAddress;
 	}
-	public void CreateHornClauses(options options){
+	public void CreateHornClauses(options options, Set<AbstractMap.SimpleEntry<String,String>> apkClassesMethods){
 		boolean modRes;
 		Integer staticFieldClassName;
 		Set<DalvikImplementation> implementations = Collections.newSetFromMap(new ConcurrentHashMap<DalvikImplementation, Boolean>());
@@ -124,7 +126,7 @@ public class InstructionAnalysis {
         Map<Integer, BoolExpr> regUpdateB = new HashMap<>();
         
         
-        if (options.debug){
+        if ((options.debug) && apkClassesMethods.contains(new AbstractMap.SimpleEntry<String,String>(className, methodName)) && !methodName.contains("Landroid")){
             BoolExpr h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
             for (int i = 0; i < numRegLoc; i++){
                 BoolExpr h1 = h;
