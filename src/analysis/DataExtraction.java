@@ -105,10 +105,10 @@ public class DataExtraction {
                     if (cs instanceof DalvikClass && !(ic instanceof DalvikClass)){
                         interfaces.remove(ic);
                         interfaces.add(cs);
-                        cd.putInterfaces(interfaces);
                     }
                 }
-
+                cd.putInterfaces(interfaces);
+                
                 instances.changeType(cd);
             }
         }

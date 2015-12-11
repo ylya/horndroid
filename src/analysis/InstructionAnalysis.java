@@ -11,13 +11,11 @@ import Dalvik.DalvikMethod;
 import debugging.QUERY_TYPE;
 import horndroid.options;
 
-import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.jf.dexlib2.iface.instruction.FiveRegisterInstruction;
 import org.jf.dexlib2.iface.instruction.Instruction;
@@ -36,6 +34,7 @@ import org.jf.dexlib2.iface.reference.Reference;
 import payload.ArrayData;
 import payload.PackedSwitch;
 import payload.SparseSwitch;
+import util.StringPair;
 import util.Utils;
 import z3.*;
 
@@ -67,11 +66,8 @@ public class InstructionAnalysis {
     int nextCode;
 
     private String referenceStringClass;
-    private String referenceStringClassIndex;
 
-    private String referenceIndex;
     private String returnType;
-    private int returnTypeInt;
 
 
     private int referenceClassIndex;
@@ -94,27 +90,17 @@ public class InstructionAnalysis {
         this.m = dm.getName().hashCode();
         this.codeAddress = codeAddress;
     }
-    public void CreateHornClauses(options options, Set<AbstractMap.SimpleEntry<String,String>> apkClassesMethods){
-        boolean modRes;
+    public void CreateHornClauses(options options, Set<StringPair> apkClassesMethods){
         Integer staticFieldClassName;
-        Set<DalvikImplementation> implementations = Collections.newSetFromMap(new ConcurrentHashMap<DalvikImplementation, Boolean>());
-        Map<DalvikClass, DalvikMethod> staticDefinitions = new ConcurrentHashMap<DalvikClass, DalvikMethod>();
         DalvikMethod dmc;
         final int size = analysis.getSize();
-        int referenceReg;
-        boolean isDefined;
         int instanceNum;
         callReturns = false;
-        int numRegCall;
-        int numArgCall;
         referenceStringClass = null;
-        referenceStringClassIndex = null;
         returnType = null;
-        returnTypeInt = 0;
         referenceClassIndex = -1;
         referenceIntIndex = -1;
         referenceString = null;
-        referenceIndex = null;
 
         nextCode = codeAddress + instruction.getCodeUnits();
 
@@ -127,20 +113,16 @@ public class InstructionAnalysis {
             if (reference instanceof FieldReference) {
                 referenceStringClass = ((FieldReference) reference).getDefiningClass();
                 referenceClassIndex = referenceStringClass.hashCode();
-                referenceStringClassIndex = Utils.Dec(referenceClassIndex);
             }
             else
                 if (reference instanceof MethodReference){
                     referenceStringClass = ((MethodReference) reference).getDefiningClass();
                     referenceClassIndex = referenceStringClass.hashCode();
-                    referenceStringClassIndex = Utils.Dec(referenceClassIndex);
                     returnType = ((MethodReference) reference).getReturnType();
-                    returnTypeInt = returnType.hashCode();
                     if (returnType.equals((String) "V")) callReturns = false;
                     else callReturns = true;
                 }
             referenceIntIndex = referenceString.hashCode();
-            referenceIndex = Utils.Dec(referenceIntIndex);
         }
         methodName = dm.getName();
         className = dc.getType();
@@ -148,12 +130,11 @@ public class InstructionAnalysis {
         classIndex = Utils.Dec(c);
         numRegLoc = dm.getNumReg();
         numParLoc = dm.getNumArg();
-        BoolExpr returnLabel;
         regUpdate = new HashMap<>();
         regUpdateL = new HashMap<>();
         regUpdateB = new HashMap<>();       
         
-        if ((options.debug) && apkClassesMethods.contains(new AbstractMap.SimpleEntry<String,String>(className, methodName)) && !methodName.contains("Landroid")){
+        if ((options.debug) && apkClassesMethods.contains(new StringPair(className, methodName))){
             BoolExpr h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
             for (int i = 0; i < numRegLoc; i++){
                 BoolExpr h2 = z3engine.and(var.getL(i),h);
@@ -1044,715 +1025,75 @@ public class InstructionAnalysis {
                     var.getB(((OneRegisterInstruction)instruction).getRegisterA()));
             buildRule();
             break;//((short)0x6d, "sput-short", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
-
-
-        case INVOKE_VIRTUAL:
         case INVOKE_SUPER:
-            //TODO: should only look for the super implementation. CF What is done is FS analysis
+        {
+            DalvikImplementation implementation = analysis.getSuperImplementation(referenceClassIndex, referenceIntIndex);
+                        
+            this.directInvoke(z3engine.mkTrue(), implementation.getDalvikClass(), implementation.getMethod(), false);
+        }
+        break;
+
+            /*
+             * Should be handled like invoke_virtual:
+             * "invoke-interface is used to invoke an interface method, that is, 
+             * on an object whose concrete class isn't known, using a method_id 
+             * that refers to an interface."
+             * Source : https://source.android.com/devices/tech/dalvik/dalvik-bytecode.html
+             */
         case INVOKE_INTERFACE:
+        case INVOKE_VIRTUAL:
+        {
+            Map<Integer,DalvikImplementation> implementations = analysis.getVirtualImplementations(referenceClassIndex, referenceIntIndex);
+            
+            int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
+            this.invokeImpKnown(referenceReg, implementations, false);
+        }
+        break;
 
-            modRes = false;
-            if ((referenceIntIndex == "execute(Ljava/lang/Runnable;)V".hashCode()) && (referenceClassIndex == "Ljava/util/concurrent/ExecutorService;".hashCode())){
-                implementations = analysis.getImplementations("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode());
-                if (implementations == null){
-                    analysis.putNotImpl("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode());
-                }
-                else{
-                    analysis.putImplemented("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode(), implementations);
-                }
-                modRes = true;
-            }
-            if (referenceIntIndex == "start()V".hashCode()){
-                implementations = analysis.getImplementations(referenceClassIndex, "run()V".hashCode());
-                if (implementations == null){
-                    analysis.putNotImpl(referenceClassIndex, "run()V".hashCode());
-                }
-                else{
-                    analysis.putImplemented(referenceClassIndex, "run()V".hashCode(), implementations);
-                }
-                modRes = true;
-            }
-            if (referenceIntIndex == "execute([Ljava/lang/Object;)Landroid/os/AsyncTask;".hashCode()){
-                implementations = analysis.getImplementations(referenceClassIndex, "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode());
-                if (implementations == null){
-                    analysis.putNotImpl(referenceClassIndex, "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode());
-                }
-                else{
-                    analysis.putImplemented(referenceClassIndex, "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode(), implementations);
-                }
-                modRes = true;
-            }
-            if (!modRes){
-                implementations = analysis.getImplementations(referenceClassIndex, referenceIntIndex);
-                if (implementations == null){
-                    analysis.putNotImpl(referenceClassIndex, referenceIntIndex);
-                }
-                else{
-                    analysis.putImplemented(referenceClassIndex, referenceIntIndex, implementations);
-                }
-            }
+        case INVOKE_SUPER_RANGE:
+        {
+            DalvikImplementation implementation = analysis.getSuperImplementation(referenceClassIndex, referenceIntIndex);
+                        
+            this.directInvoke(z3engine.mkTrue(), implementation.getDalvikClass(), implementation.getMethod(), true);
+        }
+        break;
+            
+        case INVOKE_VIRTUAL_RANGE:
 
-            isDefined = (implementations != null);
-
-
-            FiveRegisterInstruction instr = (FiveRegisterInstruction)this.instruction;
-            if (isDefined){
-                for (final DalvikImplementation di : implementations){
-                    numRegCall = di.getMethod().getNumReg();
-                    numArgCall = di.getMethod().getNumArg();
-                    if (analysis.isSink(className, methodName,di.getDalvikClass().getType().hashCode(), referenceIntIndex))
-                        addQuery(z3engine, z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                                className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
-                    referenceReg = instr.getRegisterC();
-
-                    for (final DalvikInstance instance: di.getInstances()){
-                        h = z3engine.and(
-                                z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                                z3engine.eq(
-                                        var.getV(referenceReg),
-                                        z3engine.mkBitVector(instance.hashCode(), size)
-                                        )
-                                );
-
-
-
-                        regUpdate = updateRegister(numRegCall, numArgCall, BitVecExpr.class, var.getInjectV(var), false);
-                        regUpdateL = updateRegister(numRegCall, numArgCall, BoolExpr.class, var.getInjectL(var), false);
-                        regUpdateB = updateRegister(numRegCall, numArgCall, BoolExpr.class, var.getInjectB(var), false);
-
-                        b = z3engine.rInvokePred(Integer.toString(di.getDalvikClass().getType().hashCode()), Integer.toString(di.getMethod().getName().hashCode()), 0,
-                                regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, size);
-
-                        buildRule();
-
-
-                        regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
-                    }
-
-                    if (callReturns){
-                        for (final DalvikInstance instance: di.getInstances()){
-                            BoolExpr subh = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                            regUpdate = updateResult(numRegCall, numArgCall, BitVecExpr.class, var.getInjectV(var), false);
-                            regUpdateL = updateResult(numRegCall, numArgCall, BoolExpr.class, var.getInjectL(var), false);
-                            regUpdateB = updateResult(numRegCall, numArgCall, BoolExpr.class, var.getInjectB(var), false);
-                            regUpdate.put(numArgCall, var.getRez());
-                            regUpdateL.put(numArgCall, var.getLrez());
-                            regUpdateB.put(numArgCall, var.getBrez());
-                            h = z3engine.and(
-                                    subh,
-                                    z3engine.resPred(Integer.toString(di.getDalvikClass().getType().hashCode()), Integer.toString(referenceIntIndex), regUpdate, regUpdateL, regUpdateB, numArgCall),
-                                    z3engine.eq(
-                                            var.getV(referenceReg),
-                                            z3engine.mkBitVector(instance.hashCode(), size)
-                                            )
-                                    );
-
-                            regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
-
-                            returnLabel = analysis.isSource(className, methodName, di.getDalvikClass().getType().hashCode(), referenceIntIndex)
-                                    ? z3engine.mkTrue()
-                                            : var.getLrez();
-                                    if (callReturns) {
-                                        regUpdate.put(numRegLoc, var.getRez());
-                                        regUpdateL.put(numRegLoc, returnLabel);
-                                    }
-                                    buildB();
-
-                                    buildRule();
-
-                                    regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
-                        }
-                    } else {
-                        buildH();
-
-                        regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
-
-                        returnLabel = analysis.isSource(className, methodName,di.getDalvikClass().getType().hashCode(), referenceIntIndex)
-                                ? z3engine.mkTrue()
-                                        : var.getLrez();
-                                if (callReturns) {
-                                    regUpdate.put(numRegLoc, var.getRez());
-                                    regUpdateL.put(numRegLoc, returnLabel);
-                                }
-                                buildB();
-                                buildRule();
-
-                                regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
-                    }
-
-                }
-            } else {
-                if (analysis.isSink(className, methodName,referenceClassIndex, referenceIntIndex)){
-                    addQuery(z3engine, z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                            className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
-                }
-                if (processIntent(z3engine, c, m, numParLoc, numRegLoc, nextCode, referenceClassIndex, referenceIntIndex, referenceString, size))
-                    break;
-                numRegCall = instr.getRegisterCount();
-
-                BoolExpr subh = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-
-                returnLabel = analysis.isSource(className, methodName,referenceClassIndex, referenceIntIndex)
-                        ? z3engine.mkTrue()
-                                : getLabels();
-
-                        if (returnType.hashCode() == "Ljava/lang/String;".hashCode()){
-                            regUpdate.put(numRegLoc, var.getF());
-                            regUpdateL.put(numRegLoc, returnLabel);
-                            regUpdateB.put(numRegLoc, z3engine.mkTrue());
-                        } else {
-                            if ((returnType.charAt(0) != '[') && (returnType.charAt(returnType.length() -1) == ';' )){
-                                instanceNum = analysis.getInstNum(c, m, codeAddress);
-
-                                fields = analysis.getClassFields(returnType, instanceNum);
-
-                                if (fields != null)
-                                    for (Map.Entry<Integer, Boolean> fieldN : fields.entrySet()){
-                                        buildH();
-                                        b = z3engine.hPred(z3engine.mkBitVector(returnTypeInt, size),
-                                                var.getFpp(), z3engine.mkBitVector(fieldN.getKey(), size),
-                                                var.getVfp(), returnLabel, z3engine.mkBool(fieldN.getValue()));
-                                        buildRule();
-                                    }
-                                else{
-                                    buildH();
-                                    b = z3engine.hPred(z3engine.mkBitVector(returnTypeInt, size),
-                                            var.getFpp(), var.getF(), var.getVfp(), returnLabel, var.getBf());
-                                    buildRule();
-                                }
-                                regUpdate.put(numRegLoc, var.getFpp());
-                                regUpdateL.put(numRegLoc, returnLabel);
-                                regUpdateB.put(numRegLoc, z3engine.mkTrue());
-                            } else {
-                                switch (returnType){
-                                case "V": break;
-
-                                case "Z": case "B": case "S": case "C": case "I": case "J": case "F": case "D":
-                                    regUpdate.put(numRegLoc, var.getF());
-                                    regUpdateL.put(numRegLoc, returnLabel);
-                                    regUpdateB.put(numRegLoc, z3engine.mkFalse());
-                                    break;
-                                default: //array
-                                    instanceNum = analysis.getInstNum(c, m, codeAddress);
-                                    buildH();
-                                    b = z3engine.hPred(z3engine.mkBitVector(returnTypeInt, size),
-                                            z3engine.mkBitVector(instanceNum, size),
-                                            var.getF(), var.getBuf(), returnLabel, var.getBf());
-                                    buildRule();
-                                    regUpdate.put(numRegLoc, z3engine.mkBitVector(instanceNum, size));
-                                    regUpdateL.put(numRegLoc, returnLabel);
-                                    regUpdateB.put(numRegLoc, z3engine.mkTrue());
-
-                                }
-                            }
-                        }
-                        regUpdateL = highReg(false, regUpdateL, z3engine);
-
-                        BoolExpr subb = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                        z3engine.addRule(z3engine.implies(subh, subb), null);
-            }
-            break;
-
-
+            /*
+             * Should be handled like invoke_virtual:
+             * "invoke-interface is used to invoke an interface method, that is, 
+             * on an object whose concrete class isn't known, using a method_id 
+             * that refers to an interface."
+             * Source : https://source.android.com/devices/tech/dalvik/dalvik-bytecode.html
+             */
+        case INVOKE_INTERFACE_RANGE:
+        {
+            Map<Integer,DalvikImplementation> implementations = analysis.getVirtualImplementations(referenceClassIndex, referenceIntIndex);
+                        
+            int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
+            this.invokeImpKnown(referenceReg, implementations, true);
+        }
+        break;
+            
+            
         case INVOKE_DIRECT:
         case INVOKE_STATIC:
-            //we do a resolution on thread init, not on thread start, as at thread start the class information is lost
-            //(it is stored somewhere in the thread class by the operating system, we can also simulate that storing class name somewhere).
-            //on the other hand, if one initializes the thread and never spawns it? rare
-            //JavaThread2 for the reference
-            if ((referenceIntIndex == "<init>(Ljava/lang/Runnable;)V".hashCode()) && (referenceClassIndex == "Ljava/lang/Thread;".hashCode())){
-                implementations = analysis.getImplementations("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode());
-                isDefined = !implementations.isEmpty();
-                FiveRegisterInstruction instr2 = (FiveRegisterInstruction)this.instruction;
-                if (isDefined){
-                    for (final DalvikImplementation di : implementations){
-                        numRegCall = di.getMethod().getNumReg();
+        {
+            DalvikImplementation implementation = analysis.getDirectImplementation(referenceClassIndex, referenceIntIndex);
 
-                        for (final DalvikInstance instance: di.getInstances()){
-                            h = z3engine.and(
-                                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                                    z3engine.eq(
-                                            var.getV(instr2.getRegisterD()),
-                                            z3engine.mkBitVector(instance.hashCode(), size)
-                                            )
-                                    );
-                            numArgCall = di.getMethod().getNumArg();
-
-                            regUpdate.put(numRegCall - numArgCall + 0, var.getV(instr2.getRegisterD()));
-                            regUpdate.put(numRegCall + 1 + 0, var.getV(instr2.getRegisterD()));
-                            regUpdateL.put(numRegCall - numArgCall + 0, var.getL(instr2.getRegisterD()));
-                            regUpdateL.put(numRegCall + 1 + 0, var.getL(instr2.getRegisterD()));
-                            regUpdateB.put(numRegCall - numArgCall + 0, var.getB(instr2.getRegisterD()));
-                            regUpdateB.put(numRegCall + 1 + 0, var.getB(instr2.getRegisterD()));
-                            b = z3engine.rInvokePred(
-                                    Integer.toString(di.getDalvikClass().getType().hashCode()),
-                                    Integer.toString("run()V".hashCode()),
-                                    0, regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, size
-                                    );
-                            buildRule();
-
-                            regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
-                        }
-
-                        break;
-                    }
-                }
-            }
-
-            staticDefinitions = analysis.isDefined(referenceClassIndex, referenceIntIndex);
-            isDefined = staticDefinitions != null;
-            if (!isDefined) analysis.putNotDefined(referenceClassIndex, referenceIntIndex);
-            else analysis.putDefined(referenceClassIndex, referenceIntIndex, staticDefinitions);
-            if (isDefined){
-                for (final Map.Entry<DalvikClass, DalvikMethod> definition: staticDefinitions.entrySet()){
-                    numRegCall = definition.getValue().getNumReg();
-                    numArgCall = definition.getValue().getNumArg();
-                    if (analysis.isSink(className, methodName,referenceClassIndex, referenceIntIndex))
-                        addQuery(z3engine, z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                                className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
-                    regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
-
-                    buildH();
-                    regUpdate = updateRegister(numRegCall, numArgCall, BitVecExpr.class, var.getInjectV(var), false);
-                    regUpdateL = updateRegister(numRegCall, numArgCall, BoolExpr.class, var.getInjectL(var), false);
-                    regUpdateB = updateRegister(numRegCall, numArgCall, BoolExpr.class, var.getInjectB(var), false);
-                    b = z3engine.rInvokePred(referenceStringClassIndex, referenceIndex, 0, regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, size);
-                    buildRule();
-
-                    regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
-
-                    if (callReturns){
-                        BoolExpr subh = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                        regUpdate = updateResult(numRegCall, numArgCall, BitVecExpr.class, var.getInjectV(var), false);
-                        regUpdateL = updateResult(numRegCall, numArgCall, BoolExpr.class, var.getInjectL(var), false);
-                        regUpdateB = updateResult(numRegCall, numArgCall, BoolExpr.class, var.getInjectB(var), false);
-                        regUpdate.put(numArgCall, var.getRez());
-                        regUpdateL.put(numArgCall, var.getLrez());
-                        regUpdateB.put(numArgCall, var.getBrez());
-                        h = z3engine.and(
-                                subh,
-                                z3engine.resPred(referenceStringClassIndex, referenceIndex, regUpdate, regUpdateL, regUpdateB, numArgCall)
-                                );
-                    } else {
-                        buildH();
-                    }
-
-                    regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
-
-                    returnLabel = analysis.isSource(className, methodName,referenceClassIndex, referenceIntIndex)
-                            ? z3engine.mkTrue()
-                                    : var.getLrez();
-                            if (callReturns) {
-                                regUpdate.put(numRegLoc, var.getRez());
-                                regUpdateL.put(numRegLoc, returnLabel);
-                            }
-
-                            buildB();
-                            buildRule();
-                            regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
-                }
-            } else {
-                if (analysis.isSink(className, methodName,referenceClassIndex, referenceIntIndex))
-                    addQuery(z3engine, z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                            className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
-                if (processIntent(z3engine, c, m, numParLoc, numRegLoc, nextCode, referenceClassIndex, referenceIntIndex, referenceString, size))
-                    break;
-
-                BoolExpr subh = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-
-
-                returnLabel = analysis.isSource(className, methodName,referenceClassIndex, referenceIntIndex)
-                        ? z3engine.mkTrue()
-                                : getLabels();
-
-                        if (returnType.equals("Ljava/lang/String;")){
-                            regUpdate.put(numRegLoc, var.getF());
-                            regUpdateL.put(numRegLoc, returnLabel);
-                            regUpdateB.put(numRegLoc, z3engine.mkTrue());
-                        } else {
-                            if ((returnType.charAt(0) != '[') && (returnType.charAt(returnType.length() -1) == ';' )){
-                                instanceNum = analysis.getInstNum(c, m, codeAddress);
-                                fields = analysis.getClassFields(returnType, instanceNum);
-                                if (fields != null)
-                                    for (Map.Entry<Integer, Boolean> fieldN : fields.entrySet()){
-                                        buildH();
-                                        b = z3engine.hPred(z3engine.mkBitVector(returnTypeInt, size), var.getFpp(),
-                                                z3engine.mkBitVector(fieldN.getKey(), size), var.getVfp(),
-                                                returnLabel, z3engine.mkBool(fieldN.getValue()));
-                                        buildRule();
-                                    } else {
-                                        buildH();
-                                        b = z3engine.hPred(z3engine.mkBitVector(returnTypeInt, size),
-                                                var.getFpp(), var.getF(), var.getVfp(), returnLabel, var.getBf());
-                                        buildRule();
-                                    }
-                                regUpdate.put(numRegLoc, var.getFpp());
-                                regUpdateL.put(numRegLoc, returnLabel);
-                                regUpdateB.put(numRegLoc, z3engine.mkTrue());
-                            } else {
-                                switch (returnType){
-                                case "V": break;
-                                case "Z": case "B": case "S": case "C": case "I": case "J": case "F": case "D":
-                                    regUpdate.put(numRegLoc, var.getF());
-                                    regUpdateL.put(numRegLoc, returnLabel);
-                                    regUpdateB.put(numRegLoc, z3engine.mkFalse());
-                                    break;
-                                default: //array
-                                    instanceNum = analysis.getInstNum(c, m, codeAddress);
-
-                                    buildH();
-                                    b = z3engine.hPred(z3engine.mkBitVector(returnTypeInt, size),
-                                            z3engine.mkBitVector(instanceNum, size), var.getF(),
-                                            var.getBuf(), returnLabel, var.getBf());
-                                    buildRule();
-
-                                    regUpdate.put(numRegLoc, z3engine.mkBitVector(instanceNum, size));
-                                    regUpdateL.put(numRegLoc, returnLabel);
-                                    regUpdateB.put(numRegLoc, z3engine.mkTrue());
-
-                                }
-                            }
-                        }
-                        regUpdateL = highReg(false, regUpdateL, z3engine);
-                        BoolExpr subb = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                        z3engine.addRule(z3engine.implies(subh, subb), null);
-            }
-            break;
-            //((short)0x6e, "invoke-virtual", ReferenceType.METHOD, Format.Format35c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_RESULT),
-
-
-        case INVOKE_VIRTUAL_RANGE:
-        case INVOKE_SUPER_RANGE:
-            //TODO: should only look for the super implementation. CF What is done is FS analysis
-        case INVOKE_INTERFACE_RANGE:
-
-            modRes = false;
-            if ((referenceIntIndex == "execute(Ljava/lang/Runnable;)V".hashCode()) && (referenceClassIndex == "Ljava/util/concurrent/ExecutorService;".hashCode())){
-                implementations = analysis.getImplementations("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode());
-                if (implementations == null){
-                    analysis.putNotImpl("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode());
-                }
-                else{
-                    analysis.putImplemented("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode(), implementations);
-                }
-                modRes = true;
-            }
-            if (referenceIntIndex == "start()V".hashCode()){
-                implementations = analysis.getImplementations(referenceClassIndex, "run()V".hashCode());
-                if (implementations == null){
-                    analysis.putNotImpl(referenceClassIndex, "run()V".hashCode());
-                }
-                else{
-                    analysis.putImplemented(referenceClassIndex, "run()V".hashCode(), implementations);
-                }
-                modRes = true;
-            }
-            if (referenceIntIndex == "execute([Ljava/lang/Object;)Landroid/os/AsyncTask;".hashCode()){
-                implementations = analysis.getImplementations(referenceClassIndex, "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode());
-                if (implementations == null){
-                    analysis.putNotImpl(referenceClassIndex, "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode());
-                }
-                else{
-                    analysis.putImplemented(referenceClassIndex, "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode(), implementations);
-                }
-                modRes = true;
-            }
-
-            if (!modRes){
-                implementations = analysis.getImplementations(referenceClassIndex, referenceIntIndex);
-                if (implementations == null){
-                    analysis.putNotImpl(referenceClassIndex, referenceIntIndex);
-                }
-                else{
-                    analysis.putImplemented(referenceClassIndex, referenceIntIndex, implementations);
-                }
-            }
-
-            isDefined = (implementations != null);
-            if (implementations != null){
-                isDefined = true;
-            }
-            RegisterRangeInstruction instr3 = (RegisterRangeInstruction)this.instruction;
-            if (isDefined){
-                for (final DalvikImplementation di : implementations){
-
-                    numRegCall = di.getMethod().getNumReg();
-                    numArgCall = di.getMethod().getNumArg();
-                    if (analysis.isSink(className, methodName,di.getDalvikClass().getType().hashCode(), referenceIntIndex))
-                        addQueryRange(analysis.optionVerbose());
-                    referenceReg = instr3.getStartRegister();
-
-                    for (final DalvikInstance instance: di.getInstances()){
-                        h = z3engine.and(
-                                z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                                z3engine.eq(
-                                        var.getV(referenceReg),
-                                        z3engine.mkBitVector(instance.hashCode(), size)
-                                        )
-                                );
-
-                        regUpdate = updateRegister(numRegCall, numArgCall, BitVecExpr.class, var.getInjectV(var), true);
-                        regUpdateL = updateRegister(numRegCall, numArgCall, BoolExpr.class, var.getInjectL(var), true);
-                        regUpdateB = updateRegister(numRegCall, numArgCall, BoolExpr.class, var.getInjectB(var), true);
-
-                        b = z3engine.rInvokePred(Integer.toString(di.getDalvikClass().getType().hashCode()), Integer.toString(di.getMethod().getName().hashCode()), 0,
-                                regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, size);
-
-                        buildRule();
-
-                        regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
-                    }
-
-                    if (callReturns){
-                        for (final DalvikInstance instance: di.getInstances()){
-                            BoolExpr temph = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                            regUpdate = updateResult(numRegCall, numArgCall, BitVecExpr.class, var.getInjectV(var), true);
-                            regUpdateL = updateResult(numRegCall, numArgCall, BoolExpr.class,var.getInjectL(var), true);
-                            regUpdateB = updateResult(numRegCall, numArgCall, BoolExpr.class, var.getInjectB(var), true);
-                            regUpdate.put(numArgCall, var.getRez());
-                            regUpdateL.put(numArgCall, var.getLrez());
-                            regUpdateB.put(numArgCall, var.getBrez());
-                            h = z3engine.and(
-                                    temph,
-                                    z3engine.resPred(Integer.toString(di.getDalvikClass().getType().hashCode()), referenceIndex, regUpdate, regUpdateL, regUpdateB, numArgCall),
-                                    z3engine.eq(
-                                            var.getV(referenceReg),
-                                            z3engine.mkBitVector(instance.hashCode(), size)
-                                            )
-                                    );
-
-                            regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
-
-                            returnLabel = analysis.isSource(className, methodName,di.getDalvikClass().getType().hashCode(), referenceIntIndex)
-                                    ? z3engine.mkTrue()
-                                            : var.getLrez();
-
-                                    if (callReturns) {
-                                        regUpdate.put(numRegLoc, var.getRez());
-                                        regUpdateL.put(numRegLoc, returnLabel);
-                                    }
-                                    buildB();
-                                    buildRule();
-
-                                    regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
-                        }
-                    } else {
-                        buildH();
-
-                        regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
-
-                        returnLabel = analysis.isSource(className, methodName,di.getDalvikClass().getType().hashCode(), referenceIntIndex)
-                                ? z3engine.mkTrue()
-                                        : var.getLrez();
-                                if (callReturns) {
-                                    regUpdate.put(numRegLoc, var.getRez());
-                                    regUpdateL.put(numRegLoc, returnLabel);
-                                }
-                                buildB();
-                                buildRule();
-
-                                regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
-                    }
-
-                }
-            }
-            else{
-                if (analysis.isSink(className, methodName,referenceClassIndex, referenceIntIndex)){
-                    addQueryRange(analysis.optionVerbose());
-                }
-                if (processIntent(z3engine, c, m, numParLoc, numRegLoc, nextCode, referenceClassIndex, referenceIntIndex, referenceString, size))
-                    break;
-                numRegCall = instr3.getRegisterCount();
-
-                BoolExpr subh = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-
-                returnLabel = analysis.isSource(className, methodName, referenceClassIndex, referenceIntIndex)
-                        ? z3engine.mkTrue()
-                                : getLabelsRange();
-
-                        if (returnType.hashCode() == "Ljava/lang/String;".hashCode()){
-                            regUpdate.put(numRegLoc, var.getF());
-                            regUpdateL.put(numRegLoc, returnLabel);
-                            regUpdateB.put(numRegLoc, z3engine.mkTrue());
-                        }
-                        else{
-                            if ((returnType.charAt(0) != '[') && (returnType.charAt(returnType.length() -1) == ';' )){
-                                instanceNum = analysis.getInstNum(c, m, codeAddress);
-
-                                fields = analysis.getClassFields(returnType, instanceNum);
-
-                                if (fields != null)
-                                    for (Map.Entry<Integer, Boolean> fieldN : fields.entrySet()){
-                                        buildH();
-                                        b = z3engine.hPred(z3engine.mkBitVector(returnTypeInt, size),
-                                                var.getFpp(), z3engine.mkBitVector(fieldN.getKey(), size),
-                                                var.getVfp(), returnLabel, z3engine.mkBool(fieldN.getValue()));
-                                        buildRule();
-                                    } else {
-                                        buildH();
-                                        b = z3engine.hPred(z3engine.mkBitVector(returnTypeInt, size),
-                                                var.getFpp(), var.getF(), var.getVfp(), returnLabel, var.getBf());
-                                        buildRule();
-                                    }
-                                regUpdate.put(numRegLoc, var.getFpp());
-                                regUpdateL.put(numRegLoc, returnLabel);
-                                regUpdateB.put(numRegLoc, z3engine.mkTrue());
-                            }
-                            else{
-                                switch (returnType){
-                                case "V": break;
-
-                                case "Z": case "B": case "S": case "C": case "I": case "J": case "F": case "D":
-                                    regUpdate.put(numRegLoc, var.getF());
-                                    regUpdateL.put(numRegLoc, returnLabel);
-                                    regUpdateB.put(numRegLoc, z3engine.mkFalse());
-                                    break;
-
-                                default: //array
-                                    instanceNum = analysis.getInstNum(c, m, codeAddress);
-                                    buildH();
-                                    b = z3engine.hPred(z3engine.mkBitVector(returnTypeInt, size),
-                                            z3engine.mkBitVector(instanceNum, size),
-                                            var.getF(), var.getBuf(), returnLabel, var.getBf());
-                                    buildRule();
-                                    regUpdate.put(numRegLoc, z3engine.mkBitVector(instanceNum, size));
-                                    regUpdateL.put(numRegLoc, returnLabel);
-                                    regUpdateB.put(numRegLoc, z3engine.mkTrue());
-                                }
-                            }
-                        }
-                        regUpdateL = highReg(true, regUpdateL, z3engine);
-                        BoolExpr subb = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                        z3engine.addRule(z3engine.implies(subh, subb), null);
-            }
-            break;
-
+            this.directInvoke(z3engine.mkTrue(), implementation.getDalvikClass(), implementation.getMethod(), false);
+        }
+        break;
 
         case INVOKE_DIRECT_RANGE:
         case INVOKE_STATIC_RANGE:
-            staticDefinitions = analysis.isDefined(referenceClassIndex, referenceIntIndex);
-            isDefined = staticDefinitions != null;
-            if (!isDefined) analysis.putNotDefined(referenceClassIndex, referenceIntIndex);
-            else analysis.putDefined(referenceClassIndex, referenceIntIndex, staticDefinitions);
-            if (isDefined){
-                for (final Map.Entry<DalvikClass, DalvikMethod> definition: staticDefinitions.entrySet()){
-                    numRegCall = definition.getValue().getNumReg();
-                    numArgCall = definition.getValue().getNumArg();
-                    if (analysis.isSink(className, methodName,referenceClassIndex, referenceIntIndex))
-                        addQueryRange(analysis.optionVerbose());
-
-                    regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
-
-                    buildH();
-
-
-                    regUpdate = updateRegister(numRegCall, numArgCall, BitVecExpr.class, var.getInjectV(var), true);
-                    regUpdateL = updateRegister(numRegCall, numArgCall, BoolExpr.class, var.getInjectL(var), true);
-                    regUpdateB = updateRegister(numRegCall, numArgCall, BoolExpr.class, var.getInjectB(var), true);
-
-                    b = z3engine.rInvokePred(referenceStringClassIndex, referenceIndex, 0, regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, size);
-
-                    buildRule();
-
-                    regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
-
-                    BoolExpr subh;
-
-                    if (callReturns){
-                        subh = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                        regUpdate = updateResult(numRegCall, numArgCall, BitVecExpr.class, var.getInjectV(var), true);
-                        regUpdateL = updateResult(numRegCall, numArgCall, BoolExpr.class, var.getInjectL(var), true);
-                        regUpdateB = updateResult(numRegCall, numArgCall, BoolExpr.class, var.getInjectB(var), true);
-                        regUpdate.put(numArgCall, var.getRez());
-                        regUpdateL.put(numArgCall, var.getLrez());
-                        regUpdateB.put(numArgCall, var.getBrez());
-                        subh = z3engine.and(
-                                subh,
-                                z3engine.resPred(referenceStringClassIndex, referenceIndex, regUpdate, regUpdateL, regUpdateB, numArgCall)
-                                );
-                    } else {
-                        subh = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                    }
-
-                    regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
-
-                    returnLabel = analysis.isSource(className, methodName,referenceClassIndex, referenceIntIndex)
-                            ? z3engine.mkTrue()
-                                    : var.getLrez();
-
-                            if (callReturns) {
-                                regUpdate.put(numRegLoc, var.getRez());
-                                regUpdateL.put(numRegLoc, returnLabel);
-                            }
-                            BoolExpr subb = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                            z3engine.addRule(z3engine.implies(subh, subb), null);
-                }
-            } else {
-                if (analysis.isSink(className, methodName,referenceClassIndex, referenceIntIndex))
-                    addQueryRange(analysis.optionVerbose());
-                if (processIntent(z3engine, c, m, numParLoc, numRegLoc, nextCode, referenceClassIndex, referenceIntIndex, referenceString, size))
-                    break;
-
-
-                BoolExpr subh = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-
-                returnLabel = analysis.isSource(className, methodName,referenceClassIndex, referenceIntIndex)
-                        ? z3engine.mkTrue()
-                                : getLabelsRange();
-
-                        if (returnType.equals((String)"Ljava/lang/String;")){
-                            regUpdate.put(numRegLoc, var.getF());
-                            regUpdateL.put(numRegLoc, returnLabel);
-                            regUpdateB.put(numRegLoc, z3engine.mkTrue());
-                        } else {
-                            if ((returnType.charAt(0) != '[') && (returnType.charAt(returnType.length() -1) == ';' )){
-                                instanceNum = analysis.getInstNum(c, m, codeAddress);
-                                fields = analysis.getClassFields(returnType, instanceNum);
-                                if (fields != null)
-                                    for (Map.Entry<Integer, Boolean> fieldN : fields.entrySet()){
-                                        buildH();
-                                        b = z3engine.hPred(z3engine.mkBitVector(returnTypeInt, size),
-                                                var.getFpp(), z3engine.mkBitVector(fieldN.getKey(), size),
-                                                var.getVfp(), returnLabel, z3engine.mkBool(fieldN.getValue()));
-                                        buildRule();
-
-                                    } else {
-                                        buildH();
-                                        b = z3engine.hPred(z3engine.mkBitVector(returnTypeInt, size),
-                                                var.getFpp(), var.getF(), var.getVfp(), returnLabel, var.getBf());
-                                        buildRule();
-                                    }
-                                regUpdate.put(numRegLoc, var.getFpp());
-                                regUpdateL.put(numRegLoc, returnLabel);
-                                regUpdateB.put(numRegLoc, z3engine.mkTrue());
-                            } else {
-                                switch (returnType){
-                                case "V": break;
-                                case "Z": case "B": case "S": case "C": case "I": case "J": case "F": case "D":
-                                    regUpdate.put(numRegLoc, var.getF());
-                                    regUpdateL.put(numRegLoc, returnLabel);
-                                    regUpdateB.put(numRegLoc, z3engine.mkFalse());
-                                    break;
-                                default: //array
-                                    instanceNum = analysis.getInstNum(c, m, codeAddress);
-
-                                    buildH();
-                                    b = z3engine.hPred(z3engine.mkBitVector(returnTypeInt, size), z3engine.mkBitVector(instanceNum, size),
-                                            var.getF(), var.getBuf(), returnLabel, var.getBf());
-                                    buildRule();
-                                    regUpdate.put(numRegLoc, z3engine.mkBitVector(instanceNum, size));
-                                    regUpdateL.put(numRegLoc, returnLabel);
-                                    regUpdateB.put(numRegLoc, z3engine.mkTrue());
-
-                                }
-                            }
-                        }
-                        regUpdateL = highReg(true, regUpdateL, z3engine);
-                        BoolExpr subb = z3engine.rPred(classIndex, methodIndex, nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                        z3engine.addRule(z3engine.implies(subh, subb), null);
-            }
-            break;//((short)0x74, "invoke-virtual/range", ReferenceType.METHOD, Format.Format3rc, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_RESULT),
-
+        {
+            DalvikImplementation implementation = analysis.getDirectImplementation(referenceClassIndex, referenceIntIndex);
+                        
+            this.directInvoke(z3engine.mkTrue(), implementation.getDalvikClass(), implementation.getMethod(), true);
+        }
+        break;
 
         case NEG_INT://((short)0x7b, "neg-int", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             BitVecExpr bv = z3engine.bvneg(regB(), Type.INT);
@@ -2546,7 +1887,8 @@ public class InstructionAnalysis {
     }
 
 
-
+    //TODO: should be removed
+    @SuppressWarnings("unused")
     private BoolExpr getLabels(){
         FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
         final int regCount = instruction.getRegisterCount();
@@ -2582,6 +1924,8 @@ public class InstructionAnalysis {
         }
     }
 
+    //TODO: should be removed
+    @SuppressWarnings("unused")
     private BoolExpr getLabelsRange(){
         RegisterRangeInstruction instruction = (RegisterRangeInstruction)this.instruction;
         int regCount = instruction.getRegisterCount();
@@ -2596,72 +1940,68 @@ public class InstructionAnalysis {
         }
         return z3engine.or(labels);
     }
-
-    private void addQueryRange(boolean verboseOption){
-        buildH();
-        String pc = Integer.toString(codeAddress);
-        String sinkName = referenceString;
-
+    private void addQueryRange(BoolExpr p, String className, String methodName, String pc, String sinkName, final boolean verboseOption){
         RegisterRangeInstruction instruction = (RegisterRangeInstruction)this.instruction;
         int regCount = instruction.getRegisterCount();
         int startRegister = instruction.getStartRegister();
-        int endRegister   =   startRegister+regCount-1;
+        int endRegister = startRegister+regCount-1;
 
         for (int reg = startRegister; reg <= endRegister; reg++ ){
             BoolExpr q = z3engine.and(
-                    h,
+                    p,
                     z3engine.eq(var.getL(reg), z3engine.mkTrue())
                     );
-
             String d = "Test if register " + Integer.toString(reg) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             z3engine.addQuery(new Z3Query(q, d, verboseOption, className, methodName, pc, sinkName));
         }
     }
 
-    private void addQuery(final Z3Engine z3, BoolExpr p, String className, String methodName, String pc, String sinkName, final boolean verboseResults){
-        Z3Variable var = z3.getVars();
+    private void addQuery(BoolExpr p, String className, String methodName, String pc, String sinkName, final boolean verboseResults){
         FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
         final int regCount = instruction.getRegisterCount();
 
         switch (regCount) {
         case 5:
-            BoolExpr q5 = z3.and(
+            BoolExpr q5 = z3engine.and(
                     p,
-                    z3.eq(var.getL(instruction.getRegisterG()), z3.mkTrue())
+                    z3engine.eq(var.getL(instruction.getRegisterG()), z3engine.mkTrue())
                     );
             String d5 = "Test if register " + Integer.toString(instruction.getRegisterG()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
-            z3.addQuery(new Z3Query(q5, d5, verboseResults, className, methodName, pc, sinkName));
+            z3engine.addQuery(new Z3Query(q5, d5, verboseResults, className, methodName, pc, sinkName));
         case 4:
-            BoolExpr q4 = z3.and(
+            BoolExpr q4 = z3engine.and(
                     p,
-                    z3.eq(var.getL(instruction.getRegisterF()), z3.mkTrue())
+                    z3engine.eq(var.getL(instruction.getRegisterF()), z3engine.mkTrue())
                     );
             String d4 = "Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
-            z3.addQuery(new Z3Query(q4, d4, verboseResults, className, methodName, pc, sinkName));
+            z3engine.addQuery(new Z3Query(q4, d4, verboseResults, className, methodName, pc, sinkName));
         case 3:
-            BoolExpr q3 = z3.and(
+            BoolExpr q3 = z3engine.and(
                     p,
-                    z3.eq(var.getL(instruction.getRegisterE()), z3.mkTrue())
+                    z3engine.eq(var.getL(instruction.getRegisterE()), z3engine.mkTrue())
                     );
             String d3 = "Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
-            z3.addQuery(new Z3Query(q3, d3, verboseResults, className, methodName, pc, sinkName));
+            z3engine.addQuery(new Z3Query(q3, d3, verboseResults, className, methodName, pc, sinkName));
         case 2:
-            BoolExpr q2 = z3.and(
+            BoolExpr q2 = z3engine.and(
                     p,
-                    z3.eq(var.getL(instruction.getRegisterD()), z3.mkTrue())
+                    z3engine.eq(var.getL(instruction.getRegisterD()), z3engine.mkTrue())
                     );
             String d2 = "Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
-            z3.addQuery(new Z3Query(q2, d2, verboseResults, className, methodName, pc, sinkName));
+            z3engine.addQuery(new Z3Query(q2, d2, verboseResults, className, methodName, pc, sinkName));
         case 1:
-            BoolExpr q1 = z3.and(
+            BoolExpr q1 = z3engine.and(
                     p,
-                    z3.eq(var.getL(instruction.getRegisterC()), z3.mkTrue())
+                    z3engine.eq(var.getL(instruction.getRegisterC()), z3engine.mkTrue())
                     );
             String d1 = "Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
-            z3.addQuery(new Z3Query(q1, d1, verboseResults, className, methodName, pc, sinkName));
+            z3engine.addQuery(new Z3Query(q1, d1, verboseResults, className, methodName, pc, sinkName));
         }
     }
 
+    
+    //TODO: should be removed
+    @SuppressWarnings("unused")
     private Map<Integer, BoolExpr> highReg(final boolean range, Map<Integer, BoolExpr> regUpdate, Z3Engine z3engine){
 
         if (! range){
@@ -2998,7 +2338,27 @@ public class InstructionAnalysis {
         return regUpdate;
     }
 
+    //TODO: move this to analysis.java
+    @SuppressWarnings("unused")
+    private Map<Integer,DalvikImplementation> getImplementationsSpecialCase(){
+        Boolean modRes = false;
+        if ((referenceIntIndex == "execute(Ljava/lang/Runnable;)V".hashCode()) && (referenceClassIndex == "Ljava/util/concurrent/ExecutorService;".hashCode())){
+            //implementations = analysis.getImplementations("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode());
+            modRes = true;
+        }
+        if (referenceIntIndex == "start()V".hashCode()){
+            //implementations = analysis.getImplementations(referenceClassIndex, "run()V".hashCode());
+            modRes = true;
+        }
+        if (referenceIntIndex == "execute([Ljava/lang/Object;)Landroid/os/AsyncTask;".hashCode()){
+            //implementations = analysis.getImplementations(referenceClassIndex, "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode());
+            modRes = true;
+        }
+        
+        return null;
+    }
 
+    @SuppressWarnings("unused")
     private boolean processIntent(final Z3Engine z3engine, final int ci, final int mi, final int numParLoc, final int numRegLoc, final int nextCode, final int c, final int m, final String shortMethodName,
             final int size){
 
@@ -3845,6 +3205,89 @@ public class InstructionAnalysis {
             return true;
         }
         return false;
+    }
+    
+    /*
+     * implementations: set of implementations of the invoked method
+     */
+    private void invokeImpKnown(final int referenceReg, final Map<Integer,DalvikImplementation> implementations, final Boolean range){
+        int size = analysis.getSize();
+        for (final Map.Entry<Integer, DalvikImplementation> entry : implementations.entrySet()){
+            DalvikImplementation di = entry.getValue();
+            for (final DalvikInstance instance: di.getInstances()){
+                //TODO: this can be improved by adding a predicate Class and doing Class(instance.hashcode(),classID) and Class(referenceReg,classID)  so has to share all this between invocation
+                BoolExpr precond = z3engine.eq(
+                                var.getV(referenceReg),
+                                z3engine.mkBitVector(instance.hashCode(), size)
+                                );
+                directInvoke(precond, di.getDalvikClass(), di.getMethod(), range);
+            }
+        }
+    }
+
+    
+    /*
+     * Invoke the method cInvoked,mInvoked with precondition 'precond'
+     */
+    private void directInvoke(BoolExpr precond, DalvikClass cInvoked, DalvikMethod mInvoked, Boolean range){
+        int size = analysis.getSize();      
+        
+        int numRegCall = mInvoked.getNumReg();
+        int numArgCall = mInvoked.getNumArg();
+        
+        String classInvokedStringName = Integer.toString(cInvoked.getType().hashCode());
+        String methodInvokedStringName = Integer.toString(mInvoked.getName().hashCode());
+        if (analysis.isSink(className,methodName,cInvoked.getType().hashCode(), mInvoked.getName().hashCode())){
+            if (range) {
+                addQueryRange(z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
+                        className, methodName, Integer.toString(codeAddress), mInvoked.getName(), analysis.optionVerbose());
+            }else{
+                addQuery(z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
+                        className, methodName, Integer.toString(codeAddress), mInvoked.getName(), analysis.optionVerbose());
+            }
+        }
+
+        regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
+
+        buildH();
+        h = z3engine.and(h,precond);
+        regUpdate = updateRegister(numRegCall, numArgCall, BitVecExpr.class, var.getInjectV(var), range);
+        regUpdateL = updateRegister(numRegCall, numArgCall, BoolExpr.class, var.getInjectL(var), range);
+        regUpdateB = updateRegister(numRegCall, numArgCall, BoolExpr.class, var.getInjectB(var), range);
+        b = z3engine.rInvokePred(classInvokedStringName, methodInvokedStringName, 0, regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, size);
+        buildRule();
+
+        regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
+
+        if (callReturns){
+            BoolExpr subh = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
+            regUpdate = updateResult(numRegCall, numArgCall, BitVecExpr.class, var.getInjectV(var), range);
+            regUpdateL = updateResult(numRegCall, numArgCall, BoolExpr.class, var.getInjectL(var), range);
+            regUpdateB = updateResult(numRegCall, numArgCall, BoolExpr.class, var.getInjectB(var), range);
+            regUpdate.put(numArgCall, var.getRez());
+            regUpdateL.put(numArgCall, var.getLrez());
+            regUpdateB.put(numArgCall, var.getBrez());
+            h = z3engine.and(
+                    precond,
+                    subh,
+                    z3engine.resPred(classInvokedStringName, methodInvokedStringName, regUpdate, regUpdateL, regUpdateB, numArgCall)
+                    );
+            regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
+
+            BoolExpr returnLabel = analysis.isSource(className,methodName,cInvoked.getType().hashCode(), mInvoked.getName().hashCode()) ? z3engine.mkTrue() : var.getLrez();
+            regUpdate.put(numRegLoc, var.getRez());
+            regUpdateL.put(numRegLoc, returnLabel);
+            regUpdateB.put(numRegLoc, var.getBrez());
+
+        } else {
+            buildH();
+            h = z3engine.and(precond,h);
+        }
+
+        buildB();
+        buildRule();
+        regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
+
     }
 
     private void buildH(){

@@ -25,8 +25,7 @@ public class Debug {
           }else{
               DalvikMethod dm = analysis.getExactMethod(c.hashCode(), m.hashCode());
               int numReg = dm.getNumReg() + 1;
-              int numPC = analysis.getImplementations(c.hashCode(), m.hashCode()).size();
-              MethodeInfo mi = new MethodeInfo(analysis,c,m,numReg,numPC);
+              MethodeInfo mi = new MethodeInfo(analysis,c,m,numReg);
               debug.get(c).put(m, mi);
               return mi;
           }
@@ -34,8 +33,7 @@ public class Debug {
             debug.put(c, new HashMap<String,MethodeInfo>());
             DalvikMethod dm = analysis.getExactMethod(c.hashCode(), m.hashCode());
             int numReg = dm.getNumReg() + 1;
-            int numPC = analysis.getImplementations(c.hashCode(), m.hashCode()).size();
-            MethodeInfo mi = new MethodeInfo(analysis,c,m,numReg,numPC);
+            MethodeInfo mi = new MethodeInfo(analysis,c,m,numReg);
             debug.get(c).put(m, mi);
             return mi;
         }

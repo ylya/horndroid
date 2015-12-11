@@ -33,10 +33,8 @@ import javax.annotation.Nonnull;
 
 
 import org.jf.dexlib2.iface.ClassDef;
-
 import org.jf.dexlib2.iface.instruction.Instruction;
 import org.jf.dexlib2.iface.instruction.ReferenceInstruction;
-
 import org.jf.dexlib2.iface.reference.FieldReference;
 import org.jf.dexlib2.iface.reference.MethodReference;
 import org.jf.dexlib2.iface.reference.Reference;
@@ -79,10 +77,6 @@ public class Analysis {
     final ExecutorService instructionExecutorService;
     private Set<CMPair> refSources;
     private Set<CMPair> refSinks;
-    private final Set<CMPair> isNotDefined;
-    private final Set<CMPair> isNotImpl;
-    final private Map<CMPair, Set<DalvikImplementation>> allImplementations;
-    final private Map<CMPair, Map<DalvikClass, DalvikMethod>> allDefinitions;
     
     @Nonnull private final Set<CMPair> methodIsEntryPoint;
     @Nonnull private final Set<Integer> staticConstructor;
@@ -98,7 +92,7 @@ public class Analysis {
     
     private Integer localHeapNumberEntries;
     private Integer localHeapSize;
-    private HashSet<AbstractMap.SimpleEntry<String, String>> apkClassesMethods;
+    private HashSet<StringPair> apkClassesMethods;
     
     public Analysis(final Z3Engine z3engine,final FSEngine fsengine, 
             final SourcesSinks sourcesSinks, final options options, final ExecutorService instructionExecutorService,
@@ -130,13 +124,8 @@ public class Analysis {
 
         this.refSources = new HashSet <CMPair>();
         this.refSinks = new HashSet <CMPair>();
-        this.apkClassesMethods = new HashSet<AbstractMap.SimpleEntry<String, String>>();
-        this.allImplementations = new ConcurrentHashMap <CMPair, Set<DalvikImplementation>>();
-        this.allDefinitions = new ConcurrentHashMap <CMPair, Map<DalvikClass, DalvikMethod>>();
-
-        this.isNotDefined = new HashSet <CMPair>();
-        this.isNotImpl = new HashSet <CMPair>();
-
+        this.apkClassesMethods = new HashSet<StringPair>();
+        
         this.overapprox.add("Landroid/content/ContentProvider;".hashCode());
         this.overapprox.add("Landroid/app/Service;".hashCode());
         this.overapprox.add("Landroid/content/BroadcastReceiver;".hashCode());
@@ -159,18 +148,6 @@ public class Analysis {
         
         this.methodIsEntryPoint = new HashSet<CMPair>();
         this.staticConstructor = new HashSet<Integer>();
-    }
-    public void putNotImpl(final int c, final int m){
-        isNotImpl.add(new CMPair(c, m));
-    }
-    public void putImplemented(final int c, final int m, final Set<DalvikImplementation> implementations){
-        allImplementations.put(new CMPair(c,  m), implementations);
-    }
-    public void putNotDefined(final int c, final int m){
-        isNotDefined.add(new CMPair(c, m));
-    }
-    public void putDefined(final int c, final int m, final Map <DalvikClass, DalvikMethod> definitions){
-        allDefinitions.put(new CMPair(c, m), definitions);
     }
     public  Set<Integer> getDisabledActivities(){
         return disabledActivities;
@@ -778,7 +755,8 @@ public class Analysis {
             for (Entry<DalvikClass,DalvikMethod> entry : cmMap.entrySet()){
                 CMPair cmp = new CMPair(entry.getKey().getType().hashCode(),entry.getValue().getName().hashCode());
                 if (!processCM.contains(cmp)){
-                    System.out.println("      " + entry.getKey().getType() + " " + entry.getValue().getName());
+                    //TODO: uncomment to get fetched methods
+                    //System.out.println("      " + entry.getKey().getType() + " " + entry.getValue().getName());
                     processCM.add(cmp);
                     pool.add(new SimpleEntry<GeneralClass,String>(entry.getKey(),entry.getValue().getName()));
                 }
@@ -809,37 +787,78 @@ public class Analysis {
 
             addClass(c,addedInPool);
 
-            //TODO:
-                if (c.getType().equals("Landroid/app/Activity;")){
-                }else{
-                    if (c instanceof DalvikClass){
-                        final DalvikClass dc = (DalvikClass) c;
-                        DalvikMethod m = dc.getMethod(mString.hashCode());
+            if (c instanceof DalvikClass){
+                final DalvikClass dc = (DalvikClass) c;
+                DalvikMethod m = dc.getMethod(mString.hashCode());
 
-                        // We look for classes and method in the instructions of m
-                        for (Instruction instruction : m.getInstructions()){
-                            if (instruction instanceof ReferenceInstruction) {
-                                Reference reference = ((ReferenceInstruction)instruction).getReference();
-                                if (reference instanceof FieldReference) {
-                                    int referenceClassIndex = ((FieldReference) reference).getDefiningClass().hashCode();
-                                    addClass(lazyUnion.get(referenceClassIndex),addedInPool);
-                                }
-                                else{
-                                    if (reference instanceof MethodReference){
-                                        String referenceString = Utils.getShortReferenceString(reference);
-                                        int referenceClassIndex = ((MethodReference) reference).getDefiningClass().hashCode();
-                                        Map<DalvikClass,DalvikMethod> cmMap = isDefined(lazyUnion,referenceClassIndex,referenceString.hashCode());
-                                        addClass(lazyUnion.get(referenceClassIndex),addedInPool);
-                                        if (cmMap != null){
-                                            System.out.println(c.getType() + " " + m.getName() + " " + m.getInstructions().size());
-                                        }
-                                        addToPool(lazyUnion,pool, processCM, cmMap);
+                // We look for classes and method in the instructions of m
+                for (Instruction instruction : m.getInstructions()){
+                    if (instruction instanceof ReferenceInstruction) {
+                        Reference reference = ((ReferenceInstruction)instruction).getReference();
+                        if (reference instanceof FieldReference) {
+                            int referenceClassIndex = ((FieldReference) reference).getDefiningClass().hashCode();
+                            addClass(lazyUnion.get(referenceClassIndex),addedInPool);
+                        }
+                        else{
+                            if (reference instanceof MethodReference){
+                                String referenceString = Utils.getShortReferenceString(reference);
+                                int referenceClassIndex = ((MethodReference) reference).getDefiningClass().hashCode();
+
+                                Map<DalvikClass,DalvikMethod> cmMap = new HashMap<DalvikClass,DalvikMethod>();
+                                switch (instruction.getOpcode()){
+                                case INVOKE_SUPER:
+                                case INVOKE_SUPER_RANGE:
+                                {
+                                    DalvikImplementation implementation = getSuperImplementation(lazyUnion,referenceClassIndex, referenceString.hashCode());
+                                    if (implementation != null){
+                                        cmMap.put(implementation.getDalvikClass(), implementation.getMethod());
+                                    }else{
+                                        System.out.println("Not Found :" + ((MethodReference) reference).getDefiningClass() + " " + referenceString + " " + instruction.getOpcode().toString());
                                     }
                                 }
+                                break;
+                                case INVOKE_INTERFACE:
+                                case INVOKE_VIRTUAL:
+                                case INVOKE_VIRTUAL_RANGE:
+                                case INVOKE_INTERFACE_RANGE:
+                                {
+                                    Map<Integer,DalvikImplementation> implementations = getVirtualImplementations(lazyUnion,referenceClassIndex, referenceString.hashCode());
+                                    if (implementations != null){
+                                        for (DalvikImplementation implementation : implementations.values()){
+                                            cmMap.put(implementation.getDalvikClass(), implementation.getMethod());
+                                        }
+                                    }else{
+                                        System.out.println("Not Found :" + ((MethodReference) reference).getDefiningClass() + " " + referenceString+ " " + instruction.getOpcode().toString());
+                                    }
+
+                                }
+                                break;
+                                    
+                                    
+                                case INVOKE_DIRECT:
+                                case INVOKE_STATIC:
+                                case INVOKE_DIRECT_RANGE:
+                                case INVOKE_STATIC_RANGE:
+                                {
+                                    DalvikImplementation implementation = getDirectImplementation(lazyUnion, referenceClassIndex, referenceString.hashCode());
+                                    if (implementation != null){
+                                        cmMap.put(implementation.getDalvikClass(), implementation.getMethod());
+                                    }else{
+                                        System.out.println("Not Found :" + ((MethodReference) reference).getDefiningClass() + " " + referenceString+ " " + instruction.getOpcode().toString());
+                                    }
+                                }
+                                break;
+
+                                default:
+                                    throw new RuntimeException("MethodReference in a instruction which is not a invocation: "+ instruction.getOpcode().toString());
+                                }
+                                addClass(lazyUnion.get(referenceClassIndex),addedInPool);
+                                addToPool(lazyUnion,pool, processCM, cmMap);
                             }
                         }
                     }
                 }
+            }
         }
         fetchAdditionalInfo(processCM);
         return processCM;
@@ -891,7 +910,7 @@ public class Analysis {
         System.out.println("Ready to start generating Horn Clauses:");
 
         /*
-         * Initialize the set apkClassesMethods, which must be done *before* fetching
+         * Initialize the set classes, which must be done *before* fetching
          * the unknown implementations from Java standard library.
          * We do not put in this set the classes or methods that contains "Landroid/support/v4/"
          * At the same time we count the number of elements in APK only
@@ -920,6 +939,23 @@ public class Analysis {
         // Get the unknown classes from Java standard and Android libraries
         Set<CMPair> processCM = fetchUnknownMethod();
         
+        //Counting the number of instructions and initializing apkClassMethods
+        int instructionNumber = 0;
+        for (CMPair cmp : processCM){
+            GeneralClass c = classes.get(cmp.getC());
+            if ((c instanceof DalvikClass)){
+                DalvikMethod m = ((DalvikClass) c).getMethod(cmp.getM());
+                apkClassesMethods.add(new StringPair(c.getType(),m.getName()));
+                instructionNumber += m.getInstructions().size();
+            }
+        }
+        
+        System.out.println("Ready to start generating Horn Clauses:");
+        System.out.println("Number of classes : " + classes.size());
+        System.out.println("Number of methods: " + processCM.size());
+        System.out.println("Number of instructions: "+ instructionNumber);
+        System.out.println("Number of instances : " + instances.size());
+
         addEntryPointsInstances();
         addStaticFieldsValues();
         
@@ -931,22 +967,6 @@ public class Analysis {
         // Correctly set the corresponding fields in the FSEngine
         fsengine.initialize(localHeapSize, allocationPointOffset, allocationPointSize);
         
-        //Counting the number of instructions
-        int instructionNumber = 0;
-        for (CMPair cmp : processCM){
-            GeneralClass c = classes.get(cmp.getC());
-            if ((c instanceof DalvikClass)){
-                DalvikMethod m = ((DalvikClass) c).getMethod(cmp.getM());
-                instructionNumber += m.getInstructions().size();
-            }
-        }
-        
-        System.out.println("Ready to start generating Horn Clauses:");
-        System.out.println("Number of classes : " + classes.size());
-        System.out.println("Number of methods: " + processCM.size());
-        System.out.println("Number of instructions: "+ instructionNumber);
-        System.out.println("Number of instances : " + instances.size());
-
         
         for (final GeneralClass c: classes.values()){
             if ((c instanceof DalvikClass)){
@@ -1019,64 +1039,113 @@ public class Analysis {
      * Return the implementations of mi in ci and in its child classes.
      * Return null if no implementation was found
      */
-    public Set<DalvikImplementation> getImplementations(final int ci, final int mi){
-        if (isNotImpl.contains(new CMPair(ci, mi))){
-            return null;
-        }
-        if (allImplementations.containsKey(new CMPair(ci, mi))){
-            return allImplementations.get(new CMPair(ci, mi));
-        }
-        final Set<DalvikImplementation> implementations = new HashSet<DalvikImplementation>();
-        final Map<DalvikClass, DalvikMethod> definitions = isDefined(classes, ci, mi);
-        if (definitions == null) 
-        {
-            isNotDefined.add(new CMPair(ci, mi));
-            return null;
-        }
-        else{
-            allDefinitions.put(new CMPair(ci, mi), definitions);
-        }
-        for (Map.Entry<DalvikClass, DalvikMethod> entry : definitions.entrySet()){
-            final DalvikImplementation di = new DalvikImplementation(entry.getKey(), entry.getValue());
-            for (DalvikInstance instance : instances.getByType(entry.getKey().getType().hashCode())){
-                di.putInstance(instance);
+    public Map<Integer,DalvikImplementation> getVirtualImplementations(final int ci, final int mi){
+        return getVirtualImplementations(classes, ci, mi);
+    }
+    
+    private Map<Integer,DalvikImplementation> getVirtualImplementations(Map<Integer,GeneralClass> classes,final int ci, final int mi){
+        Map<Integer,DalvikImplementation> vd = new HashMap<Integer,DalvikImplementation>();
+        if (classes.containsKey(ci)){
+            GeneralClass c = classes.get(ci);
+            if (c instanceof DalvikClass){
+                DalvikClass dc = (DalvikClass) c;
+                DalvikImplementation di = getDirectImplementation(classes,ci,mi);
+                DalvikMethod m = null;
+                if (di == null){
+                    DalvikImplementation sdi = getSuperImplementation(classes,ci,mi);
+                    if (sdi != null){
+                        m = sdi.getMethod();
+                        vd.put(ci, sdi);
+                    }
+                }else{
+                    m = di.getMethod();
+                    vd.put(ci, di);
+                }
+                virtualDispatchPopulate(classes,mi,dc, vd,m);
+                return vd;
             }
-            for (final DalvikClass child: entry.getKey().getChildClasses()){
+        }
+        throw new RuntimeException("Virtual Dispatch failed");
+    }
+
+    /*
+     * Go through the class tree and build the implementation of all child classes of dc
+     * Should only be called on getVirtualImplementations
+     */
+    private void virtualDispatchPopulate(Map<Integer,GeneralClass> classes, int m, DalvikClass dc, Map<Integer,DalvikImplementation> vd, DalvikMethod superM){
+        for (final DalvikClass child : dc.getChildClasses()){
+            DalvikMethod childMethod = superM;
+            DalvikMethod newMethod = child.getMethod(m);
+            if (newMethod != null){
+                childMethod = newMethod;
+            }
+            if (childMethod != null){
+                DalvikImplementation di = new DalvikImplementation(child,childMethod);
+
                 for( DalvikInstance childInstance : instances.getByType(child.getType().hashCode())){
                     di.putInstance(childInstance);
                 }
+                vd.put(dc.getType().hashCode(), di);
+                virtualDispatchPopulate(classes, m, child, vd, childMethod);
+            }else{
+                System.out.println(m + " not implemented in " + dc.getType());
             }
-            implementations.add(di);
-
         }
-        return implementations;
     }
+
+    /*
+     * Return the implementation of mi in ci only
+     * Return null if no implementation was found
+     */
+    public DalvikImplementation getDirectImplementation(final int ci, final int mi){
+        return getDirectImplementation(classes, ci, mi);
+    }
+    
+    private DalvikImplementation getDirectImplementation(Map<Integer,GeneralClass> classes, final int ci, final int mi){
+        if (classes.containsKey(ci)){
+            GeneralClass c = classes.get(ci);
+            if (c instanceof DalvikClass){
+                DalvikClass dc = (DalvikClass) c;
+                DalvikMethod m = dc.getMethod(mi);
+                if (m != null){
+                    final DalvikImplementation di = new DalvikImplementation(dc, m);
+                    for (DalvikInstance instance : instances.getByType(ci)){
+                        di.putInstance(instance);
+                    }
+                    return di;
+                }
+            }
+        }
+        return null;
+    }
+
 
     /*
      * Return the implementation of mi in the super classes of ci only
      * Return null if no implementation was found
      */
-    public Set<DalvikImplementation> getSuperImplementations(final int ci, final int mi){
-        final Set<DalvikImplementation> implementations = new HashSet<DalvikImplementation>();
-        final AbstractMap.SimpleEntry<DalvikClass, DalvikMethod> definition = isSuperDefined(ci, mi);
-        if (definition == null){
-            return null;
-        }else{
+    public DalvikImplementation getSuperImplementation(final int ci, final int mi){
+        return getSuperImplementation(classes,ci, mi);
+    }
+
+    private DalvikImplementation getSuperImplementation(Map<Integer,GeneralClass> classes,final int ci, final int mi){
+    final AbstractMap.SimpleEntry<DalvikClass, DalvikMethod> definition = getSuperMethod(classes,ci, mi);
+        if (definition != null){
             final DalvikImplementation di = new DalvikImplementation(definition.getKey(), definition.getValue());
-            for (DalvikInstance instance : instances.getByType(definition.getKey().getType().hashCode())){
+            for (DalvikInstance instance : instances.getByType(ci)){
                 di.putInstance(instance);
             }
-            implementations.add(di);
-
+            return di;
         }
-        return implementations;
+        return null;
     }
 
     /*
-     * Return the dalvik class and dalvik method implementing mi in ci super classes
+     * Return the dalvik class and dalvik method implementing mi in ci's super classes (including ci)
      * Return null if this method is not found
      */
-    private AbstractMap.SimpleEntry<DalvikClass, DalvikMethod> isSuperDefined(final int ci, int mi){  
+    private AbstractMap.SimpleEntry<DalvikClass, DalvikMethod> getSuperMethod(Map<Integer,GeneralClass> classes,final int ci, int mi){ 
+        //TODO:
         final boolean isThread = isThreadByInt(ci);
         if (isThread && (mi == "execute([Ljava/lang/Object;)Landroid/os/AsyncTask;".hashCode())){
             mi = "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode();
@@ -1087,18 +1156,17 @@ public class Analysis {
         if (classes.containsKey(ci)){
             GeneralClass c = classes.get(ci);
             if (c instanceof DalvikClass){
-                final DalvikClass cd = ((DalvikClass) c);   
-                final GeneralClass superClass = cd.getSuperClass();
-                if (superClass == null){
-                    return null;
+                final DalvikClass cd = ((DalvikClass) c);
+
+                DalvikMethod m = cd.getMethod(mi);
+                if (m != null){
+                    return new AbstractMap.SimpleEntry<DalvikClass, DalvikMethod>(cd, m);
                 }else{
-                    if (superClass instanceof DalvikClass){
-                        final DalvikClass scd = (DalvikClass) superClass;
-                        DalvikMethod m = scd.getMethod(mi);
-                        if (m != null){
-                            return new AbstractMap.SimpleEntry<DalvikClass, DalvikMethod>(cd, m);
-                        }else{
-                            return isSuperDefined(scd.getType().hashCode(), mi);
+                    final GeneralClass superClass = cd.getSuperClass();
+                    if (superClass != null){
+                        if (superClass instanceof DalvikClass){
+                            final DalvikClass scd = (DalvikClass) superClass;
+                            return getSuperMethod(classes,scd.getType().hashCode(), mi);
                         }
                     }
                 }
@@ -1106,75 +1174,8 @@ public class Analysis {
         }
         return null;
     }
-    
-    
-    /*
-     * Return the set of classes*method implementing some method ci,mi in the field classes
-     * Return null if ci,mi is not defined
-     */
-    public Map<DalvikClass, DalvikMethod> isDefined(final int ci, int mi){  
-        return isDefined(classes,ci,mi);
-    }
 
         
-    /*
-     * Return the set of classes*method implementing some method ci,mi in the set of classes in argument
-     * Return null if ci,mi is not defined
-     */
-    private Map<DalvikClass, DalvikMethod> isDefined(Map<Integer,GeneralClass> classes, final int ci, int mi){	
-        if (isNotDefined.contains(new CMPair(ci, mi))){
-            return null;
-        }
-        Map<DalvikClass, DalvikMethod> resolvents = new ConcurrentHashMap<DalvikClass, DalvikMethod>();
-        Map<DalvikClass, DalvikMethod> exResolvents = allDefinitions.get(new CMPair(ci, mi));
-        if (exResolvents != null){
-            return exResolvents;
-        }
-
-
-        final boolean isThread = isThreadByInt(ci);
-        if (isThread && (mi == "execute([Ljava/lang/Object;)Landroid/os/AsyncTask;".hashCode())){
-            mi = "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode();
-        }
-        if (isThread && (mi == "start()V".hashCode())){
-            mi = "run()V".hashCode();
-        }
-
-        if (classes.containsKey(ci)){
-            GeneralClass c = classes.get(ci);
-            if ((c instanceof DalvikClass)){
-                final DalvikClass cd = ((DalvikClass) c);
-
-                DalvikMethod m = cd.getMethod(mi);
-                if (m != null){
-                    resolvents.put(cd, m);
-                }
-
-                for (final DalvikClass sc: cd.getChildClasses()){
-                    if (sc != null){
-                        final Map<DalvikClass, DalvikMethod> resolventsChild = isDefined(classes, sc.getType().hashCode(), mi);
-                        if (resolventsChild != null)
-                            resolvents.putAll(resolventsChild);
-                    }
-                }
-
-                for (final GeneralClass cint: cd.getInterfaces()){
-                    if ((cint.getType().hashCode() == ci)){
-                        DalvikMethod cm = cd.getMethod(mi);
-                        if (cm != null){
-                            resolvents.put(cd, cm);
-                        }
-                    }
-                }
-            }
-        }        
-        
-        if (resolvents.isEmpty()){
-            return null;
-        }else{
-            return resolvents;
-        }
-    }
 
     /*
      * Return true if the super class of c is a thread class
@@ -1231,7 +1232,7 @@ public class Analysis {
      */
     public boolean isSource(String className, String methodName, final int c, final int m){
         return (refSources.contains(new CMPair(c,m)) 
-                && (apkClassesMethods.contains(new AbstractMap.SimpleEntry<String,String>(className,methodName))));
+                && (apkClassesMethods.contains(new StringPair(className,methodName))));
     }
     
     //TODO: used only in processIntent in standard analysis, should probably be removed
@@ -1245,7 +1246,7 @@ public class Analysis {
      */
     public boolean isSink(String className, String methodName, final int c, final int m){
         return (refSinks.contains(new CMPair(c,m)) 
-                && (apkClassesMethods.contains(new AbstractMap.SimpleEntry<String,String>(className,methodName))));
+                && (apkClassesMethods.contains(new StringPair(className,methodName))));
     }
 
     public void putEntryPoint(int c, int m){
@@ -1267,15 +1268,6 @@ public class Analysis {
      * 
      */
     private Boolean isSourceSink(final String className, final String methodName){
-        if (refSources.contains(new CMPair(className.hashCode(), methodName.hashCode()))){
-            return true;
-        }
-
-        if (refSinks.contains(new CMPair(className.hashCode(), methodName.hashCode()))){
-            return false;
-        }
-
-
         final int classIndex = className.hashCode();
         final String classNameFormat = className.substring(1, className.length()-1);
         final String methodNameFormat = methodName.substring(0, methodName.indexOf('('));
@@ -1316,17 +1308,21 @@ public class Analysis {
             if (generalC instanceof DalvikClass){
                 DalvikClass dc = (DalvikClass) generalC;
                 for (DalvikMethod dm : dc.getMethods()){
-                    Boolean isSourceSink = isSourceSink(dc.getType(), dm.getName());
-                    if (isSourceSink != null){
-                        if (isSourceSink){
-                            refSources.add(new CMPair(dc.getType().hashCode(), dm.getName().hashCode()));
-                        }else{
-                            refSinks.add(new CMPair(dc.getType().hashCode(), dm.getName().hashCode()));
+                    if (apkClassesMethods.contains(new StringPair(dc.getType(),dm.getName()))){
+                        Boolean isSourceSink = isSourceSink(dc.getType(), dm.getName());
+                        if (isSourceSink != null){
+                            if (isSourceSink){
+                                refSources.add(new CMPair(dc.getType().hashCode(), dm.getName().hashCode()));
+                            }else{
+                                refSinks.add(new CMPair(dc.getType().hashCode(), dm.getName().hashCode()));
+                            }
                         }
                     }
                 }
             }
         }
+        System.out.println("Number of sources: " + refSources.size());
+        System.out.println("Number of sinks: " + refSinks.size());
     }
 
 }

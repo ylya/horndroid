@@ -10,16 +10,14 @@ public class MethodeInfo {
     public String c;
     public String m;
     public int numReg;
-    public int numPc;
     public RegInfo[] regInfo;
     private HashMap<Integer,HashMap<Integer, LHInfo>> lhMap;
     private Analysis analysis;
 
-    public MethodeInfo(Analysis analysis, String c, String m, int numReg, int numPc){
+    public MethodeInfo(Analysis analysis, String c, String m, int numReg){
         this.c = c;
         this.m = m;
         this.numReg = numReg;
-        this.numPc = numPc;
         this.analysis = analysis;
         
         regInfo = new RegInfo[numReg];
@@ -28,23 +26,7 @@ public class MethodeInfo {
         }
         
         lhMap = new HashMap<Integer,HashMap<Integer, LHInfo>>();
-        /*
-         for (int instanceNum : analysis.getAllocationPoints()){
-            final String referenceString = analysis.getAllocationPointClass(instanceNum);
-            final Map<Integer, Boolean> fieldsMap = analysis.getClassFields(referenceString, instanceNum);
-            Set<Integer> fields = null;
-            if (fieldsMap != null)
-                fields = fieldsMap.keySet();
-            else{
-                fields = new HashSet<Integer>();
-                fields.add(0);
-            }
-            for (int field : fields){
-                LHInfo lhinfo = LHInfo.lhInfoFromInstanceNum(analysis,instanceNum, field);
-                addLHElem(instanceNum, field ,lhinfo);
-            }
-    }
-    */
+
 }
     
     private void addLHElem(int instanceNum, int field, final LHInfo lhinfo){
@@ -71,7 +53,6 @@ public class MethodeInfo {
                 return lhMap.get(instanceNum).get(field);
         }
         
-        //final String referenceString = analysis.getAllocationPointClass(instanceNum);
         final LHInfo lhinfo = LHInfo.lhInfoFromInstanceNum(analysis,instanceNum, field);
         addLHElem(instanceNum, field, lhinfo);
         return lhinfo;

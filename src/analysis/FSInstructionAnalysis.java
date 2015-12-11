@@ -11,12 +11,10 @@ import Dalvik.DalvikMethod;
 import debugging.QUERY_TYPE;
 import horndroid.options;
 
-import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 
 import org.jf.dexlib2.iface.instruction.FiveRegisterInstruction;
@@ -36,6 +34,7 @@ import org.jf.dexlib2.iface.reference.Reference;
 import payload.ArrayData;
 import payload.PackedSwitch;
 import payload.SparseSwitch;
+import util.StringPair;
 import util.Utils;
 import z3.*;
 
@@ -66,9 +65,7 @@ public class FSInstructionAnalysis{
     int nextCode;
     
     private String referenceStringClass;
-    private String referenceStringClassIndex;
     
-    private String referenceIndex;
     private String returnType;
     private int returnTypeInt;
     
@@ -95,7 +92,6 @@ public class FSInstructionAnalysis{
     private Map<Integer, BoolExpr> regUpLHCG ;
     private Map<Integer, BoolExpr> regUpLHCF ;
     
-    private Set<DalvikImplementation> implementations;
 
     public FSInstructionAnalysis(final Analysis analysis, final Instruction instruction, final DalvikClass dc, final DalvikMethod dm, final int codeAddress){
         this.analysis = analysis;
@@ -144,27 +140,17 @@ public class FSInstructionAnalysis{
         }
     }
     
-    public void CreateHornClauses(options options, Set<AbstractMap.SimpleEntry<String,String>> apkClassesMethods){
-        boolean superBool = false;
+    public void CreateHornClauses(options options, Set<StringPair> apkClassesMethods){
         Integer staticFieldClassName;
-        Map<DalvikClass, DalvikMethod> staticDefinitions = new ConcurrentHashMap<DalvikClass, DalvikMethod>();
-        DalvikMethod dmc;
         final int size = analysis.getSize();
         fsvar = fsengine.getVars();
-        BoolExpr negationString = null;
-        int referenceReg;
-        boolean isDefined;
         callReturns = false;
-        int numRegCall;
-        int numArgCall;
         referenceStringClass = null;
-        referenceStringClassIndex = null;
         returnType = null;
         returnTypeInt = 0;
         referenceClassIndex = -1;
         referenceIntIndex = -1;
         referenceString = null;
-        referenceIndex = null;
         nextCode = codeAddress + instruction.getCodeUnits();
 
 
@@ -175,20 +161,17 @@ public class FSInstructionAnalysis{
             if (reference instanceof FieldReference) {
                 referenceStringClass = ((FieldReference) reference).getDefiningClass();
                 referenceClassIndex = referenceStringClass.hashCode();
-                referenceStringClassIndex = Utils.Dec(referenceClassIndex);
             }
             else
                 if (reference instanceof MethodReference){
                     referenceStringClass = ((MethodReference) reference).getDefiningClass();
                     referenceClassIndex = referenceStringClass.hashCode();
-                    referenceStringClassIndex = Utils.Dec(referenceClassIndex);
                     returnType = ((MethodReference) reference).getReturnType();
                     returnTypeInt = returnType.hashCode();
                     if (returnType.equals((String) "V")) callReturns = false;
                     else callReturns = true;
                 }
             referenceIntIndex = referenceString.hashCode();
-            referenceIndex = Utils.Dec(referenceIntIndex);
         }
         methodName = dm.getName();
         className = dc.getType();
@@ -198,10 +181,9 @@ public class FSInstructionAnalysis{
         classIndex = Utils.Dec(ci);
         numRegLoc = dm.getNumReg();
         numParLoc = dm.getNumArg();
-        BoolExpr returnLabel;
 
         
-        if ((options.debug) && apkClassesMethods.contains(new AbstractMap.SimpleEntry<String,String>(className, methodName)) && !methodName.contains("Landroid")){
+        if ((options.debug) && apkClassesMethods.contains(new StringPair(className, methodName))){
            buildH();
            for (int i = 0; i < this.numRegLoc; i++){
                BoolExpr h1 = fsengine.and(fsvar.getH(i),h);
@@ -518,7 +500,7 @@ public class FSInstructionAnalysis{
             if (analysis.hasStaticConstructor(referenceIntIndex)){
                 //h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
                 int staticConstNum = "<clinit>()V".hashCode();
-                dmc = analysis.getExactMethod(referenceIntIndex, staticConstNum);
+                DalvikMethod dmc = analysis.getExactMethod(referenceIntIndex, staticConstNum);
 
                 for (int i = 0; i < dmc.getNumArg() + dmc.getNumReg() + 1; i++){
                     regUpV.put(i, fsengine.mkBitVector(0, size));
@@ -821,7 +803,7 @@ public class FSInstructionAnalysis{
 
 
         case PACKED_SWITCH:
-            negationString = fsengine.mkFalse();
+            BoolExpr negationString = fsengine.mkFalse();
             for (final PackedSwitch ps: analysis.getPackedSwitch()){
                 List<Number> targets = ps.getTargets(c, m, codeAddress + ((Instruction31t)instruction).getCodeOffset());
                 if (targets != null){
@@ -1330,72 +1312,72 @@ public class FSInstructionAnalysis{
 
 
         case INVOKE_SUPER:
-            superBool = true;
-        case INVOKE_VIRTUAL:
+        {
+            DalvikImplementation implementation = analysis.getSuperImplementation(referenceClassIndex, referenceIntIndex);
+                        
+            this.directInvoke(fsengine.mkTrue(), implementation.getDalvikClass(), implementation.getMethod(), false);
+        }
+        break;
+
+            /*
+             * Should be handled like invoke_virtual:
+             * "invoke-interface is used to invoke an interface method, that is, 
+             * on an object whose concrete class isn't known, using a method_id 
+             * that refers to an interface."
+             * Source : https://source.android.com/devices/tech/dalvik/dalvik-bytecode.html
+             */
         case INVOKE_INTERFACE:
-            if (referenceClassIndex == "Lde/ecspride/GeneralActivity;".hashCode() && referenceIntIndex == "onCreate(Landroid/os/Bundle;)V".hashCode()){
-                int i =0;
-                i = i +1;
-            }
-            this.getImplementationsSpecialCase(superBool);
-
-            isDefined = (implementations != null);
+        case INVOKE_VIRTUAL:
+        {
+            Map<Integer,DalvikImplementation> implementations = analysis.getVirtualImplementations(referenceClassIndex, referenceIntIndex);
             
-            FiveRegisterInstruction instr = (FiveRegisterInstruction)this.instruction;
-            referenceReg = instr.getRegisterC();
-
-            if (isDefined){
-                this.invokeImpKnown(referenceReg, implementations, false);
-            }
-            
-            
-            else {
-                returnLabel = analysis.isSource(className,methodName,referenceClassIndex, referenceIntIndex) ? fsengine.mkTrue() : getLabels();
-                
-                this.invokeImpNotKnown(returnLabel, ci, mi, false);
-            }
-            break;
-
+            int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
+            this.invokeImpKnown(referenceReg, implementations, false);
+        }
+        break;
 
         case INVOKE_SUPER_RANGE:
-            superBool = true;
+        {
+            DalvikImplementation implementation = analysis.getSuperImplementation(referenceClassIndex, referenceIntIndex);
+                        
+            this.directInvoke(fsengine.mkTrue(), implementation.getDalvikClass(), implementation.getMethod(), true);
+        }
+        break;
+            
         case INVOKE_VIRTUAL_RANGE:
+
+            /*
+             * Should be handled like invoke_virtual:
+             * "invoke-interface is used to invoke an interface method, that is, 
+             * on an object whose concrete class isn't known, using a method_id 
+             * that refers to an interface."
+             * Source : https://source.android.com/devices/tech/dalvik/dalvik-bytecode.html
+             */
         case INVOKE_INTERFACE_RANGE:
-
-            this.getImplementationsSpecialCase(superBool);
-
-            isDefined = (implementations != null);
-            if (implementations != null)
-                isDefined = true;
-            RegisterRangeInstruction instr3 = (RegisterRangeInstruction)this.instruction;
-            if (isDefined){
-                referenceReg = instr3.getStartRegister();
-                this.invokeImpKnown(referenceReg, implementations, true);
-            }
-            else{
-                returnLabel = analysis.isSource(className,methodName,referenceClassIndex, referenceIntIndex) ? fsengine.mkTrue() : getLabelsRange();
-                
-                this.invokeImpNotKnown(returnLabel, ci, mi, true);
-            }
-            break;
-
-
+        {
+            Map<Integer,DalvikImplementation> implementations = analysis.getVirtualImplementations(referenceClassIndex, referenceIntIndex);
+                        
+            int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
+            this.invokeImpKnown(referenceReg, implementations, true);
+        }
+        break;
             
             
         case INVOKE_DIRECT:
         case INVOKE_STATIC:
+            //TODO: temporary commented code
+            /*
             //we do a resolution on thread init, not on thread start, as at thread start the class information is lost
             //(it is stored somewhere in the thread class by the operating system, we can also simulate that storing class name somewhere).
             //on the other hand, if one initializes the thread and never spawns it? rare
             //JavaThread2 for the reference
             if ((referenceIntIndex == "<init>(Ljava/lang/Runnable;)V".hashCode()) && (referenceClassIndex == "Ljava/lang/Thread;".hashCode())){
                 implementations = analysis.getImplementations("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode());
-                isDefined = !implementations.isEmpty();
                 FiveRegisterInstruction instr2 = (FiveRegisterInstruction)this.instruction;
-                if (isDefined){
+                if (!implementations.isEmpty()){
                     for (final DalvikImplementation di : implementations){
-                        numRegCall = di.getMethod().getNumReg();
-                        numArgCall = di.getMethod().getNumArg();
+                        int numRegCall = di.getMethod().getNumReg();
+                        int numArgCall = di.getMethod().getNumArg();
 
                         for (final DalvikInstance instance: di.getInstances()){
                             h = fsengine.and(
@@ -1427,35 +1409,23 @@ public class FSInstructionAnalysis{
                     }
                 }
             }
+             */
+        {
+            DalvikImplementation implementation = analysis.getDirectImplementation(referenceClassIndex, referenceIntIndex);
 
-            staticDefinitions = analysis.isDefined(referenceClassIndex, referenceIntIndex);
-            isDefined = staticDefinitions != null;
-            if (!isDefined) analysis.putNotDefined(referenceClassIndex, referenceIntIndex);
-            else analysis.putDefined(referenceClassIndex, referenceIntIndex, staticDefinitions);
-            if (isDefined){
-                this.staticInvokeImpKnown(staticDefinitions, false);
-            } else {
-                returnLabel = analysis.isSource(className,methodName,referenceClassIndex, referenceIntIndex) ? fsengine.mkTrue() : getLabels();
-
-                this.invokeImpNotKnown(returnLabel, ci, mi, false);    
-            }
-            break;
-            //((short)0x6e, "invoke-virtual", ReferenceType.METHOD, Format.Format35c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_RESULT),
+            this.directInvoke(fsengine.mkTrue(), implementation.getDalvikClass(), implementation.getMethod(), false);
+        }
+        break;
 
         case INVOKE_DIRECT_RANGE:
         case INVOKE_STATIC_RANGE:
-            staticDefinitions = analysis.isDefined(referenceClassIndex, referenceIntIndex);
-            isDefined = staticDefinitions != null;
-            if (!isDefined) analysis.putNotDefined(referenceClassIndex, referenceIntIndex);
-            else analysis.putDefined(referenceClassIndex, referenceIntIndex, staticDefinitions);
-            if (isDefined){
-                this.staticInvokeImpKnown(staticDefinitions, true);
-            } else {
-                    returnLabel = analysis.isSource(className,methodName,referenceClassIndex, referenceIntIndex) ? fsengine.mkTrue() : getLabelsRange();
-                    this.invokeImpNotKnown(returnLabel, ci, mi, true);
-            }
-            break;//((short)0x74, "invoke-virtual/range", ReferenceType.METHOD, Format.Format3rc, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_RESULT),
-
+        {
+            DalvikImplementation implementation = analysis.getDirectImplementation(referenceClassIndex, referenceIntIndex);
+                        
+            this.directInvoke(fsengine.mkTrue(), implementation.getDalvikClass(), implementation.getMethod(), true);
+        }
+        break;
+        
         case NEG_INT://((short)0x7b, "neg-int", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             BitVecExpr bv = fsengine.bvneg(regB(), Type.INT);
             this.unaryOp(bv);
@@ -2231,7 +2201,8 @@ public class FSInstructionAnalysis{
     }
     
     
-    
+    //TODO: should not be useful anymore
+    @SuppressWarnings("unused")
     private BoolExpr getLabels(){
         FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
         final int regCount = instruction.getRegisterCount();
@@ -2267,6 +2238,8 @@ public class FSInstructionAnalysis{
         }
     }
 
+    //TODO: should not be useful anymore
+    @SuppressWarnings("unused")
     private BoolExpr getLabelsRange(){
         RegisterRangeInstruction instruction = (RegisterRangeInstruction)this.instruction;
         int regCount = instruction.getRegisterCount();
@@ -2341,6 +2314,7 @@ public class FSInstructionAnalysis{
         }
     }
 
+    //TODO:should be removed
     private Map<Integer, BoolExpr> highReg(final boolean range, Map<Integer, BoolExpr> regUpdate){
         if (! range){
             FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
@@ -2682,8 +2656,6 @@ public class FSInstructionAnalysis{
     /*
      * Local Heap handling functions    
      */
-    
-    
     private void liftObject(BoolExpr h, int allocationPoint){
         Map<Integer,Boolean> fields = analysis.getClassFields(analysis.getAllocationPointClass(allocationPoint), allocationPoint);
         int size = analysis.getSize();
@@ -2714,13 +2686,13 @@ public class FSInstructionAnalysis{
     // Besides apply the single register update 'u' after lifting
     private void liftIfLocal(BoolExpr h,FSSingleRegUpdate u){
         int size = analysis.getSize();
-        //lift the registers to global heap pointers
+        // Lift the registers to global heap pointers
         for (int i = 0; i <= numRegLoc  ; i++){
             regUpG.put(i,fsengine.or(fsvar.getG(i),fsvar.getL(i)));
             regUpL.put(i,fsengine.mkFalse());
         }
-        //Reset the local heap
-        //Adrien: everybody is overwritten by 0 here
+        // Reset the local heap
+        // Everybody is overwritten by 0 here
         for (int i = 0; i < analysis.getLocalHeapSize();i++) {
             regUpLHV.put(i,fsengine.mkBitVector(0, size));
             regUpLHH.put(i,fsengine.mkFalse());
@@ -2728,7 +2700,7 @@ public class FSInstructionAnalysis{
             regUpLHG.put(i,fsengine.mkFalse());
             regUpLHF.put(i,fsengine.mkTrue());
         }
-        //Update the registers with u if necessary
+        // Update the registers with u if necessary
         if (u != null) u.apply(regUpV, regUpH, regUpL, regUpG);
         buildB();
         buildRule();
@@ -2736,7 +2708,7 @@ public class FSInstructionAnalysis{
         regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
         regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
 
-        //create the new global heap objects
+        // Create the new global heap objects
         for (int allocationPoint : analysis.getAllocationPoints()){
                 this.liftObject(h, allocationPoint);
         }
@@ -2799,148 +2771,43 @@ public class FSInstructionAnalysis{
     /*
      * implementations: set of implementations of the invoked method
      */
-    private void invokeImpKnown(final int referenceReg, final Set<DalvikImplementation> implementations, final Boolean range){
+    private void invokeImpKnown(final int referenceReg, final Map<Integer,DalvikImplementation> implementations, final Boolean range){
         int size = analysis.getSize();
-        //int referenceIntIndex = referenceString.hashCode();
-        //String referenceIndex = Utils.Dec(referenceIntIndex);
-        for (final DalvikImplementation di : implementations){
-            int numRegCall = di.getMethod().getNumReg();
-            int numArgCall = di.getMethod().getNumArg();
-            if (analysis.isSink(className,methodName,di.getDalvikClass().getType().hashCode(), referenceIntIndex)){
-                if (range){
-                    addQueryRange(fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
-                            className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
-                }
-                else{
-                    addQuery(fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
-                            className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
-                }
-            }
+        for (final Map.Entry<Integer, DalvikImplementation> entry : implementations.entrySet()){
+            DalvikImplementation di = entry.getValue();
             for (final DalvikInstance instance: di.getInstances()){
-                h = fsengine.and(
-                        fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
-                        fsengine.eq(
+                //TODO: this can be improved by adding a predicate Class and doing Class(instance.hashcode(),classID) and Class(referenceReg,classID)  so has to share all this between invocation
+                BoolExpr precond = fsengine.eq(
                                 fsvar.getV(referenceReg),
                                 fsengine.mkBitVector(instance.hashCode(), size)
-                                )
-                        );
-                regUpV = updateRegister(numRegCall, numArgCall,BitVecExpr.class, fsvar.getInjectV(fsvar), false);
-                regUpH = updateRegister(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectH(fsvar), false);
-                regUpL = updateRegister(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectL(fsvar), false);
-                regUpG = updateRegister(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectG(fsvar), false);
-
-                for (int i = 0; i < analysis.getLocalHeapSize(); i++){
-                    regUpLHF.put(i, fsengine.mkFalse());
-                }
-
-                b = fsengine.rPredInvok(Integer.toString(di.getDalvikClass().getType().hashCode()), Integer.toString(di.getMethod().getName().hashCode()), 0,
-                        regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numArgCall, numRegCall, size);
-
-                buildRule();
-
-
-                regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
-                regUpLHF.clear();
-            }
-
-            for (final DalvikInstance instance: di.getInstances()){
-                BoolExpr subh = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
-                regUpV = updateResult(numRegCall, numArgCall,BitVecExpr.class, fsvar.getInjectV(fsvar), false);
-                regUpH = updateResult(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectH(fsvar), false);
-                regUpL = updateResult(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectL(fsvar), false);
-                regUpG = updateResult(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectG(fsvar), false);
-                regUpV.put(numArgCall, fsvar.getRez());
-                regUpH.put(numArgCall, fsvar.getHrez());
-                regUpL.put(numArgCall, fsvar.getLrez());
-                regUpG.put(numArgCall, fsvar.getGrez());
-
-                this.initializeLHC();
-
-                h = fsengine.and(
-                        subh,
-                        fsengine.resPred(Integer.toString(di.getDalvikClass().getType().hashCode()), Integer.toString(referenceIntIndex),
-                                regUpV, regUpH, regUpL, regUpG, regUpLHCV, regUpLHCH, regUpLHCL, regUpLHCG, regUpLHCF, numArgCall),
-                        fsengine.eq(
-                                fsvar.getV(referenceReg),
-                                fsengine.mkBitVector(instance.hashCode(), size)
-                                )
-                        );
-
-                regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
-
-                BoolExpr returnLabel = analysis.isSource(className,methodName,di.getDalvikClass().getType().hashCode(), referenceIntIndex) ? fsengine.mkTrue() : fsvar.getHrez();
-
-                this.liftLi();
-
-                if (callReturns) {
-                    regUpV.put(numRegLoc, fsvar.getRez());
-                    regUpH.put(numRegLoc, returnLabel);
-                    regUpL.put(numRegLoc, fsvar.getLrez());
-                    regUpG.put(numRegLoc, fsvar.getGrez());
-                }
-
-                for (int i = 0; i < analysis.getLocalHeapSize(); i++){
-                    regUpLHCF.put(i, fsengine.or(fsvar.getLHF(i), fsvar.getLHCF(i)));
-                }
-
-                b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHCV, regUpLHCH, regUpLHCL, regUpLHCG, regUpLHCF, numParLoc, numRegLoc);
-
-                buildRule();
-
-                regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
-                regUpLHCF.clear();
+                                );
+                directInvoke(precond, di.getDalvikClass(), di.getMethod(), range);
             }
         }
     }
 
-    private void getImplementationsSpecialCase(final boolean superBool){
+    //TODO: move this to analysis.java
+    @SuppressWarnings("unused")
+    private Map<Integer,DalvikImplementation> getImplementationsSpecialCase(){
         Boolean modRes = false;
         if ((referenceIntIndex == "execute(Ljava/lang/Runnable;)V".hashCode()) && (referenceClassIndex == "Ljava/util/concurrent/ExecutorService;".hashCode())){
-            implementations = analysis.getImplementations("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode());
-            if (implementations == null){
-                analysis.putNotImpl("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode());
-            }
-            else{
-                analysis.putImplemented("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode(), implementations);
-            }
+            //implementations = analysis.getImplementations("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode());
             modRes = true;
         }
         if (referenceIntIndex == "start()V".hashCode()){
-            implementations = analysis.getImplementations(referenceClassIndex, "run()V".hashCode());
-            if (implementations == null){
-                analysis.putNotImpl(referenceClassIndex, "run()V".hashCode());
-            }
-            else{
-                analysis.putImplemented(referenceClassIndex, "run()V".hashCode(), implementations);
-            }
+            //implementations = analysis.getImplementations(referenceClassIndex, "run()V".hashCode());
             modRes = true;
         }
         if (referenceIntIndex == "execute([Ljava/lang/Object;)Landroid/os/AsyncTask;".hashCode()){
-            implementations = analysis.getImplementations(referenceClassIndex, "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode());
-            if (implementations == null){
-                analysis.putNotImpl(referenceClassIndex, "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode());
-            }
-            else{
-                analysis.putImplemented(referenceClassIndex, "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode(), implementations);
-            }
+            //implementations = analysis.getImplementations(referenceClassIndex, "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode());
             modRes = true;
         }
-
-        if (!modRes){
-            if (!superBool)
-                implementations = analysis.getImplementations(referenceClassIndex, referenceIntIndex);
-            else
-                implementations = analysis.getSuperImplementations(referenceClassIndex, referenceIntIndex);
-            if (implementations == null){
-                analysis.putNotImpl(referenceClassIndex, referenceIntIndex);
-            }
-            else{
-                analysis.putImplemented(referenceClassIndex, referenceIntIndex, implementations);
-            }
-        }
+        
+        return null;
     }
 
-    
+    //TODO: should not be useful anymore
+    @SuppressWarnings("unused")
     private void invokeImpNotKnown(BoolExpr returnLabel, int ci, int mi, Boolean range){
         int size = analysis.getSize();
         
@@ -3020,85 +2887,91 @@ public class FSInstructionAnalysis{
         fsengine.addRule(fsengine.implies(subh, b), null);
     }
     
-    
-    private void staticInvokeImpKnown( Map<DalvikClass, DalvikMethod> staticDefinitions, Boolean range){
+    /*
+     * Invoke the method cInvoked,mInvoked with precondition 'precond'
+     */
+    private void directInvoke(BoolExpr precond, DalvikClass cInvoked, DalvikMethod mInvoked, Boolean range){
         int size = analysis.getSize();
-        for (final Map.Entry<DalvikClass, DalvikMethod> definition: staticDefinitions.entrySet()){
-            int numRegCall = definition.getValue().getNumReg();
-            int numArgCall = definition.getValue().getNumArg();
-            if (analysis.isSink(className,methodName,referenceClassIndex, referenceIntIndex)){
-                if (range) {
-                    addQuery(fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
-                            className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
-                }else{
-                    addQuery(fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
-                            className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
-                }
+        int numRegCall = mInvoked.getNumReg();
+        int numArgCall = mInvoked.getNumArg();
+        
+        String classInvokedStringName = Integer.toString(cInvoked.getType().hashCode());
+        String methodInvokedStringName = Integer.toString(mInvoked.getName().hashCode());
+        if (analysis.isSink(className,methodName,cInvoked.getType().hashCode(), mInvoked.getName().hashCode())){
+            if (range) {
+                addQueryRange(fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
+                        className, methodName, Integer.toString(codeAddress), mInvoked.getName(), analysis.optionVerbose());
+            }else{
+                addQuery(fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
+                        className, methodName, Integer.toString(codeAddress), mInvoked.getName(), analysis.optionVerbose());
             }
-            regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
-
-            buildH();
-            regUpV = updateRegister(numRegCall, numArgCall,BitVecExpr.class, fsvar.getInjectV(fsvar), false);
-            regUpH = updateRegister(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectH(fsvar), false);
-            regUpL = updateRegister(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectL(fsvar), false);
-            regUpG = updateRegister(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectG(fsvar), false);
-
-            for (int i = 0; i < analysis.getLocalHeapSize(); i++){
-                regUpLHF.put(i, fsengine.mkFalse());
-            }
-
-            b = fsengine.rPredInvok(referenceStringClassIndex, referenceIndex, 0, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numArgCall, numRegCall, size);
-            buildRule();
-
-            regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
-            regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
-
-
-
-            BoolExpr subh = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
-
-            regUpV = updateResult(numRegCall, numArgCall,BitVecExpr.class, fsvar.getInjectV(fsvar), false);
-            regUpH = updateResult(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectH(fsvar), false);
-            regUpL = updateResult(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectL(fsvar), false);
-            regUpG = updateResult(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectG(fsvar), false);
-            regUpV.put(numArgCall, fsvar.getRez());
-            regUpH.put(numArgCall, fsvar.getHrez());
-            regUpL.put(numArgCall, fsvar.getLrez());
-            regUpG.put(numArgCall, fsvar.getGrez());
-
-            this.initializeLHC();
-
-            h = fsengine.and(
-                    subh,
-                    fsengine.resPred(referenceStringClassIndex, referenceIndex,
-                            regUpV, regUpH, regUpL, regUpG, regUpLHCV, regUpLHCH, regUpLHCL, regUpLHCG, regUpLHCF, numArgCall)
-                    );
-
-            regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
-
-            BoolExpr returnLabel = analysis.isSource(className,methodName,referenceClassIndex, referenceIntIndex) ? fsengine.mkTrue() : fsvar.getHrez();
-
-            this.liftLi();
-
-            if (callReturns) {
-                regUpV.put(numRegLoc, fsvar.getRez());
-                regUpH.put(numRegLoc, returnLabel);
-                regUpL.put(numRegLoc, fsvar.getLrez());
-                regUpG.put(numRegLoc, fsvar.getGrez());
-            }
-
-            for (int i = 0; i < analysis.getLocalHeapSize(); i++){
-                regUpLHCF.put(i, fsengine.or(fsvar.getLHF(i), fsvar.getLHCF(i)));
-            }
-
-            b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHCV, regUpLHCH, regUpLHCL, regUpLHCG, regUpLHCF, numParLoc, numRegLoc);
-
-            buildRule();
-
-
-            regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
-            regUpLHCF.clear();
         }
+        regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
+
+        buildH();
+        h = fsengine.and(h,precond);
+        regUpV = updateRegister(numRegCall, numArgCall,BitVecExpr.class, fsvar.getInjectV(fsvar), range);
+        regUpH = updateRegister(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectH(fsvar), range);
+        regUpL = updateRegister(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectL(fsvar), range);
+        regUpG = updateRegister(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectG(fsvar), range);
+
+        for (int i = 0; i < analysis.getLocalHeapSize(); i++){
+            regUpLHF.put(i, fsengine.mkFalse());
+        }
+
+        b = fsengine.rPredInvok(classInvokedStringName, methodInvokedStringName, 0,
+                regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numArgCall, numRegCall, size);
+        buildRule();
+
+        regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
+        regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
+
+
+
+        BoolExpr subh = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+
+        regUpV = updateResult(numRegCall, numArgCall,BitVecExpr.class, fsvar.getInjectV(fsvar), range);
+        regUpH = updateResult(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectH(fsvar), range);
+        regUpL = updateResult(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectL(fsvar), range);
+        regUpG = updateResult(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectG(fsvar), range);
+        regUpV.put(numArgCall, fsvar.getRez());
+        regUpH.put(numArgCall, fsvar.getHrez());
+        regUpL.put(numArgCall, fsvar.getLrez());
+        regUpG.put(numArgCall, fsvar.getGrez());
+
+        this.initializeLHC();
+
+        h = fsengine.and(
+                precond,
+                subh,
+                fsengine.resPred(classInvokedStringName, methodInvokedStringName,
+                        regUpV, regUpH, regUpL, regUpG, regUpLHCV, regUpLHCH, regUpLHCL, regUpLHCG, regUpLHCF, numArgCall)
+                );
+
+        regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
+
+        BoolExpr returnLabel = analysis.isSource(className,methodName,cInvoked.getType().hashCode(), mInvoked.getName().hashCode()) ? fsengine.mkTrue() : fsvar.getHrez();
+
+        this.liftLi();
+
+        if (callReturns) {
+            regUpV.put(numRegLoc, fsvar.getRez());
+            regUpH.put(numRegLoc, returnLabel);
+            regUpL.put(numRegLoc, fsvar.getLrez());
+            regUpG.put(numRegLoc, fsvar.getGrez());
+        }
+
+        for (int i = 0; i < analysis.getLocalHeapSize(); i++){
+            regUpLHCF.put(i, fsengine.or(fsvar.getLHF(i), fsvar.getLHCF(i)));
+        }
+
+        b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHCV, regUpLHCH, regUpLHCL, regUpLHCG, regUpLHCF, numParLoc, numRegLoc);
+
+        buildRule();
+
+
+        regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
+        regUpLHCF.clear();
     }
     
     private void buildH(){

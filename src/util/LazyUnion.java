@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
+import Dalvik.DalvikClass;
 import Dalvik.GeneralClass;
 
 /*
@@ -30,6 +31,9 @@ public class LazyUnion implements Map<Integer,GeneralClass> {
 
     @Override
     public boolean containsKey(Object key) {
+        if (map1.containsKey(key)){
+            return ((map1.get(key) instanceof DalvikClass)||(map2.containsKey(key)));
+        }
         return ((map1.containsKey(key))||(map2.containsKey(key)));
     }
 
@@ -41,11 +45,14 @@ public class LazyUnion implements Map<Integer,GeneralClass> {
     @Override
     public GeneralClass get(Object key) {
         if (map1.containsKey(key)){
-            return map1.get(key);
-        }else{
-            return map2.get(key);
+            GeneralClass ret = map1.get(key);
+            if (ret instanceof DalvikClass){
+                return ret;
+            }
         }
+        return map2.get(key);
     }
+    
     @Override
     public GeneralClass put(Integer key, GeneralClass value) {
         throw new RuntimeException("LazyUnion");
