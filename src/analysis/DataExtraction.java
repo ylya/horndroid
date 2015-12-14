@@ -88,13 +88,17 @@ public class DataExtraction {
         for (final GeneralClass c: classes.values()){
             if (c instanceof DalvikClass){
                 final DalvikClass cd = (DalvikClass) c;
+                //TODO: then case can never happen
                 if (cd.getSuperClass().getType() == null){
+                    System.out.println("Weird "+ cd.getType());
                     cd.putSuperClass(null);
                 }else{
                     GeneralClass cs = classes.get(cd.getSuperClass().getType().hashCode());
-                    cd.putSuperClass(cs);
-                    if (cs instanceof DalvikClass){
-                        ((DalvikClass) cs).putChildClass(cd);
+                    if (cs != null){
+                        cd.putSuperClass(cs);
+                        if (cs instanceof DalvikClass){
+                            ((DalvikClass) cs).putChildClass(cd);
+                        }
                     }
                 }
                 

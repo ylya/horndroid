@@ -710,8 +710,16 @@ public class Analysis {
                         addClass(supClass, addedInPool);
                     }else{                    
                         GeneralClass stub = stubs.getClasses().get(superClass.getType().hashCode());
-                        ((DalvikClass) cp).putSuperClass(stub);
-                        addClass(stub,addedInPool);
+                        if (stub != null){
+                            ((DalvikClass) cp).putSuperClass(stub);
+                            addClass(stub,addedInPool);
+                        }else{
+                            throw new RuntimeException("addClass " + cp.getType());
+                        }
+                    }
+                }else{
+                    if (!cp.getType().equals("Ljava/lang/Object;")){
+                        System.out.println("Should be Ljava/lang/Object; " + cp.getType());
                     }
                 }
             }
@@ -738,9 +746,11 @@ public class Analysis {
                 if (superClass != null){
                     if(apkClasses.containsKey(superClass.getType().hashCode())){
                         GeneralClass supClass = apkClasses.get(superClass.getType().hashCode());
+
                         addClass(supClass, addedInPool);
                     }else{                    
                         GeneralClass stub = stubs.getClasses().get(superClass.getType().hashCode());
+
                         ((DalvikClass) cp).putSuperClass(stub);
                         addClass(stub,addedInPool);
                     }
@@ -938,6 +948,9 @@ public class Analysis {
         
         // Get the unknown classes from Java standard and Android libraries
         Set<CMPair> processCM = fetchUnknownMethod();
+        
+        //TODO
+        System.out.println(((DalvikClass) classes.get("Lde/ecspride/MainActivity;".hashCode())).getSuperClass().getType());
         
         //Counting the number of instructions and initializing apkClassMethods
         int instructionNumber = 0;

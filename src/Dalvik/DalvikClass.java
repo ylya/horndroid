@@ -52,6 +52,8 @@ public class DalvikClass extends GeneralClass {
 	    }
 		return superClass;
 	}
+
+	
 	public Set<GeneralClass> getInterfaces(){
 		return interfaces;
 	}
