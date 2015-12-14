@@ -1230,9 +1230,10 @@ public class Analysis {
      * Return true if c,m is a source, and if className, methodName is a method in the initial apk, and not
      * a method fetched from Java standard library or Android library
      */
+    //TODO:
     public boolean isSource(String className, String methodName, final int c, final int m){
-        return (refSources.contains(new CMPair(c,m)) 
-                && (apkClassesMethods.contains(new StringPair(className,methodName))));
+        return (refSources.contains(new CMPair(c,m)));
+                //&& (apkClassesMethods.contains(new StringPair(className,methodName))));
     }
     
     //TODO: used only in processIntent in standard analysis, should probably be removed
@@ -1244,9 +1245,10 @@ public class Analysis {
      * Return true if c,m is a sink, and if className, methodName is a method in the initial apk, and not
      * a method fetched from Java standard library or Android library
      */
+    //TODO:
     public boolean isSink(String className, String methodName, final int c, final int m){
-        return (refSinks.contains(new CMPair(c,m)) 
-                && (apkClassesMethods.contains(new StringPair(className,methodName))));
+        return (refSinks.contains(new CMPair(c,m)));
+                //&& (apkClassesMethods.contains(new StringPair(className,methodName))));
     }
 
     public void putEntryPoint(int c, int m){

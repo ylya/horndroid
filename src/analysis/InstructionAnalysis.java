@@ -1070,7 +1070,7 @@ public class InstructionAnalysis {
         case INVOKE_INTERFACE_RANGE:
         {
             Map<Integer,DalvikImplementation> implementations = analysis.getVirtualImplementations(referenceClassIndex, referenceIntIndex);
-                        
+            
             int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
             this.invokeImpKnown(referenceReg, implementations, true);
         }
@@ -3231,10 +3231,10 @@ public class InstructionAnalysis {
      */
     private void directInvoke(BoolExpr precond, DalvikClass cInvoked, DalvikMethod mInvoked, Boolean range){
         int size = analysis.getSize();      
-        
+
         int numRegCall = mInvoked.getNumReg();
         int numArgCall = mInvoked.getNumArg();
-        
+
         String classInvokedStringName = Integer.toString(cInvoked.getType().hashCode());
         String methodInvokedStringName = Integer.toString(mInvoked.getName().hashCode());
         if (analysis.isSink(className,methodName,cInvoked.getType().hashCode(), mInvoked.getName().hashCode())){

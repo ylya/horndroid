@@ -20,7 +20,7 @@ public class Instances {
      * Add the element to the set of instances
      */
     public void add(DalvikInstance di){
-        int key = di.getType().hashCode();
+        int key = di.getType().getType().hashCode();
         if (!instances.containsKey(key)){
             instances.put(key,new HashSet<DalvikInstance>());
         }
