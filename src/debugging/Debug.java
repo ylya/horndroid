@@ -66,12 +66,20 @@ public class Debug {
         writer.print("\\\\ \\cline{2-" + (reginf.highKeySet().size()+ 1) + "}\n");
         for (int i : reginf.localKeySet()){
             writer.print(" & ");
-            item(writer,reginf.localGet(i));
+            if(analysis.getDebugNumber() >= 2){
+                item(writer,reginf.localGet(i));
+            }else{
+                writer.print("$ $");
+            }
         }
         writer.print("\\\\ \\cline{2-" + (reginf.localKeySet().size() + 1) + "}\n");
         for (int i : reginf.globalKeySet()){
             writer.print(" & ");
-            item(writer,reginf.globalGet(i));
+            if(analysis.getDebugNumber() >= 3){
+                item(writer,reginf.globalGet(i));
+            }else{
+                writer.print("$ $");
+            }
         }
         writer.print("\\\\ \\hline\\hline");
     }
@@ -116,21 +124,23 @@ public class Debug {
                         }
                         writer.print("\\end{tabular}\n\n\n");
 
-                        tabular(writer,minfo.regInfo[0].highKeySet().size());
-                        writer.print(" $ $");
-                        for (int i : minfo.regInfo[0].globalKeySet()){
-                            writer.print(" & $" + i + "$ ");
-                        }
-                        writer.println("\\\\ \\hline");
+                        if (analysis.isFlowSens()){
+                            tabular(writer,minfo.regInfo[0].highKeySet().size());
+                            writer.print(" $ $");
+                            for (int i : minfo.regInfo[0].globalKeySet()){
+                                writer.print(" & $" + i + "$ ");
+                            }
+                            writer.println("\\\\ \\hline");
 
-                        for (final LHKey lhkey : minfo.getLHKeySet()){
-                            final LHInfo lhinfo = minfo.getLHInfo(lhkey.instanceNum, lhkey.field);
-                            tripleline(writer,lhinfo.getRegInfo(),
-                                    "\\begin{tabular}{c}\n" + lhinfo.allocatedClass + "\\\\ \n"+ lhinfo.c + "\\\\ \n" + lhinfo.m + " " + lhinfo.pc + " " + lhinfo.field + "\n\\end{tabular}\n"
-                                    );
-                            writer.print("\n");
+                            for (final LHKey lhkey : minfo.getLHKeySet()){
+                                final LHInfo lhinfo = minfo.getLHInfo(lhkey.instanceNum, lhkey.field);
+                                tripleline(writer,lhinfo.getRegInfo(),
+                                        "\\begin{tabular}{c}\n" + lhinfo.allocatedClass + "\\\\ \n"+ lhinfo.c + "\\\\ \n" + lhinfo.m + " " + lhinfo.pc + " " + lhinfo.field + "\n\\end{tabular}\n"
+                                        );
+                                writer.print("\n");
+                            }
+                            writer.print("\\end{tabular}\n\n\\clearpage\n"); 
                         }
-                        writer.print("\\end{tabular}\n\n\\clearpage\n"); 
                     }
                 }
                 writer.close();

@@ -143,8 +143,12 @@ public class InstructionAnalysis {
                 Z3Query q2 = new Z3Query(h2,i,QUERY_TYPE.STANDARD_HIGH,className,methodName,Integer.toString(codeAddress));
                 Z3Query q3 = new Z3Query(h3,i,QUERY_TYPE.STANDARD_BLOCK,className,methodName,Integer.toString(codeAddress));
                 z3engine.addQueryDebug(q1);
-                z3engine.addQueryDebug(q2);
-                z3engine.addQueryDebug(q3);
+                if (analysis.getDebugNumber() >= 2){
+                    z3engine.addQueryDebug(q2);
+                }
+                if (analysis.getDebugNumber() >= 3){
+                    z3engine.addQueryDebug(q3);
+                }
             }
         }
 

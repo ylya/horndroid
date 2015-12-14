@@ -1326,5 +1326,11 @@ public class Analysis {
         System.out.println("Number of sources: " + refSources.size());
         System.out.println("Number of sinks: " + refSinks.size());
     }
+    public boolean isFlowSens() {
+        return options.fsanalysis;
+    }
+    public int getDebugNumber() {
+        return options.debugInt;
+    }
 
 }

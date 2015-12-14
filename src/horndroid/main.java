@@ -49,7 +49,7 @@ public class main {
     static {
         options = new Options();
         options.addOption("q", false, "precise query results");
-        options.addOption("d", false, "print debugging information");
+        options.addOption("d", true, "print debugging information (argument: integer 1, 2 or 3)");
         options.addOption("f", false, "flow-sensitive heap");
         options.addOption("w", false, "sensitive array indexes");
         options.addOption("s", true, "number of queries per file, run Z3 in parallel saving results to the /out folder");
@@ -272,7 +272,14 @@ public class main {
                 hornDroidOptions.fsanalysis = true;
                 break;
             case 'd':
-                hornDroidOptions.debug = true;
+                {
+                    hornDroidOptions.debug = true;
+                    String optionArg= commandLine.getOptionValue("d");
+                    if (optionArg != null){
+                        int dint = Integer.parseInt(optionArg);
+                        hornDroidOptions.debugInt = dint;
+                    }
+                }
                 break;
             case 's':
                 hornDroidOptions.numQueries = Integer.parseInt(commandLine.getOptionValue("s"));;
@@ -320,7 +327,7 @@ public class main {
         System.out.println("options:");
         System.out.println("-q precise query results");
         System.out.println("-f flow-sensitive heap");
-        System.out.println("-d print debugging information");
+        System.out.println("-d print debugging information (argument: integer 1, 2 or 3)");
         System.out.println("-w sensitive array indexes");
         System.out.println("-s one query per file, run Z3 in parallel saving results to the /out folder");
         System.out.println("-n bitvector size (default 64)");

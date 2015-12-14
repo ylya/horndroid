@@ -193,9 +193,13 @@ public class FSInstructionAnalysis{
                Z3Query q2 = new Z3Query(h2,i,QUERY_TYPE.LOCAL,className,methodName,Integer.toString(codeAddress));
                Z3Query q3 = new Z3Query(h3,i,QUERY_TYPE.GLOBAL,className,methodName,Integer.toString(codeAddress));
                fsengine.addQueryDebug(q1);
-               fsengine.addQueryDebug(q2);
-               fsengine.addQueryDebug(q3);
+               if (analysis.getDebugNumber() >= 2){
+                   fsengine.addQueryDebug(q2);
                }
+               if (analysis.getDebugNumber() >= 3){
+                   fsengine.addQueryDebug(q3);
+               }
+           }
             for (int i = 0; i < analysis.getLocalHeapNumberEntries(); i++){
                 int instanceNumber = analysis.getInstanceNumFromReverse(i);
                 int lhoffset = fsengine.getOffset(instanceNumber);
