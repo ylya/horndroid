@@ -36,6 +36,7 @@ import org.jf.dexlib2.iface.reference.Reference;
 import payload.ArrayData;
 import payload.PackedSwitch;
 import payload.SparseSwitch;
+import util.CMPair;
 import util.StringPair;
 import util.Utils;
 import z3.*;
@@ -1803,9 +1804,18 @@ public class InstructionAnalysis {
     }
 
     private void stubInvoke(StubImplementation implementation, boolean range, int referenceReg, boolean virtualDispatch) {
-        // TODO Auto-generated method stub
-        //throw new RuntimeException("TODO!");
+        Map<CMPair, CMPair> dependentInvoke = implementation.getDependentInvokation();
+        for (DalvikImplementation di : implementation.getDalvikImp()){
+            CMPair cmp = new CMPair(di.getDalvikClass().getType().hashCode(),di.getMethod().getName().hashCode());
+            if (!dependentInvoke.values().contains(cmp)){
+                this.directInvoke(di, range, referenceReg, virtualDispatch);
+            }else{
+                DalvikImplementation from = implementation.getDalvikImpByID(dependentInvoke.get(cmp).hashCode());
+                this.directDalvikInvokeAux(z3engine.mkTrue(), di, range, from);
+            }
+        }
     }
+    
     private BitVecExpr regA(){
         return var.getV(((OneRegisterInstruction)instruction).getRegisterA());
     }
@@ -2453,6 +2463,7 @@ public class InstructionAnalysis {
             directDalvikInvoke(precond, di, range);
         }
         if (di.getInstances().isEmpty()){
+            //TODO: output on err and not on out
             System.out.println("Invoked class has no instances : " + di.getDalvikClass().getType() + " " + di.getMethod().getName());
         }
     }
@@ -2461,7 +2472,14 @@ public class InstructionAnalysis {
      * Invocation of a Dalvik Implementation with precondition 'precond'
      */
     private void directDalvikInvoke(BoolExpr precond, DalvikImplementation di, Boolean range){
-        int size = analysis.getSize();      
+        directDalvikInvokeAux(precond, di, range, null);
+    }
+    
+    /*
+     * if dependentInv is not null then the first argument of di's invocation is the result of dependentInv invocation
+     */
+    private void directDalvikInvokeAux(BoolExpr precond, DalvikImplementation di, Boolean range, DalvikImplementation dependentInv){
+        int size = analysis.getSize();
 
         DalvikClass cInvoked = di.getDalvikClass();
         DalvikMethod mInvoked = di.getMethod();
@@ -2482,11 +2500,48 @@ public class InstructionAnalysis {
 
         regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
 
-        buildH();
-        h = z3engine.and(h,precond);
+        buildH();        
+        if (dependentInv != null){
+            /*
+             * We get the Res predicate of the dependent invocation. 
+             * Observe that the call context of the dependent invocation is the same than the call context of the invoked method.
+             */
+            int numRegDependent = dependentInv.getMethod().getNumReg();
+            int numArgDependent = dependentInv.getMethod().getNumArg();
+
+            String classDependentStringName = Integer.toString(dependentInv.getDalvikClass().getType().hashCode());
+            String methodDependentStringName = Integer.toString(dependentInv.getMethod().getName().hashCode());
+
+            regUpdate = updateResult(numRegDependent, numArgDependent, BitVecExpr.class, var.getInjectV(var), range);
+            regUpdateL = updateResult(numRegDependent, numArgDependent, BoolExpr.class, var.getInjectL(var), range);
+            regUpdateB = updateResult(numRegDependent, numArgDependent, BoolExpr.class, var.getInjectB(var), range);
+            
+            // getRez, getLRez and getBRez contain the result of the dependent call
+            regUpdate.put(numArgDependent, var.getRez());
+            regUpdateL.put(numArgDependent, var.getLrez());
+            regUpdateB.put(numArgDependent, var.getBrez());
+
+            BoolExpr depExpr = z3engine.resPred(classDependentStringName, methodDependentStringName, regUpdate, regUpdateL, regUpdateB, numArgDependent);
+            
+            regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
+            
+            h = z3engine.and(h,precond,depExpr);
+        }else{
+            h = z3engine.and(h,precond);
+        }
+        
+        
         regUpdate = updateRegister(numRegCall, numArgCall, BitVecExpr.class, var.getInjectV(var), range);
         regUpdateL = updateRegister(numRegCall, numArgCall, BoolExpr.class, var.getInjectL(var), range);
         regUpdateB = updateRegister(numRegCall, numArgCall, BoolExpr.class, var.getInjectB(var), range);
+        
+        if (dependentInv != null){
+            //We use the result of the dependent call as the first argument of the invoked method
+            regUpdate.put(numRegCall - numArgCall, var.getRez());
+            regUpdateL.put(numRegCall - numArgCall, var.getLrez());
+            regUpdateB.put(numRegCall - numArgCall, var.getBrez());
+        }
+        
         b = z3engine.rInvokePred(classInvokedStringName, methodInvokedStringName, 0, regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, size);
         buildRule();
 

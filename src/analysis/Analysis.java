@@ -1094,11 +1094,7 @@ public class Analysis {
                     }
 
                     StubImplementation si = (StubImplementation) hm.get(entry.getKey());
-                    if (cmp instanceof ECMPair){
-                        si.addDependentMethod((ECMPair) cmp);
-                    }else{
-                        si.addMethod(cmp);
-                    }
+                    si.addMethod(cmp);
                     si.addDalvikImp(entry.getValue());
                 }
             }
@@ -1259,7 +1255,7 @@ public class Analysis {
             stub.addMethod(new CMPair(ci,"onPreExecute()V".hashCode()));
             // On the UI thread
             // This method should get the result from doInBackground
-            stub.addDependentMethod(new ECMPair(ci,"onPostExecute(Ljava/lang/Object;)V".hashCode(), new CMPair(ci,"doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode())));
+            stub.addDependentMethod(new CMPair(ci,"doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode()), new CMPair(ci,"onPostExecute(Ljava/lang/Object;)V".hashCode()));
         }
         
         /*

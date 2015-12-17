@@ -1,10 +1,12 @@
 package Dalvik;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import util.CMPair;
-import util.ECMPair;
 
 /*
  * A stub implementation of a method c,m
@@ -15,8 +17,8 @@ public class StubImplementation extends Implementation {
     private int c;
     private int m;
     private Set<CMPair> replaceMethods;
-    private Set<ECMPair> replaceMethodsDependent;
-    private Set<DalvikImplementation> implementation;
+    private Map<CMPair,CMPair> replaceMethodsDependent;
+    private Map<Integer,DalvikImplementation> implementation;
     private int numberCM;
     private int numberDI;
     
@@ -24,8 +26,8 @@ public class StubImplementation extends Implementation {
         this.c = c;
         this.m = m;
         this.replaceMethods = new HashSet<CMPair>();
-        this.replaceMethodsDependent = new HashSet<ECMPair>();
-        this.implementation = new HashSet<DalvikImplementation>();
+        this.replaceMethodsDependent = new HashMap<CMPair,CMPair>();
+        this.implementation = new HashMap<Integer,DalvikImplementation>();
     }
 
     public void addMethod(CMPair cmPair) {
@@ -33,35 +35,46 @@ public class StubImplementation extends Implementation {
         replaceMethods.add(cmPair);
     }
 
-    public void addDependentMethod(ECMPair ecmPair) {
+    /*
+     * Add the two CMPair 'from' and 'to'
+     * The result of invocation 'from' should be used has input by 'to'
+     */
+    public void addDependentMethod(CMPair from, CMPair to) {
         numberCM++;
-        replaceMethodsDependent.add(ecmPair);
+        replaceMethods.add(from);
+        replaceMethods.add(to);
+        replaceMethodsDependent.put(to,from);
     }
     
     public Set<CMPair> getStubsCM(){
-        HashSet<CMPair> hs = new HashSet<CMPair>(replaceMethods);
-        for (ECMPair ecm : replaceMethodsDependent){
-            hs.add(ecm);
-        }
-        return hs;
+        return replaceMethods;
     }
     
     public boolean hasStub(){
-        return (!replaceMethods.isEmpty()) || (!replaceMethodsDependent.isEmpty());
+        return !replaceMethods.isEmpty();
     }
     
     public void addDalvikImp(DalvikImplementation di){
         numberDI++;
-        implementation.add(di);
+        CMPair cmp = new CMPair(di.getDalvikClass().getType().hashCode(),di.getMethod().getName().hashCode());
+        implementation.put(cmp.hashCode(),di);
     }
     
-    public Set<DalvikImplementation> getDalvikImp(){
+    public final Map<CMPair,CMPair> getDependentInvokation(){
+        return this.replaceMethodsDependent;
+    }
+    
+    public Collection<DalvikImplementation> getDalvikImp(){
         if (numberCM != numberDI){
             System.out.println("StubImplementation: some methods have no implementation (or there are too many implementations). There are "+numberCM + " stubs but only " + numberDI + " DalvikImplementation found for " + c + " " + m);
         }
         if (numberDI == 0){
             System.out.println("This stub contains no Dalvik implementation :" + c + " " + m);
         }
-        return implementation;
+        return implementation.values();
+    }
+    
+    public DalvikImplementation getDalvikImpByID(int id){
+        return implementation.get(id);
     }
 }
