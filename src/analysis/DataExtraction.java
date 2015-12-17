@@ -88,9 +88,8 @@ public class DataExtraction {
         for (final GeneralClass c: classes.values()){
             if (c instanceof DalvikClass){
                 final DalvikClass cd = (DalvikClass) c;
-                //TODO: then case can never happen
                 if (cd.getSuperClass().getType() == null){
-                    System.out.println("Weird "+ cd.getType());
+                    // Happens only for Ljava/lang/Object;
                     cd.putSuperClass(null);
                 }else{
                     GeneralClass cs = classes.get(cd.getSuperClass().getType().hashCode());

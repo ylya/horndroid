@@ -38,16 +38,8 @@ public class RegInfo {
         global.put(num,bool);
     }
     
-    public Set<Integer> highKeySet(){
+    public Set<Integer> keySet(){
         return high.keySet();
-    }
-    
-    public Set<Integer> localKeySet(){
-        return local.keySet();
-    }
-    
-    public Set<Integer> globalKeySet(){
-        return global.keySet();
     }
     
 }

@@ -59,12 +59,12 @@ public class Debug {
     
     private void tripleline(final PrintWriter writer,final RegInfo reginf, final String linestring){
         writer.print("\\multirow{3}{*}{" + linestring.replace("$", "\\$") + "} ");
-        for (int i : reginf.highKeySet()){
+        for (int i : reginf.keySet()){
             writer.print(" & ");
             item(writer,reginf.highGet(i));
         }
-        writer.print("\\\\ \\cline{2-" + (reginf.highKeySet().size()+ 1) + "}\n");
-        for (int i : reginf.localKeySet()){
+        writer.print("\\\\ \\cline{2-" + (reginf.keySet().size()+ 1) + "}\n");
+        for (int i : reginf.keySet()){
             writer.print(" & ");
             if(analysis.getDebugNumber() >= 2){
                 item(writer,reginf.localGet(i));
@@ -72,8 +72,8 @@ public class Debug {
                 writer.print("$ $");
             }
         }
-        writer.print("\\\\ \\cline{2-" + (reginf.localKeySet().size() + 1) + "}\n");
-        for (int i : reginf.globalKeySet()){
+        writer.print("\\\\ \\cline{2-" + (reginf.keySet().size() + 1) + "}\n");
+        for (int i : reginf.keySet()){
             writer.print(" & ");
             if(analysis.getDebugNumber() >= 3){
                 item(writer,reginf.globalGet(i));
@@ -110,10 +110,10 @@ public class Debug {
                         final MethodeInfo minfo = debug.get(c).get(m);
                         this.newcm(writer,c,m);
 
-                        tabular(writer,minfo.regInfo[0].highKeySet().size());
+                        tabular(writer,minfo.regInfo[0].keySet().size());
                         int length = minfo.regInfo.length;
                         writer.print(" $ $");
-                        for (int i : minfo.regInfo[0].globalKeySet()){
+                        for (int i : minfo.regInfo[0].keySet()){
                             writer.print(" & $" + i + "$ ");
                         }
                         writer.println("\\\\ \\hline");
@@ -125,9 +125,9 @@ public class Debug {
                         writer.print("\\end{tabular}\n\n\n");
 
                         if (analysis.isFlowSens()){
-                            tabular(writer,minfo.regInfo[0].highKeySet().size());
+                            tabular(writer,minfo.regInfo[0].keySet().size());
                             writer.print(" $ $");
-                            for (int i : minfo.regInfo[0].globalKeySet()){
+                            for (int i : minfo.regInfo[0].keySet()){
                                 writer.print(" & $" + i + "$ ");
                             }
                             writer.println("\\\\ \\hline");

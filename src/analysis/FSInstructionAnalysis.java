@@ -1,4 +1,4 @@
-package analysis;
+ package analysis;
 
 import com.microsoft.z3.BitVecExpr;
 import com.microsoft.z3.BoolExpr;
@@ -8,6 +8,8 @@ import Dalvik.DalvikClass;
 import Dalvik.DalvikImplementation;
 import Dalvik.DalvikInstance;
 import Dalvik.DalvikMethod;
+import Dalvik.Implementation;
+import Dalvik.StubImplementation;
 import debugging.QUERY_TYPE;
 import horndroid.options;
 
@@ -67,7 +69,6 @@ public class FSInstructionAnalysis{
     private String referenceStringClass;
     
     private String returnType;
-    private int returnTypeInt;
     
     private FSVariable fsvar;
     
@@ -147,7 +148,6 @@ public class FSInstructionAnalysis{
         callReturns = false;
         referenceStringClass = null;
         returnType = null;
-        returnTypeInt = 0;
         referenceClassIndex = -1;
         referenceIntIndex = -1;
         referenceString = null;
@@ -167,7 +167,6 @@ public class FSInstructionAnalysis{
                     referenceStringClass = ((MethodReference) reference).getDefiningClass();
                     referenceClassIndex = referenceStringClass.hashCode();
                     returnType = ((MethodReference) reference).getReturnType();
-                    returnTypeInt = returnType.hashCode();
                     if (returnType.equals((String) "V")) callReturns = false;
                     else callReturns = true;
                 }
@@ -1317,9 +1316,9 @@ public class FSInstructionAnalysis{
 
         case INVOKE_SUPER:
         {
-            DalvikImplementation implementation = analysis.getSuperImplementation(referenceClassIndex, referenceIntIndex);
-                        
-            this.directInvoke(fsengine.mkTrue(), implementation.getDalvikClass(), implementation.getMethod(), false);
+            Implementation implementation = analysis.getSuperImplementation(referenceClassIndex, referenceIntIndex);
+            
+            this.directInvoke(implementation, false, 0, false);
         }
         break;
 
@@ -1333,7 +1332,7 @@ public class FSInstructionAnalysis{
         case INVOKE_INTERFACE:
         case INVOKE_VIRTUAL:
         {
-            Map<Integer,DalvikImplementation> implementations = analysis.getVirtualImplementations(referenceClassIndex, referenceIntIndex);
+            Map<Integer,Implementation> implementations = analysis.getVirtualImplementations(referenceClassIndex, referenceIntIndex);
             
             int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
             this.invokeImpKnown(referenceReg, implementations, false);
@@ -1342,9 +1341,9 @@ public class FSInstructionAnalysis{
 
         case INVOKE_SUPER_RANGE:
         {
-            DalvikImplementation implementation = analysis.getSuperImplementation(referenceClassIndex, referenceIntIndex);
-                        
-            this.directInvoke(fsengine.mkTrue(), implementation.getDalvikClass(), implementation.getMethod(), true);
+            Implementation implementation = analysis.getSuperImplementation(referenceClassIndex, referenceIntIndex);
+            
+            this.directInvoke(implementation, true, 0, false);
         }
         break;
             
@@ -1359,8 +1358,8 @@ public class FSInstructionAnalysis{
              */
         case INVOKE_INTERFACE_RANGE:
         {
-            Map<Integer,DalvikImplementation> implementations = analysis.getVirtualImplementations(referenceClassIndex, referenceIntIndex);
-                        
+            Map<Integer,Implementation> implementations = analysis.getVirtualImplementations(referenceClassIndex, referenceIntIndex);
+            
             int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
             this.invokeImpKnown(referenceReg, implementations, true);
         }
@@ -1369,64 +1368,19 @@ public class FSInstructionAnalysis{
             
         case INVOKE_DIRECT:
         case INVOKE_STATIC:
-            //TODO: temporary commented code
-            /*
-            //we do a resolution on thread init, not on thread start, as at thread start the class information is lost
-            //(it is stored somewhere in the thread class by the operating system, we can also simulate that storing class name somewhere).
-            //on the other hand, if one initializes the thread and never spawns it? rare
-            //JavaThread2 for the reference
-            if ((referenceIntIndex == "<init>(Ljava/lang/Runnable;)V".hashCode()) && (referenceClassIndex == "Ljava/lang/Thread;".hashCode())){
-                implementations = analysis.getImplementations("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode());
-                FiveRegisterInstruction instr2 = (FiveRegisterInstruction)this.instruction;
-                if (!implementations.isEmpty()){
-                    for (final DalvikImplementation di : implementations){
-                        int numRegCall = di.getMethod().getNumReg();
-                        int numArgCall = di.getMethod().getNumArg();
-
-                        for (final DalvikInstance instance: di.getInstances()){
-                            h = fsengine.and(
-                                    fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
-                                    fsengine.eq(
-                                            fsvar.getV(instr2.getRegisterD()),
-                                            fsengine.mkBitVector(instance.hashCode(), size)
-                                            )
-                                    );
-
-                            regUpV.put(numRegCall - numArgCall + 0, fsvar.getV(instr2.getRegisterD()));
-                            regUpV.put(numRegCall + 1 + 0, fsvar.getV(instr2.getRegisterD()));
-                            regUpH.put(numRegCall - numArgCall + 0, fsvar.getH(instr2.getRegisterD()));
-                            regUpH.put(numRegCall + 1 + 0, fsvar.getH(instr2.getRegisterD()));
-                            regUpL.put(numRegCall - numArgCall + 0, fsvar.getL(instr2.getRegisterD()));
-                            regUpL.put(numRegCall + 1 + 0, fsvar.getL(instr2.getRegisterD()));
-                            regUpG.put(numRegCall - numArgCall + 0, fsvar.getG(instr2.getRegisterD()));
-                            regUpG.put(numRegCall + 1 + 0, fsvar.getG(instr2.getRegisterD()));
-                            b = fsengine.rPredInvok(
-                                    Integer.toString(di.getDalvikClass().getType().hashCode()),
-                                    Integer.toString("run()V".hashCode()),
-                                    0, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numArgCall, numRegCall, size);
-                            buildRule();
-
-                            regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
-                        }
-
-                        break;
-                    }
-                }
-            }
-             */
         {
-            DalvikImplementation implementation = analysis.getDirectImplementation(referenceClassIndex, referenceIntIndex);
+            Implementation implementation = analysis.getDirectImplementation(referenceClassIndex, referenceIntIndex);
 
-            this.directInvoke(fsengine.mkTrue(), implementation.getDalvikClass(), implementation.getMethod(), false);
+            this.directInvoke(implementation, false, 0, false);
         }
         break;
 
         case INVOKE_DIRECT_RANGE:
         case INVOKE_STATIC_RANGE:
         {
-            DalvikImplementation implementation = analysis.getDirectImplementation(referenceClassIndex, referenceIntIndex);
-                        
-            this.directInvoke(fsengine.mkTrue(), implementation.getDalvikClass(), implementation.getMethod(), true);
+            Implementation implementation = analysis.getDirectImplementation(referenceClassIndex, referenceIntIndex);
+
+            this.directInvoke(implementation, true, 0, false);
         }
         break;
         
@@ -2204,60 +2158,6 @@ public class FSInstructionAnalysis{
         }
     }
     
-    
-    //TODO: should not be useful anymore
-    @SuppressWarnings("unused")
-    private BoolExpr getLabels(){
-        FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
-        final int regCount = instruction.getRegisterCount();
-        switch (regCount) {
-        case 1:
-            return fsengine.or(
-                    fsvar.getH(instruction.getRegisterC()));
-        case 2:
-            return fsengine.or(
-                    fsvar.getH(instruction.getRegisterC()),
-                    fsvar.getH(instruction.getRegisterD()));
-        case 3:
-            return fsengine.or(
-                    fsvar.getH(instruction.getRegisterC()),
-                    fsvar.getH(instruction.getRegisterD()),
-                    fsvar.getH(instruction.getRegisterE()));
-        case 4:
-            return fsengine.or(
-                    fsvar.getH(instruction.getRegisterC()),
-                    fsvar.getH(instruction.getRegisterD()),
-                    fsvar.getH(instruction.getRegisterE()),
-                    fsvar.getH(instruction.getRegisterF()));
-
-        case 5:
-            return fsengine.or(
-                    fsvar.getH(instruction.getRegisterC()),
-                    fsvar.getH(instruction.getRegisterD()),
-                    fsvar.getH(instruction.getRegisterE()),
-                    fsvar.getH(instruction.getRegisterF()),
-                    fsvar.getH(instruction.getRegisterG()));
-        default:
-            return fsengine.mkFalse();
-        }
-    }
-
-    //TODO: should not be useful anymore
-    @SuppressWarnings("unused")
-    private BoolExpr getLabelsRange(){
-        RegisterRangeInstruction instruction = (RegisterRangeInstruction)this.instruction;
-        int regCount = instruction.getRegisterCount();
-        int startRegister = instruction.getStartRegister();
-        int endRegister   =   startRegister+regCount-1;
-
-        BoolExpr labels = fsengine.mkFalse();
-        for(int reg = startRegister; reg <= endRegister; reg++){
-            labels = fsengine.or(
-                    labels, fsvar.getH(reg)
-                    );
-        }
-        return fsengine.or(labels);
-    }
 
     private void addQueryRange(BoolExpr p, String className, String methodName, String pc, String sinkName, final boolean verboseOption){
         RegisterRangeInstruction instruction = (RegisterRangeInstruction)this.instruction;
@@ -2317,235 +2217,6 @@ public class FSInstructionAnalysis{
             fsengine.addQuery(new Z3Query(q1, d1, verboseResults, className, methodName, pc, sinkName));
         }
     }
-
-    //TODO:should be removed
-    private Map<Integer, BoolExpr> highReg(final boolean range, Map<Integer, BoolExpr> regUpdate){
-        if (! range){
-            FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
-            final int regCount = instruction.getRegisterCount();
-            switch (regCount) {
-            case 1:
-                regUpdate.put(instruction.getRegisterC(), fsvar.getH(instruction.getRegisterC()));
-                break;
-
-            case 2:
-                regUpdate.put(instruction.getRegisterC(),
-                        fsengine.or(
-                                fsvar.getH(instruction.getRegisterC()),
-                                fsengine.and(
-                                        fsengine.or(fsvar.getL(instruction.getRegisterC()),fsvar.getG(instruction.getRegisterC())),
-                                        fsvar.getH(instruction.getRegisterD())
-                                        )
-                                )
-                        );
-                regUpdate.put(instruction.getRegisterD(),
-                        fsengine.or(
-                                fsvar.getH(instruction.getRegisterD()),
-                                fsengine.and(
-                                        fsengine.or(fsvar.getL(instruction.getRegisterD()),fsvar.getG(instruction.getRegisterD())),
-                                        fsvar.getH(instruction.getRegisterC())
-                                        )
-                                )
-                        );
-                break;
-
-            case 3:
-                regUpdate.put(instruction.getRegisterC(),
-                        fsengine.or(
-                                fsvar.getH(instruction.getRegisterC()),
-                                fsengine.and(
-                                        fsengine.or(fsvar.getL(instruction.getRegisterC()),fsvar.getG(instruction.getRegisterC())),
-                                        fsengine.or(
-                                                fsvar.getH(instruction.getRegisterD()),
-                                                fsvar.getH(instruction.getRegisterE())
-                                                )
-                                        )
-                                )
-                        );
-                regUpdate.put(instruction.getRegisterD(),
-                        fsengine.or(
-                                fsvar.getH(instruction.getRegisterD()),
-                                fsengine.and(
-                                        fsengine.or(fsvar.getL(instruction.getRegisterD()),fsvar.getG(instruction.getRegisterD())),
-                                        fsengine.or(
-                                                fsvar.getH(instruction.getRegisterC()),
-                                                fsvar.getH(instruction.getRegisterE())
-                                                )
-                                        )
-                                )
-                        );
-                regUpdate.put(instruction.getRegisterE(),
-                        fsengine.or(
-                                fsvar.getH(instruction.getRegisterE()),
-                                fsengine.and(
-                                        fsengine.or(fsvar.getL(instruction.getRegisterE()),fsvar.getG(instruction.getRegisterE())),
-                                        fsengine.or(
-                                                fsvar.getH(instruction.getRegisterC()),
-                                                fsvar.getH(instruction.getRegisterD())
-                                                )
-                                        )
-                                )
-                        );
-                break;
-
-            case 4:
-                regUpdate.put(instruction.getRegisterC(),
-                        fsengine.or(
-                                fsvar.getH(instruction.getRegisterC()),
-                                fsengine.and(
-                                        fsengine.or(fsvar.getL(instruction.getRegisterC()),fsvar.getG(instruction.getRegisterC())),
-                                        fsengine.or(
-                                                fsvar.getH(instruction.getRegisterD()),
-                                                fsvar.getH(instruction.getRegisterE()),
-                                                fsvar.getH(instruction.getRegisterF())
-                                                )
-                                        )
-                                )
-                        );
-                regUpdate.put(instruction.getRegisterD(),
-                        fsengine.or(
-                                fsvar.getH(instruction.getRegisterD()),
-                                fsengine.and(
-                                        fsengine.or(fsvar.getL(instruction.getRegisterD()),fsvar.getG(instruction.getRegisterD())),
-                                        fsengine.or(
-                                                fsvar.getH(instruction.getRegisterC()),
-                                                fsvar.getH(instruction.getRegisterE()),
-                                                fsvar.getH(instruction.getRegisterF())
-                                                )
-                                        )
-                                )
-                        );
-                regUpdate.put(instruction.getRegisterE(),
-                        fsengine.or(
-                                fsvar.getH(instruction.getRegisterE()),
-                                fsengine.and(
-                                        fsengine.or(fsvar.getL(instruction.getRegisterE()),fsvar.getG(instruction.getRegisterE())),
-                                        fsengine.or(
-                                                fsvar.getH(instruction.getRegisterD()),
-                                                fsvar.getH(instruction.getRegisterC()),
-                                                fsvar.getH(instruction.getRegisterF())
-                                                )
-                                        )
-                                )
-                        );
-                regUpdate.put(instruction.getRegisterF(),
-                        fsengine.or(
-                                fsvar.getH(instruction.getRegisterF()),
-                                fsengine.and(
-                                        fsengine.or(fsvar.getL(instruction.getRegisterF()),fsvar.getG(instruction.getRegisterF())),
-                                        fsengine.or(
-                                                fsvar.getH(instruction.getRegisterD()),
-                                                fsvar.getH(instruction.getRegisterE()),
-                                                fsvar.getH(instruction.getRegisterC())
-                                                )
-                                        )
-                                )
-                        );
-                break;
-            case 5:
-                regUpdate.put(instruction.getRegisterC(),
-                        fsengine.or(
-                                fsvar.getH(instruction.getRegisterC()),
-                                fsengine.and(
-                                        fsengine.or(fsvar.getL(instruction.getRegisterC()),fsvar.getG(instruction.getRegisterC())),
-                                        fsengine.or(
-                                                fsvar.getH(instruction.getRegisterD()),
-                                                fsvar.getH(instruction.getRegisterE()),
-                                                fsvar.getH(instruction.getRegisterF()),
-                                                fsvar.getH(instruction.getRegisterG())
-                                                )
-                                        )
-                                )
-                        );
-                regUpdate.put(instruction.getRegisterD(),
-                        fsengine.or(
-                                fsvar.getH(instruction.getRegisterD()),
-                                fsengine.and(
-                                        fsengine.or(fsvar.getL(instruction.getRegisterD()),fsvar.getG(instruction.getRegisterD())),
-                                        fsengine.or(
-                                                fsvar.getH(instruction.getRegisterC()),
-                                                fsvar.getH(instruction.getRegisterE()),
-                                                fsvar.getH(instruction.getRegisterF()),
-                                                fsvar.getH(instruction.getRegisterG())
-                                                )
-                                        )
-                                )
-                        );
-                regUpdate.put(instruction.getRegisterE(),
-                        fsengine.or(
-                                fsvar.getH(instruction.getRegisterE()),
-                                fsengine.and(
-                                        fsengine.or(fsvar.getL(instruction.getRegisterE()),fsvar.getG(instruction.getRegisterE())),
-                                        fsengine.or(
-                                                fsvar.getH(instruction.getRegisterD()),
-                                                fsvar.getH(instruction.getRegisterC()),
-                                                fsvar.getH(instruction.getRegisterF()),
-                                                fsvar.getH(instruction.getRegisterG())
-                                                )
-                                        )
-                                )
-                        );
-                regUpdate.put(instruction.getRegisterF(),
-                        fsengine.or(
-                                fsvar.getH(instruction.getRegisterF()),
-                                fsengine.and(
-                                        fsengine.or(fsvar.getL(instruction.getRegisterF()),fsvar.getG(instruction.getRegisterF())),
-                                        fsengine.or(
-                                                fsvar.getH(instruction.getRegisterD()),
-                                                fsvar.getH(instruction.getRegisterE()),
-                                                fsvar.getH(instruction.getRegisterC()),
-                                                fsvar.getH(instruction.getRegisterG())
-                                                )
-                                        )
-                                )
-                        );
-                regUpdate.put(instruction.getRegisterG(),
-                        fsengine.or(
-                                fsvar.getH(instruction.getRegisterG()),
-                                fsengine.and(
-                                        fsengine.or(fsvar.getL(instruction.getRegisterG()),fsvar.getG(instruction.getRegisterG())),
-                                        fsengine.or(
-                                                fsvar.getH(instruction.getRegisterD()),
-                                                fsvar.getH(instruction.getRegisterE()),
-                                                fsvar.getH(instruction.getRegisterF()),
-                                                fsvar.getH(instruction.getRegisterC())
-                                                )
-                                        )
-                                )
-                        );
-                break;
-            }
-        } else {
-            RegisterRangeInstruction instruction = (RegisterRangeInstruction)this.instruction;
-            int regCount = instruction.getRegisterCount();
-            int startRegister = instruction.getStartRegister();
-            int endRegister   =   startRegister+regCount-1;
-            BoolExpr orLabels = fsengine.mkFalse();
-            switch (regCount){
-            case 0: return regUpdate;
-            case 1: return regUpdate;
-            default:
-                for (int reg = startRegister; reg <= endRegister; reg++ ){
-                    orLabels = fsengine.mkFalse();
-                    for (int reg2 = startRegister; reg2 <= endRegister; reg2++ ){
-                        if (reg2 == reg){ continue; }
-                        fsengine.or(orLabels, fsvar.getH(reg));
-                    }
-                    regUpdate.put(reg,
-                            fsengine.or(
-                                    fsvar.getH(reg),
-                                    fsengine.and(
-                                            fsengine.or(fsvar.getL(reg),fsvar.getL(reg)),
-                                            orLabels
-                                            )
-                                    )
-                            );
-                }
-            }
-        }
-        return regUpdate;
-    }
-
  
     private <T extends Expr> Map<Integer, T> updateRegister(final int numReg, final int numArg, final Class<T> type, final VariableInject var, final boolean range){
         Map<Integer, T> regUpdate = new HashMap<>();
@@ -2772,130 +2443,73 @@ public class FSInstructionAnalysis{
     }
 
 
+    private void stubInvoke(StubImplementation implementation, boolean range, int referenceReg, boolean virtualDispatch) {
+        // TODO Auto-generated method stub
+        throw new RuntimeException("TODO!");
+    }
+
     /*
      * implementations: set of implementations of the invoked method
+     * Perform dynamic dispatch
      */
-    private void invokeImpKnown(final int referenceReg, final Map<Integer,DalvikImplementation> implementations, final Boolean range){
-        int size = analysis.getSize();
-        for (final Map.Entry<Integer, DalvikImplementation> entry : implementations.entrySet()){
-            DalvikImplementation di = entry.getValue();
-            for (final DalvikInstance instance: di.getInstances()){
-                //TODO: this can be improved by adding a predicate Class and doing Class(instance.hashcode(),classID) and Class(referenceReg,classID)  so has to share all this between invocation
-                BoolExpr precond = fsengine.eq(
-                                fsvar.getV(referenceReg),
-                                fsengine.mkBitVector(instance.hashCode(), size)
-                                );
-                directInvoke(precond, di.getDalvikClass(), di.getMethod(), range);
-            }
+    private void invokeImpKnown(final int referenceReg, final Map<Integer,Implementation> implementations, final Boolean range){
+        for (final Map.Entry<Integer, Implementation> entry : implementations.entrySet()){
+            directInvoke(entry.getValue(),range,referenceReg,true);
         }
     }
 
-    //TODO: move this to analysis.java
-    @SuppressWarnings("unused")
-    private Map<Integer,DalvikImplementation> getImplementationsSpecialCase(){
-        Boolean modRes = false;
-        if ((referenceIntIndex == "execute(Ljava/lang/Runnable;)V".hashCode()) && (referenceClassIndex == "Ljava/util/concurrent/ExecutorService;".hashCode())){
-            //implementations = analysis.getImplementations("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode());
-            modRes = true;
-        }
-        if (referenceIntIndex == "start()V".hashCode()){
-            //implementations = analysis.getImplementations(referenceClassIndex, "run()V".hashCode());
-            modRes = true;
-        }
-        if (referenceIntIndex == "execute([Ljava/lang/Object;)Landroid/os/AsyncTask;".hashCode()){
-            //implementations = analysis.getImplementations(referenceClassIndex, "doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode());
-            modRes = true;
-        }
-        
-        return null;
-    }
 
-    //TODO: should not be useful anymore
-    @SuppressWarnings("unused")
-    private void invokeImpNotKnown(BoolExpr returnLabel, int ci, int mi, Boolean range){
-        int size = analysis.getSize();
-        
-        if (analysis.isSink(className,methodName,referenceClassIndex, referenceIntIndex)){
-            if (range){
-                addQueryRange(fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
-                        className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
+    /*
+     * Direct invocation of a method, whose implementation is either a dalvik implementation
+     * or a stub
+     */
+    private void directInvoke(Implementation implementation, Boolean range, int referenceReg, Boolean virtualDispatch){
+        if (implementation instanceof DalvikImplementation){
+            DalvikImplementation dalvikImp = (DalvikImplementation) implementation;
+            if (virtualDispatch){
+                this.virtualDalvikInvoke(dalvikImp, referenceReg, range);
             }else{
-                addQuery(fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
-                        className, methodName, Integer.toString(codeAddress), referenceString, analysis.optionVerbose());
+                this.directDalvikInvoke(fsengine.mkTrue(), dalvikImp, range); 
             }
-        }
-        //if (processIntent(ci, mi, referenceClassIndex, referenceIntIndex, referenceString)){
-        //    return;
-        //}
-
-        BoolExpr subh = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
-
-
-        if (returnType.hashCode() == "Ljava/lang/String;".hashCode()){
-            regUpV.put(numRegLoc, fsvar.getF());
-            regUpH.put(numRegLoc, returnLabel);
-            regUpL.put(numRegLoc, fsengine.mkFalse());
-            regUpG.put(numRegLoc, fsengine.mkTrue());
         }else{
-            if ((returnType.charAt(0) != '[') && (returnType.charAt(returnType.length() -1) == ';' )){
-                instanceNum = analysis.getInstNum(ci, mi, codeAddress);
-
-                Map<Integer,Boolean> fields = analysis.getClassFields(returnType, instanceNum);
-
-                if (fields != null)
-                    for (Map.Entry<Integer, Boolean> fieldN : fields.entrySet()){
-                        buildH();
-                        b = fsengine.hPred(fsengine.mkBitVector(returnTypeInt, size),
-                                fsvar.getFpp(), fsengine.mkBitVector(fieldN.getKey(), size),
-                                fsvar.getVfp(), returnLabel, fsengine.mkBool(fieldN.getValue()));
-                        buildRule();
-                    }
-                else{
-                    buildH();
-                    b = fsengine.hPred(fsengine.mkBitVector(returnTypeInt, size),
-                            fsvar.getFpp(), fsvar.getF(), fsvar.getVfp(), returnLabel, fsvar.getBf());
-                    buildRule();
-                }
-                regUpV.put(numRegLoc, fsvar.getFpp());
-                regUpH.put(numRegLoc, returnLabel);
-                regUpL.put(numRegLoc, fsengine.mkFalse());
-                regUpG.put(numRegLoc, fsengine.mkTrue());
-            } else {
-                switch (returnType){
-                case "V": break;
-
-                case "Z": case "B": case "S": case "C": case "I": case "J": case "F": case "D":
-                    regUpV.put(numRegLoc, fsvar.getF());
-                    regUpH.put(numRegLoc, returnLabel);
-                    regUpL.put(numRegLoc, fsengine.mkFalse());
-                    regUpG.put(numRegLoc, fsengine.mkFalse());
-                    break;
-                default: //array
-                    instanceNum = analysis.getInstNum(ci, mi, codeAddress);
-                    buildH();
-                    b = fsengine.hPred(fsengine.mkBitVector(returnTypeInt, size),
-                            fsengine.mkBitVector(instanceNum, size),
-                            fsvar.getF(), fsvar.getBuf(), returnLabel, fsvar.getBf());
-                    buildRule();
-                    regUpV.put(numRegLoc, fsengine.mkBitVector(instanceNum, size));
-                    regUpH.put(numRegLoc, returnLabel);
-                    regUpL.put(numRegLoc, fsengine.mkFalse());
-                    regUpG.put(numRegLoc, fsengine.mkTrue());
-                }
+            if (implementation instanceof StubImplementation){
+                this.stubInvoke((StubImplementation) implementation, range, referenceReg, virtualDispatch);
+            }else{
+                throw new RuntimeException("Implementation missing!");
             }
         }
-        
-        regUpH = highReg(range, regUpH);
-
-        buildB();
-        fsengine.addRule(fsengine.implies(subh, b), null);
     }
     
     /*
-     * Invoke the method cInvoked,mInvoked with precondition 'precond'
+     * This method is used to performe virtual dispatch:
+     * the generated Horn clauses check that the callee is of the correct class before invoking
      */
-    private void directInvoke(BoolExpr precond, DalvikClass cInvoked, DalvikMethod mInvoked, Boolean range){
+    private void virtualDalvikInvoke(DalvikImplementation di, int referenceReg, Boolean range){
+        for (final DalvikInstance instance: di.getInstances()){
+            //TODO: this can be improved by adding a predicate Class and
+            // doing Class(instance.hashcode(),classID) and Class(referenceReg,classID) 
+            // so has to share all this between invocation
+            BoolExpr precond = fsengine.eq(
+                            fsvar.getV(referenceReg),
+                            fsengine.mkBitVector(instance.hashCode(), analysis.getSize())
+                            );
+            directDalvikInvoke(precond, di, range);
+        }
+        if (di.getInstances().isEmpty()){
+            System.out.println("Invoked class has no instances : " + di.getDalvikClass().getType() + " " + di.getMethod().getName());
+        }
+    }
+    
+    /*
+     * Invocation of a Dalvik Implementation with precondition 'precond'
+     */
+    private void directDalvikInvoke(BoolExpr precond, DalvikImplementation di, Boolean range){
         int size = analysis.getSize();
+        
+
+        DalvikClass cInvoked = di.getDalvikClass();
+        DalvikMethod mInvoked = di.getMethod();
+
         int numRegCall = mInvoked.getNumReg();
         int numArgCall = mInvoked.getNumArg();
         

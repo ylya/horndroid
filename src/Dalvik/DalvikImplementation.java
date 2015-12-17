@@ -4,7 +4,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-public class DalvikImplementation {
+/*
+ * A implementation of a method c,m
+ */
+public class DalvikImplementation extends Implementation{
 	final private DalvikClass dc;
 	final private DalvikMethod dm;
 	final private Set<DalvikInstance> di;

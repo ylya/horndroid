@@ -11,3 +11,4 @@
 /test/
 /smali/
 *.aux
+dependency-reduced-pom.xml
