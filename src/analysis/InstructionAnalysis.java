@@ -2067,12 +2067,16 @@ public class InstructionAnalysis {
     //TODO
     private boolean processIntent(final Z3Engine z3engine, final int ci, final int mi, final int numParLoc, final int numRegLoc, final int nextCode, final int c, final int m, final String shortMethodName,
             final int size){
-
-        BoolExpr h2, b2, h6, b6;
+        
+        //http://developer.android.com/reference/android/content/Intent.html
+        
+        BoolExpr h2, b2;
         Map<Integer, Boolean> fields = Collections.synchronizedMap(new HashMap <Integer, Boolean>());
 
-
-
+       /* 
+        * Specify the exact class to be called (for an explicit intent)
+        */
+        
         if  (c == ("Landroid/content/Intent;".hashCode()) &&
                 ("setComponent(Landroid/content/ComponentName;)Landroid/content/Intent;".hashCode()) == m){
             if (this.instruction instanceof FiveRegisterInstruction
@@ -2086,7 +2090,12 @@ public class InstructionAnalysis {
                     registerC = ((RegisterRangeInstruction) instruction).getStartRegister();
                     registerD = ((RegisterRangeInstruction) instruction).getStartRegister() + 1;
                 }
-
+                /*
+                 * HI predicate is the same as H but with a smaller arity as it does not contain any field information 
+                 * (we are field-incensitive for intents).
+                 * When intent is created the exact class might not be known, it is specified then by calling setComponent method,
+                 * it replaces the original class ("cn") by the one spcified in the method call (registerD)
+                 */
                 h2 = z3engine.and(
                         z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                         z3engine.hiPred(
@@ -2094,24 +2103,36 @@ public class InstructionAnalysis {
                         );
                 b2 = z3engine.hiPred(
                         var.getV(registerD), var.getV(registerC), var.getVal(), var.getLf(), var.getBf());
+               
+                
                 z3engine.addRule(z3engine.implies(h2, b2), null);
+                /*
+                 * the result of the setComponent will be a new version of the intent which is stored in the same registerC, where it was before
+                 */
                 h = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                 regUpdate.put(registerC, var.getV(registerC));
                 regUpdateL.put(registerC, var.getL(registerC));
                 regUpdateB.put(registerC, var.getB(registerC));
                 b = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
+                
+               
                 buildRule();
+                
+                
                 return true;
             }
         }
-
+       /*
+        * Create a new Intent (class is known, in Ljava/lang/Class;) aka (newintent r_d c')_pp
+        */
         if  (c == ("Landroid/content/Intent;".hashCode()) &&
                 ("<init>(Landroid/content/Context;Ljava/lang/Class;)V".hashCode()) == m){
             final int instanceNum = analysis.getInstNum(ci, mi, codeAddress);
             if (this.instruction instanceof FiveRegisterInstruction
                     ||  this.instruction instanceof RegisterRangeInstruction ) {
 
-                int registerC, registerE;
+                int registerC, //r_d
+                    registerE; //c'
                 if(this.instruction instanceof FiveRegisterInstruction){
                     registerC = ((FiveRegisterInstruction) instruction).getRegisterC();
                     registerE = ((FiveRegisterInstruction) instruction).getRegisterE();
@@ -2119,12 +2140,16 @@ public class InstructionAnalysis {
                     registerC = ((RegisterRangeInstruction) instruction).getStartRegister();
                     registerE = ((RegisterRangeInstruction) instruction).getStartRegister() + 2;
                 }
-
+               /*
+                * Put a new intent instance of the type c' on the heap
+                */
                 h2 = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                 b2 = z3engine.hiPred(
                         var.getV(registerE), z3engine.mkBitVector(instanceNum, size), z3engine.mkBitVector(0, size), z3engine.mkFalse(), z3engine.mkFalse());
                 z3engine.addRule(z3engine.implies(h2, b2), null);
-
+                /*
+                 * Put a refence to the intent into r_d
+                 */
                 h = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                 regUpdate.put(registerC, z3engine.mkBitVector(instanceNum, size));
                 regUpdateL.put(registerC, z3engine.mkFalse());
@@ -2133,7 +2158,10 @@ public class InstructionAnalysis {
                 buildRule();
 
                 regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
-
+                
+               /*
+                * Put default values for all fields of the intent
+                */
                 fields = analysis.getClassFields("Landroid/content/Intent;", instanceNum);
                 if (fields != null)
                     for (Map.Entry<Integer, Boolean> fieldN : fields.entrySet()){
@@ -2148,13 +2176,18 @@ public class InstructionAnalysis {
                 return true;
             }
         }
+        //TODO: this case looks like the previous one - merge?
+        /*
+         * Create a new Intent (class is known, in Ljava/lang/String;) aka (newintent r_d c')_pp
+         */
         if  (c == ("Landroid/content/Intent;".hashCode()) &&
                 ("<init>(Ljava/lang/String;)V".hashCode()) == m){
             final int instanceNum = analysis.getInstNum(ci, mi, codeAddress);
             if (this.instruction instanceof FiveRegisterInstruction
                     ||  this.instruction instanceof RegisterRangeInstruction ) {
 
-                int registerC, registerE;
+                int registerC, //r_d
+                    registerE; //c'
                 if(this.instruction instanceof FiveRegisterInstruction){
                     registerC = ((FiveRegisterInstruction) instruction).getRegisterC();
                     registerE = ((FiveRegisterInstruction) instruction).getRegisterE();
@@ -2162,12 +2195,16 @@ public class InstructionAnalysis {
                     registerC = ((RegisterRangeInstruction) instruction).getStartRegister();
                     registerE = ((RegisterRangeInstruction) instruction).getStartRegister() + 2;
                 }
-
+                /*
+                 * Put a new intent instance of the type c' on the heap
+                 */
                 h2 = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                 b2 = z3engine.hiPred(
                         var.getV(registerE), z3engine.mkBitVector(instanceNum, size), z3engine.mkBitVector(0, size), z3engine.mkFalse(), z3engine.mkFalse());
                 z3engine.addRule(z3engine.implies(h2, b2), null);
-
+               /*
+                * Put a refence to the intent into r_d
+                */
                 h = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                 regUpdate.put(registerC, z3engine.mkBitVector(instanceNum, size));
                 regUpdateL.put(registerC, z3engine.mkFalse());
@@ -2176,7 +2213,9 @@ public class InstructionAnalysis {
                 buildRule();
 
                 regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
-
+                /*
+                 * Put default values for all fields of the intent
+                 */
                 fields = analysis.getClassFields("Landroid/content/Intent;", instanceNum);
                 if (fields != null)
                     for (Map.Entry<Integer, Boolean> fieldN : fields.entrySet()){
@@ -2189,24 +2228,32 @@ public class InstructionAnalysis {
                 return true;
             }
         }
+        /*
+         * Create a new Intent (class is not known, unbounded variable f) aka (newintent r_d ?)_pp
+         */
         if  (c == ("Landroid/content/Intent;".hashCode()) &&
                 ("<init>()V".hashCode()) == m){
             final int instanceNum = analysis.getInstNum(ci, mi, codeAddress);
             if (this.instruction instanceof FiveRegisterInstruction
                     ||  this.instruction instanceof RegisterRangeInstruction ) {
 
-                int registerC;
+                int registerC; // r_d
                 if(this.instruction instanceof FiveRegisterInstruction){
                     registerC = ((FiveRegisterInstruction) instruction).getRegisterC();
                 } else {
                     registerC = ((RegisterRangeInstruction) instruction).getStartRegister();
                 }
-
+                /*
+                 * Put a new intent instance of the unknown type f on the heap
+                 */
                 h2 = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                 b2 = z3engine.hiPred(
                         var.getF(), z3engine.mkBitVector(instanceNum, size),
                         z3engine.mkBitVector(0, size), z3engine.mkFalse(), z3engine.mkFalse());
                 z3engine.addRule(z3engine.implies(h2, b2), null);
+                /*
+                 * Put a refence to the intent into r_d
+                 */
                 h = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                 regUpdate.put(registerC, z3engine.mkBitVector(instanceNum, size));
                 regUpdateL.put(registerC, z3engine.mkFalse());
@@ -2215,7 +2262,9 @@ public class InstructionAnalysis {
                 buildRule();
 
                 regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
-
+                /*
+                 * Put default values for all fields of the intent
+                 */
                 fields = analysis.getClassFields("Landroid/content/Intent;", instanceNum);
                 if (fields != null)
                     for (Map.Entry<Integer, Boolean> fieldN : fields.entrySet()){
@@ -2227,17 +2276,22 @@ public class InstructionAnalysis {
                 return true;
             }
         }
+       /*
+        * Start an activity referenced in specified register aka (start-activity r_i)_pp
+        */
         if (("startActivity(Landroid/content/Intent;)V".hashCode() == m) || shortMethodName.contains("startActivityForResult")){
             if (this.instruction instanceof FiveRegisterInstruction
                     ||  this.instruction instanceof RegisterRangeInstruction ) {
 
-                int registerD;
+                int registerD; // r_i
                 if(this.instruction instanceof FiveRegisterInstruction){
                     registerD = ((FiveRegisterInstruction) instruction).getRegisterD();
                 } else {
                     registerD = ((RegisterRangeInstruction) instruction).getStartRegister() + 1;
                 }
-
+               /*
+                * Take a refence from r_i (R) and if there is an intent on the heap refeneced by it (HI) start an activity I
+                */
                 h = z3engine.and(
                         z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                         z3engine.hiPred(
@@ -2246,21 +2300,33 @@ public class InstructionAnalysis {
                 b = z3engine.iPred(
                         var.getCn(), z3engine.mkBitVector(c, size), var.getVal(), var.getLf(), var.getBf());
                 buildRule();
-
+                // Go to the next pc with the intact register values
                 h2 = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                 b2 = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                 z3engine.addRule(z3engine.implies(h2, b2), null);
-
-                //			Clause cl3 = new Clause();
+                
+                
+               /*
+                * Act rule interpretation
+                * In the first rule instead of using I predicate we use the same premice as was used for it's inference
+                //TODO: this is sound due to the logical cut, but we better check 
+                */
+               /*
+                * before cup, creates a rule for HI(in(c), _) inference
+                */
                 BoolExpr h3 = z3engine.and(
                         z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                         z3engine.hiPred(
                                 var.getCn(), var.getV(registerD), var.getVal(), var.getLf(), var.getBf())
                         );
-                final BitVecExpr inC = z3engine.mkBitVector((Utils.Dec(registerD) + Utils.Dec(c)).hashCode(), size); // in(c) = _ + _)
+                //TODO: there are better ways of computing fresh in(c)
+                final BitVecExpr inC = z3engine.mkBitVector((Utils.Dec(registerD) + Utils.Dec(c)).hashCode(), size); // in(c) = r_i + c
                 BoolExpr b3 = z3engine.hiPred(var.getCn(), inC, var.getVal(), var.getLf(), var.getBf());
                 z3engine.addRule(z3engine.implies(h3, b3), null);
-
+               /*
+                * after cup, addd default values to the (parent) and (intent) fields of the current intent as specified in the rule
+                * (finished) field is ommitied due to the fact that it's values is oveapproximated in the anlysis and treated alwaus as {true, false}
+                */
                 BoolExpr h4 = z3engine.and(
                         z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                         z3engine.hiPred(
@@ -2283,18 +2349,28 @@ public class InstructionAnalysis {
                 return true;
             }
         }
+       /*
+        * Put informaton in the intent object with refence in r_i aka (put-extra r_i r_k k_j)_pp
+        * note: r_k is ignore, vield insensitivity
+        */
         if (shortMethodName.contains((String) "putExtra") && c == ("Landroid/content/Intent;".hashCode())){
             if (this.instruction instanceof FiveRegisterInstruction){
                 FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
                 h = z3engine.and(
                         z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                         z3engine.hiPred(
-                                var.getCn(), var.getV(instruction.getRegisterC()), var.getVal(), var.getLf(), var.getBf())
+                                var.getCn(), 
+                                var.getV(instruction.getRegisterC()), // r_i 
+                                var.getVal(), var.getLf(), var.getBf())
                         );
                 b = z3engine.hiPred(var.getCn(), var.getV(instruction.getRegisterC()),
-                        var.getV(instruction.getRegisterE()), var.getL(instruction.getRegisterE()), var.getB(instruction.getRegisterE()));
+                        var.getV(instruction.getRegisterE()), // r_j
+                        var.getL(instruction.getRegisterE()), 
+                        var.getB(instruction.getRegisterE()));
                 buildRule();
-
+               /*
+                * Go to the next pc with the same register values, but raise the label of r_i to the (l_i join l_j)
+                */
                 h2 = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                 regUpdateL.put(instruction.getRegisterC(), z3engine.or(var.getL(instruction.getRegisterC()), var.getL(instruction.getRegisterE())));
                 b2 = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
@@ -2302,21 +2378,34 @@ public class InstructionAnalysis {
                 return true;
             }
         }
+       /*
+        * getAction returns a string which shows what to do with a data recieved from the intent
+        * e.g.,     ACTION_VIEW content://contacts/people/1 -- Display information about the person whose identifier is "1".
+        *           ACTION_DIAL content://contacts/people/1 -- Display the phone dialer with the person filled in.
+        * as the reselut is always public (originates from the specification), we explicitly specify for it the low security label here
+        */
         if  (c == ("Landroid/content/Intent;".hashCode()) &&
                 ("getAction()Ljava/lang/String;".hashCode()) == m){
             h = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
             regUpdate.put(numRegLoc, var.getVal());
             regUpdateL.put(numRegLoc, z3engine.mkFalse());
-            regUpdateB.put(numRegLoc, var.getBf());
+            regUpdateB.put(numRegLoc, var.getBf()); //TODO: should it be true? Strings are objects
             b = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
             buildRule();
             return true;
         }
+       /*
+        * Get informaton from the intent object with refence in r_i aka (get-extra r_i r_k \tau)_pp
+        * some of get are sources
+        */
+        //TODO: Might be getters missing
         if (shortMethodName.contains((String) "get") && c == ("Landroid/content/Intent;".hashCode())){
+            //////////////////////////////////////////////////////
+            //TODO: delete this?
             if (this.instruction instanceof FiveRegisterInstruction
                     ||  this.instruction instanceof RegisterRangeInstruction ) {
-
-                int registerC;
+            //////////////////////////////////////////////////////
+                int registerC; // r_i
                 if(this.instruction instanceof FiveRegisterInstruction){
                     registerC = ((FiveRegisterInstruction) instruction).getRegisterC();
                 } else {
@@ -2324,6 +2413,8 @@ public class InstructionAnalysis {
                 }
 
                 if (analysis.isSourceBis(c, m)){
+                    // if getter is source - get the (top?) high value
+                    //TODO; Check why hig value is top and not extracted from the heap, might be a mistake
                     h = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                     regUpdate.put(numRegLoc, var.getVal());
                     regUpdateL.put(numRegLoc, z3engine.mkTrue());
@@ -2331,6 +2422,7 @@ public class InstructionAnalysis {
                     b = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                     buildRule();
                 } else {
+                    // getter is not source - extract values from all fields of the intent, r_k ignored, field-insensitivity
                     h = z3engine.and(
                             z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                             z3engine.hiPred(
@@ -2342,7 +2434,10 @@ public class InstructionAnalysis {
                     b = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                     buildRule();
                 }
-            } else {
+            } 
+            /////////////////////////
+            //TODO: the else branch seems to make no sence, as the function call is either FiveRegister or Range isntruction
+            else {
                 if (analysis.isSourceBis(c, m)){
                     h = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                     regUpdate.put(numRegLoc, var.getVal());
@@ -2361,14 +2456,20 @@ public class InstructionAnalysis {
                     b = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                     buildRule();
                 }
+                
+             //////////////////////////
                 return true;
             }
         }
+       /*
+        * Stores the registerE as the result of the current activity to the field (result)
+        * This value will be afteron extracted by Res rule
+        */
         if (m ==  "setResult(ILandroid/content/Intent;)V".hashCode()){
             if (this.instruction instanceof FiveRegisterInstruction
                     ||  this.instruction instanceof RegisterRangeInstruction ) {
 
-                int registerE;
+                int registerE; // reference to resulting intent
                 if(this.instruction instanceof FiveRegisterInstruction){
                     registerE = ((FiveRegisterInstruction) instruction).getRegisterE();
                 } else {
@@ -2384,16 +2485,24 @@ public class InstructionAnalysis {
                         z3engine.mkBitVector(c, size), z3engine.mkBitVector(c, size), z3engine.mkBitVector("result".hashCode(), size),
                         var.getV(registerE), var.getL(registerE), var.getB(registerE));
                 buildRule();
+                
+                //Progate the register values to the next pc
                 h2 = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                 b2 = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
                 z3engine.addRule(z3engine.implies(h2, b2), null);
                 return true;
             }
         }
+       /*
+        * Return the intent that started this activity
+        //TODO: Currently, we check that the current activity was started and return as a result (top)
+                This should be sound, but it is not precise enough
+        */
         if (m ==  "getIntent()Landroid/content/Intent;".hashCode()){
             h = z3engine.and(
                     z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                    z3engine.hPred(z3engine.mkBitVector(c, size), z3engine.mkBitVector(c, size), z3engine.mkBitVector("intent".hashCode(), size), var.getVal(), var.getLf(), var.getBf())
+                    z3engine.hPred(z3engine.mkBitVector(c, size), z3engine.mkBitVector(c, size), 
+                            z3engine.mkBitVector("intent".hashCode(), size), var.getVal(), var.getLf(), var.getBf())
                     );
             regUpdate.put(numRegLoc, var.getVal());
             regUpdateL.put(numRegLoc, var.getLf());
