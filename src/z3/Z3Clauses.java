@@ -34,7 +34,7 @@ public abstract class Z3Clauses {
             mFuncs.add(funcDecl);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("FSEngine Failed: declareRel");
+            throw new RuntimeException("Z3Clause Failed: declareRel");
         }
     }
 
@@ -44,7 +44,7 @@ public abstract class Z3Clauses {
             this.declareRel(f);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("FSEngine Failed: declareRel");
+            throw new RuntimeException("Z3Clause Failed: declareRel");
         }
     }
     
@@ -55,7 +55,7 @@ public abstract class Z3Clauses {
             mRules.add(rule);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: addRule");
+            throw new RuntimeException("Z3Clause Failed: addRule");
         }
     }
 
@@ -65,7 +65,7 @@ public abstract class Z3Clauses {
             return mContext.mkBool(true);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: true");
+            throw new RuntimeException("Z3Clause Failed: true");
         }
     }
 
@@ -74,7 +74,7 @@ public abstract class Z3Clauses {
             return mContext.mkBool(false);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: false");
+            throw new RuntimeException("Z3Clause Failed: false");
         }
     }
 
@@ -83,7 +83,7 @@ public abstract class Z3Clauses {
             return mContext.mkBool(b);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: mkBool");
+            throw new RuntimeException("Z3Clause Failed: mkBool");
         }
     }
 
@@ -92,7 +92,7 @@ public abstract class Z3Clauses {
             return mContext.mkBV(data, len);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: mkBitVector String");
+            throw new RuntimeException("Z3Clause Failed: mkBitVector String");
         }
     }
 
@@ -101,7 +101,7 @@ public abstract class Z3Clauses {
             return mContext.mkBV(data, len);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: mkBitVector int");
+            throw new RuntimeException("Z3Clause Failed: mkBitVector int");
         }
     }
 
@@ -110,7 +110,7 @@ public abstract class Z3Clauses {
             return mContext.mkBV(data, len);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: mkBitVector long");
+            throw new RuntimeException("Z3Clause Failed: mkBitVector long");
         }
     }
 
@@ -119,7 +119,7 @@ public abstract class Z3Clauses {
             return mContext.mkInt(data);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: mkInt");
+            throw new RuntimeException("Z3Clause Failed: mkInt");
         }
     }
 
@@ -128,7 +128,7 @@ public abstract class Z3Clauses {
             return mContext.mkInt(data);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: mkInt");
+            throw new RuntimeException("Z3Clause Failed: mkInt");
         }
     }
 
@@ -137,7 +137,7 @@ public abstract class Z3Clauses {
             return mContext.mkAnd(b);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: and");
+            throw new RuntimeException("Z3Clause Failed: and");
         }
     }
 
@@ -146,7 +146,7 @@ public abstract class Z3Clauses {
             return mContext.mkOr(b);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: or");
+            throw new RuntimeException("Z3Clause Failed: or");
         }
     }
 
@@ -155,7 +155,7 @@ public abstract class Z3Clauses {
             return mContext.mkNot(b);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: not");
+            throw new RuntimeException("Z3Clause Failed: not");
         }
     }
 
@@ -164,7 +164,7 @@ public abstract class Z3Clauses {
             return mContext.mkEq(b1, b2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: eq");
+            throw new RuntimeException("Z3Clause Failed: eq");
         }
     }
 
@@ -173,7 +173,7 @@ public abstract class Z3Clauses {
             return mContext.mkEq(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: eq");
+            throw new RuntimeException("Z3Clause Failed: eq");
         }
     }
 
@@ -182,7 +182,7 @@ public abstract class Z3Clauses {
             return mContext.mkITE(b, e1, e2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: ite");
+            throw new RuntimeException("Z3Clause Failed: ite");
         }
     }
 
@@ -202,7 +202,7 @@ public abstract class Z3Clauses {
             return mContext.mkBVNeg(bv);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("FSEngine Failed: bvneg");
+            throw new RuntimeException("Z3Clause Failed: bvneg");
         }
     }
 
@@ -218,7 +218,7 @@ public abstract class Z3Clauses {
             }
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("FSEngine Failed: bvnot");
+            throw new RuntimeException("Z3Clause Failed: bvnot");
         }
     }
 
@@ -241,7 +241,7 @@ public abstract class Z3Clauses {
             return mContext.mkBVAdd(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("FSEngine Failed: bvadd");
+            throw new RuntimeException("Z3Clause Failed: bvadd");
         }
     }
 
@@ -260,7 +260,7 @@ public abstract class Z3Clauses {
             return mContext.mkBVMul(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("FSEngine Failed: bvmul");
+            throw new RuntimeException("Z3Clause Failed: bvmul");
         }
     }
 
@@ -279,7 +279,7 @@ public abstract class Z3Clauses {
             return mContext.mkBVSDiv(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("FSEngine Failed: bvudiv");
+            throw new RuntimeException("Z3Clause Failed: bvudiv");
         }
     }
 
@@ -299,7 +299,7 @@ public abstract class Z3Clauses {
             return mContext.mkBVSRem(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("FSEngine Failed: bvurem");
+            throw new RuntimeException("Z3Clause Failed: bvurem");
         }
     }
 
@@ -308,7 +308,7 @@ public abstract class Z3Clauses {
             return mContext.mkBVUGT(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("FSEngine Failed: bvugt");
+            throw new RuntimeException("Z3Clause Failed: bvugt");
         }
     }
 
@@ -317,7 +317,7 @@ public abstract class Z3Clauses {
             return mContext.mkBVUGE(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("FSEngine Failed: bvuge");
+            throw new RuntimeException("Z3Clause Failed: bvuge");
         }
     }
 
@@ -326,7 +326,7 @@ public abstract class Z3Clauses {
             return mContext.mkBVULE(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("FSEngine Failed: bvule");
+            throw new RuntimeException("Z3Clause Failed: bvule");
         }
     }
 
@@ -335,7 +335,7 @@ public abstract class Z3Clauses {
             return mContext.mkBVULE(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("FSEngine Failed: bvult");
+            throw new RuntimeException("Z3Clause Failed: bvult");
         }
     }
 
@@ -348,11 +348,11 @@ public abstract class Z3Clauses {
             case LONG:
                 return mContext.mkBVLSHR(bv1, bv2);
             default:
-                    throw new RuntimeException("FSEngine: wrong type in LSHR");
+                    throw new RuntimeException("Z3Clause: wrong type in LSHR");
             }
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("FSEngine Failed: bvlshr");
+            throw new RuntimeException("Z3Clause Failed: bvlshr");
         }
     }
 
@@ -364,11 +364,11 @@ public abstract class Z3Clauses {
             case LONG:
                 return mContext.mkBVASHR(bv1, bv2);
             default:
-                    throw new RuntimeException("FSEngine: wrong type in ASHR");
+                    throw new RuntimeException("Z3Clause: wrong type in ASHR");
             }
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("FSEngine Failed: bvashr");
+            throw new RuntimeException("Z3Clause Failed: bvashr");
         }
     }
     
@@ -381,11 +381,11 @@ public abstract class Z3Clauses {
             case LONG:
                 return mContext.mkBVSHL(bv1, bv2);
             default:
-                    throw new RuntimeException("FSEngine: wrong type in SHL");
+                    throw new RuntimeException("Z3Clause: wrong type in SHL");
             }
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("FSEngine Failed: bvshl");
+            throw new RuntimeException("Z3Clause Failed: bvshl");
         }
     }
 
@@ -404,7 +404,7 @@ public abstract class Z3Clauses {
             return mContext.mkBVSub(bv1, bv2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("FSEngine Failed: bvsub");
+            throw new RuntimeException("Z3Clause Failed: bvsub");
         }
     }
 
@@ -420,7 +420,7 @@ public abstract class Z3Clauses {
             }
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("FSEngine Failed: bvxor");
+            throw new RuntimeException("Z3Clause Failed: bvxor");
         }
     }
 
@@ -436,7 +436,7 @@ public abstract class Z3Clauses {
             }
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("FSEngine Failed: bvor");
+            throw new RuntimeException("Z3Clause Failed: bvor");
         }
     }
 
@@ -452,7 +452,7 @@ public abstract class Z3Clauses {
             }
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("FSEngine Failed: bvand");
+            throw new RuntimeException("Z3Clause Failed: bvand");
         }
     }
     
@@ -539,7 +539,7 @@ public abstract class Z3Clauses {
             return mContext.mkImplies(b1, b2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: implies");
+            throw new RuntimeException("Z3Clause Failed: implies");
         }
     }
 }
