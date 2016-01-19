@@ -1,5 +1,6 @@
 package analysis;
 
+import com.google.common.collect.Sets;
 import horndroid.options;
 
 import java.io.File;
@@ -47,24 +48,45 @@ public class Stubs {
         this.staticConstructor = Collections.synchronizedSet(new HashSet<Integer>());
     }
     public void process(){
-        File andFile = new File("android.dex");
-        if (!andFile.exists()) {
+        long startTime, endTime;
+
+        File andFile = new File("classes.dex");
+        File andFile2 = new File("classes2.dex");
+
+        if (!andFile.exists() || !andFile2.exists()) {
             System.err.println("Can't find the file android.dex");
             System.exit(1);
         }
         DexBackedDexFile dexFile = null;
+        DexBackedDexFile dexFile2 = null;
         try {
+            System.out.println("Loading dex files....");
+            startTime = System.nanoTime();
             dexFile = DexFileFactory.loadDexFile(andFile, options.apiLevel, false);
-            if (dexFile.isOdexFile()) {
+            dexFile2 = DexFileFactory.loadDexFile(andFile2, options.apiLevel, false);
+            if (dexFile.isOdexFile() || dexFile2.isOdexFile()) {
                 System.err.println("Error: Odex files are not supported");
             }
+            endTime = System.nanoTime();
+            System.out.println("done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
         } catch (IOException e) {
             System.err.println("Error: Loading dex file failed!");
             System.exit(1);
         }
-        List<? extends ClassDef> classDefs = Ordering.natural().sortedCopy(dexFile.getClasses());
+//        List<? extends ClassDef> classDefs = Ordering.natural().sortedCopy(dexFile.getClasses(), dexFile2.getClasses());
+        System.out.println("union-ing and sorting dex classes...");
+        startTime = System.nanoTime();
+        List<? extends ClassDef> classDefs = Ordering.natural().sortedCopy(Sets.union(dexFile.getClasses(), dexFile2.getClasses()));
+        endTime = System.nanoTime();
+        System.out.println("done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
+
+        System.out.println("data extracting...");
+        startTime = System.nanoTime();
         DataExtraction de = new DataExtraction(classes, instances, arrayDataPayload, packedSwitchPayload, sparseSwitchPayload, staticConstructor, constStrings, new HashSet<Integer>());
         de.collectData(classDefs);
+        endTime = System.nanoTime();
+        System.out.println("done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
+
     }
     public Map<Integer,GeneralClass> getClasses() {
         return classes;
