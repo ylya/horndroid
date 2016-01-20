@@ -800,7 +800,9 @@ public class Analysis {
             if (c instanceof DalvikClass){
                 final DalvikClass dc = (DalvikClass) c;
                 DalvikMethod m = dc.getMethod(mString.hashCode());
-
+                if (m == null){
+                    continue; //we fetch implementation that does not exist, e.g., method is implemented in super class only but we ask its child for the implementation
+                }
                 // We look for classes and method in the instructions of m
                 for (Instruction instruction : m.getInstructions()){
                     if (instruction instanceof ReferenceInstruction) {
@@ -849,13 +851,14 @@ public class Analysis {
                                     if (implementations != null){
                                         for (Implementation implementation : implementations.values()){
                                             if (implementation instanceof DalvikImplementation){
-                                                DalvikImplementation di = (DalvikImplementation) implementation;
+                                                DalvikImplementation di = (DalvikImplementation) implementation;          
                                                 cmMap.put(di.getDalvikClass(), di.getMethod());
                                             }else{
                                                 if (implementation instanceof StubImplementation){
                                                     StubImplementation si = (StubImplementation) implementation;
 
                                                     for (DalvikImplementation di : si.getDalvikImp()){
+                                                        
                                                         cmMap.put(di.getDalvikClass(),di.getMethod());
                                                     }
                                                 }
@@ -1144,7 +1147,9 @@ public class Analysis {
      * Should only be called on getVirtualImplementations
      */
     private void virtualDispatchPopulate(Map<Integer,GeneralClass> classes, int m, DalvikClass dc, Map<Integer,DalvikImplementation> vd, DalvikMethod superM){
+
         for (final DalvikClass child : dc.getChildClasses()){
+           
             DalvikMethod childMethod = superM;
             DalvikMethod newMethod = child.getMethod(m);
             if (newMethod != null){
