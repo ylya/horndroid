@@ -997,10 +997,11 @@ public class Analysis {
         for (CMPair cmp : processCM){
             GeneralClass c = classes.get(cmp.getC());
             if ((c instanceof DalvikClass)){
-                DalvikMethod m = ((DalvikClass) c).getMethod(cmp.getM());
-                
-                apkClassesMethods.add(new StringPair(c.getType(),m.getName()));
-                instructionNumber += m.getInstructions().size();
+                DalvikMethod m = ((DalvikClass) c).getMethod(cmp.getM());  
+                if (m !=  null){ // will be null if method is defined in a super class
+                    apkClassesMethods.add(new StringPair(c.getType(),m.getName()));
+                    instructionNumber += m.getInstructions().size();
+                }
             }
         }
         
