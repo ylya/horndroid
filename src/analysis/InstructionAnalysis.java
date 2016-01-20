@@ -1050,7 +1050,7 @@ public class InstructionAnalysis {
         case INVOKE_INTERFACE:
         case INVOKE_VIRTUAL:
         {
-            Map<Integer,Implementation> implementations = analysis.getVirtualImplementations(referenceClassIndex, referenceIntIndex);
+            Map<Integer,Implementation> implementations = analysis.getVirtualImplementations(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString);
             
             int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
             this.invokeImpKnown(referenceReg, implementations, false);
@@ -1076,7 +1076,7 @@ public class InstructionAnalysis {
              */
         case INVOKE_INTERFACE_RANGE:
         {
-            Map<Integer,Implementation> implementations = analysis.getVirtualImplementations(referenceClassIndex, referenceIntIndex);
+            Map<Integer,Implementation> implementations = analysis.getVirtualImplementations(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString);
             
             int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
             this.invokeImpKnown(referenceReg, implementations, true);
