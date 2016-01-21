@@ -1051,9 +1051,15 @@ public class InstructionAnalysis {
         case INVOKE_VIRTUAL:
         {
             Map<Integer,Implementation> implementations = analysis.getVirtualImplementations(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString);
-            
-            int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
-            this.invokeImpKnown(referenceReg, implementations, false);
+            if (implementations != null){
+                int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
+                this.invokeImpKnown(referenceReg, implementations, false);
+            }
+            else{
+                buildH();
+                buildB();
+                buildRule();
+            }
         }
         break;
 
@@ -1077,9 +1083,15 @@ public class InstructionAnalysis {
         case INVOKE_INTERFACE_RANGE:
         {
             Map<Integer,Implementation> implementations = analysis.getVirtualImplementations(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString);
-            
-            int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
-            this.invokeImpKnown(referenceReg, implementations, true);
+            if (implementations != null){
+                int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
+                this.invokeImpKnown(referenceReg, implementations, true);
+            }
+            else{
+                buildH();
+                buildB();
+                buildRule();
+            }
         }
         break;
 
@@ -2529,6 +2541,7 @@ public class InstructionAnalysis {
      * Perform dynamic dispatch
      */
     private void invokeImpKnown(final int referenceReg, final Map<Integer,Implementation> implementations, final Boolean range){
+        
         for (final Map.Entry<Integer, Implementation> entry : implementations.entrySet()){
             directInvoke(entry.getValue(),range,referenceReg,true);
         }

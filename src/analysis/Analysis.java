@@ -794,7 +794,7 @@ public class Analysis {
             SimpleEntry<GeneralClass,String> entry = pool.poll();
             GeneralClass c = entry.getKey();
             String mString = entry.getValue();
-
+ 
             addClass(c,addedInPool);
 
             if (c instanceof DalvikClass){
@@ -816,7 +816,6 @@ public class Analysis {
                                 String referenceString = Utils.getShortReferenceString(reference);
                                 String referenceClass = ((MethodReference) reference).getDefiningClass();
                                 int referenceClassIndex = ((MethodReference) reference).getDefiningClass().hashCode();
-                                
                                /*
                                 * cloning for arrays is inherited from java.lang.Object
                                 */
@@ -856,6 +855,7 @@ public class Analysis {
                                 case INVOKE_VIRTUAL_RANGE:
                                 case INVOKE_INTERFACE_RANGE:
                                 {
+                                    
                                     Map<Integer,Implementation> implementations = getVirtualImplementations(lazyUnion,referenceClassIndex, referenceString.hashCode(),
                                             referenceClass, referenceString);
                                     if (implementations != null){
@@ -1116,10 +1116,16 @@ public class Analysis {
             return hm;
         }else{
             HashMap<Integer,Implementation> hm = new HashMap<Integer,Implementation>();
-            for (Entry<Integer, DalvikImplementation> entry : getVirtualDalvikImplementations(classes, ci, mi, className, methodName).entrySet()){
-                hm.put(entry.getKey(),(Implementation) entry.getValue());
+            Map<Integer,DalvikImplementation> mDalvik = getVirtualDalvikImplementations(classes, ci, mi, className, methodName);
+            if (mDalvik != null){
+                for (Entry<Integer, DalvikImplementation> entry :mDalvik.entrySet()){
+                    hm.put(entry.getKey(),(Implementation) entry.getValue());
+                }
+                return hm;
             }
-            return hm;
+            else{
+                return null;
+            }
         }
         
     }
@@ -1131,7 +1137,7 @@ public class Analysis {
      */
     private Map<Integer,DalvikImplementation> getVirtualDalvikImplementations(Map<Integer,GeneralClass> classes,final int ci, final int mi,
             final String className, final String methodName){
-        Map<Integer,DalvikImplementation> vd = new HashMap<Integer,DalvikImplementation>();
+        Map<Integer,DalvikImplementation> vd = new HashMap<Integer,DalvikImplementation>();     
         if (classes.containsKey(ci)){
             GeneralClass c = classes.get(ci);
             if (c instanceof DalvikClass){
@@ -1152,7 +1158,8 @@ public class Analysis {
                 return vd;
             }
         }
-        throw new RuntimeException("Virtual Dispatch failed for: " + className + "->" + methodName);
+        System.err.println("Virtual Dispatch failed for: " + className + "->" + methodName);
+        return null;
     }
 
     /*
