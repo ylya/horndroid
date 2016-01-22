@@ -760,7 +760,6 @@ public class Analysis {
             }
         }
     }
-    
     private void addToPool(LazyUnion lazyUnion, final LinkedList<SimpleEntry<GeneralClass,String>> pool,
             final Set<CMPair> processCM, Map<DalvikClass,DalvikMethod> cmMap){
         if (cmMap != null){
@@ -834,13 +833,17 @@ public class Analysis {
                                         Implementation implementation = getSuperImplementation(lazyUnion, referenceClassIndex, referenceString.hashCode());
                                         if (implementation != null && implementation instanceof DalvikImplementation){
                                             DalvikImplementation di = (DalvikImplementation) implementation;
-                                            cmMap.put(di.getDalvikClass(), di.getMethod());
+                                            if (!di.getInstances().isEmpty()){
+                                                cmMap.put(di.getDalvikClass(), di.getMethod());
+                                            }
                                         }else{
                                             if (implementation != null && implementation instanceof StubImplementation){
                                                 StubImplementation si = (StubImplementation) implementation;
 
                                                 for (DalvikImplementation di : si.getDalvikImp()){
-                                                    cmMap.put(di.getDalvikClass(),di.getMethod());
+                                                    if (!di.getInstances().isEmpty()){
+                                                        cmMap.put(di.getDalvikClass(),di.getMethod());
+                                                    }
                                                 }
                                             }else{
                                                 System.out.println("Not Found :" + ((MethodReference) reference).getDefiningClass() + " " + referenceString+ " " + instruction.getOpcode().toString());
@@ -861,15 +864,17 @@ public class Analysis {
                                     if (implementations != null){
                                         for (Implementation implementation : implementations.values()){
                                             if (implementation instanceof DalvikImplementation){
-                                                DalvikImplementation di = (DalvikImplementation) implementation;          
-                                                cmMap.put(di.getDalvikClass(), di.getMethod());
+                                                DalvikImplementation di = (DalvikImplementation) implementation;   
+                                                if (!di.getInstances().isEmpty()){
+                                                    cmMap.put(di.getDalvikClass(), di.getMethod());
+                                                }
                                             }else{
                                                 if (implementation instanceof StubImplementation){
                                                     StubImplementation si = (StubImplementation) implementation;
-
                                                     for (DalvikImplementation di : si.getDalvikImp()){
-                                                        
-                                                        cmMap.put(di.getDalvikClass(),di.getMethod());
+                                                        if (!di.getInstances().isEmpty()){
+                                                            cmMap.put(di.getDalvikClass(),di.getMethod());
+                                                        }
                                                     }
                                                 }
                                             }
@@ -880,8 +885,30 @@ public class Analysis {
 
                                     
                                 case INVOKE_DIRECT:
-                                case INVOKE_STATIC:
                                 case INVOKE_DIRECT_RANGE:
+                                {
+                                    Implementation implementation = getDirectImplementation(lazyUnion, referenceClassIndex, referenceString.hashCode());
+                                    if (implementation != null && implementation instanceof DalvikImplementation){
+                                        DalvikImplementation di = (DalvikImplementation) implementation;
+                                        if (!di.getInstances().isEmpty()){
+                                            cmMap.put(di.getDalvikClass(), di.getMethod());
+                                        }
+                                    }else{
+                                        if (implementation != null && implementation instanceof StubImplementation){
+                                            StubImplementation si = (StubImplementation) implementation;
+                                            
+                                            for (DalvikImplementation di : si.getDalvikImp()){
+                                                if (!di.getInstances().isEmpty()){
+                                                    cmMap.put(di.getDalvikClass(),di.getMethod());
+                                                }
+                                            }
+                                        }else{
+                                            System.out.println("Not Found :" + ((MethodReference) reference).getDefiningClass() + " " + referenceString+ " " + instruction.getOpcode().toString());
+                                        }
+                                    }
+                                }
+                                break;
+                                case INVOKE_STATIC:
                                 case INVOKE_STATIC_RANGE:
                                 {
                                     Implementation implementation = getDirectImplementation(lazyUnion, referenceClassIndex, referenceString.hashCode());

@@ -356,13 +356,17 @@ public class InstructionAnalysis {
             regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
 
             if (analysis.hasStaticConstructor(referenceIntIndex)){
-                buildH();
                 int staticConstNum = "<clinit>()V".hashCode();
                 dmc = analysis.getExactMethod(referenceIntIndex, staticConstNum);
-
-                b = z3engine.rPred(Integer.toString(referenceIntIndex), Integer.toString(staticConstNum), 0, regUpdate, regUpdateL, regUpdateB,
-                        dmc.getNumArg(), dmc.getNumReg());
-                buildRule();
+                if (dmc != null){
+                    buildH();
+                    b = z3engine.rPred(Integer.toString(referenceIntIndex), Integer.toString(staticConstNum), 0, regUpdate, regUpdateL, regUpdateB,
+                            dmc.getNumArg(), dmc.getNumReg());
+                    buildRule();
+                }
+                else{
+                    System.err.println("Static consturctor implementation not found for the class: " + referenceStringClass);
+                }
             }
             break;//((short)0x22, "new-instance", ReferenceType.TYPE, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
 
@@ -1232,10 +1236,10 @@ public class InstructionAnalysis {
 
         case RSUB_INT://((short)0xd1, "rsub-int", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = z3engine.bvsub(
-                    regC(),
-                    regB(), Type.INT
+                    regB(),
+                    regA(), Type.INT
                     );
-            this.binaryOpC(bv);
+            this.binaryOp(bv);
             break;
         case SUB_INT://((short)0x91, "sub-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = z3engine.bvsub(
@@ -2564,7 +2568,7 @@ public class InstructionAnalysis {
             if (implementation instanceof StubImplementation){
                 this.stubInvoke((StubImplementation) implementation, range, referenceReg, virtualDispatch);
             }else{
-                throw new RuntimeException("Implementation missing!");
+                System.err.println("Direct implementation missing!");
             }
         }
     }
