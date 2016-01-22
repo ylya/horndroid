@@ -798,6 +798,7 @@ public class Analysis {
 
             if (c instanceof DalvikClass){
                 final DalvikClass dc = (DalvikClass) c;
+                final boolean isLauncherActivity = testLauncherActivity(dc);
                 DalvikMethod m = dc.getMethod(mString.hashCode());
                 if (m == null){
                     continue; //we fetch implementation that does not exist, e.g., method is implemented in super class only but we ask its child for the implementation
@@ -833,7 +834,7 @@ public class Analysis {
                                         Implementation implementation = getSuperImplementation(lazyUnion, referenceClassIndex, referenceString.hashCode());
                                         if (implementation != null && implementation instanceof DalvikImplementation){
                                             DalvikImplementation di = (DalvikImplementation) implementation;
-                                            if (!di.getInstances().isEmpty()){
+                                            if (!di.getInstances().isEmpty() || isLauncherActivity){
                                                 cmMap.put(di.getDalvikClass(), di.getMethod());
                                             }
                                         }else{
@@ -841,7 +842,7 @@ public class Analysis {
                                                 StubImplementation si = (StubImplementation) implementation;
 
                                                 for (DalvikImplementation di : si.getDalvikImp()){
-                                                    if (!di.getInstances().isEmpty()){
+                                                    if (!di.getInstances().isEmpty() || isLauncherActivity){
                                                         cmMap.put(di.getDalvikClass(),di.getMethod());
                                                     }
                                                 }
@@ -858,21 +859,20 @@ public class Analysis {
                                 case INVOKE_VIRTUAL_RANGE:
                                 case INVOKE_INTERFACE_RANGE:
                                 {
-                                    
                                     Map<Integer,Implementation> implementations = getVirtualImplementations(lazyUnion,referenceClassIndex, referenceString.hashCode(),
                                             referenceClass, referenceString);
                                     if (implementations != null){
                                         for (Implementation implementation : implementations.values()){
                                             if (implementation instanceof DalvikImplementation){
                                                 DalvikImplementation di = (DalvikImplementation) implementation;   
-                                                if (!di.getInstances().isEmpty()){
+                                                if (!di.getInstances().isEmpty() || isLauncherActivity){
                                                     cmMap.put(di.getDalvikClass(), di.getMethod());
                                                 }
                                             }else{
                                                 if (implementation instanceof StubImplementation){
                                                     StubImplementation si = (StubImplementation) implementation;
                                                     for (DalvikImplementation di : si.getDalvikImp()){
-                                                        if (!di.getInstances().isEmpty()){
+                                                        if (!di.getInstances().isEmpty() || isLauncherActivity){
                                                             cmMap.put(di.getDalvikClass(),di.getMethod());
                                                         }
                                                     }
@@ -898,7 +898,7 @@ public class Analysis {
                                             StubImplementation si = (StubImplementation) implementation;
                                             
                                             for (DalvikImplementation di : si.getDalvikImp()){
-                                                if (!di.getInstances().isEmpty()){
+                                                if (!di.getInstances().isEmpty() || isLauncherActivity){
                                                     cmMap.put(di.getDalvikClass(),di.getMethod());
                                                 }
                                             }
