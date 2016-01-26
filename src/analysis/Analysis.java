@@ -816,6 +816,18 @@ public class Analysis {
                                 String referenceString = Utils.getShortReferenceString(reference);
                                 String referenceClass = ((MethodReference) reference).getDefiningClass();
                                 int referenceClassIndex = ((MethodReference) reference).getDefiningClass().hashCode();
+                                
+                                //check if invoked method is a sink/source
+                                final Boolean isSourceSink = isSourceSink(referenceClass, referenceString);
+                                if (isSourceSink != null){
+                                    if (isSourceSink){
+                                        refSources.add(new CMPair(referenceClass.hashCode(), referenceString.hashCode()));
+                                    }else{
+                                        refSinks.add(new CMPair(referenceClass.hashCode(), referenceString.hashCode()));
+                                    }
+                                    continue;
+                                }
+                                    
                                /*
                                 * cloning for arrays is inherited from java.lang.Object
                                 */
@@ -1480,7 +1492,7 @@ public class Analysis {
      * Should be called only once
      */
     private void setSourceSink() {
-        for (GeneralClass generalC : classes.values()){
+    /*    for (GeneralClass generalC : classes.values()){
             if (generalC instanceof DalvikClass){
                 DalvikClass dc = (DalvikClass) generalC;
                 for (DalvikMethod dm : dc.getMethods()){
@@ -1496,7 +1508,7 @@ public class Analysis {
                     }
                 }
             }
-        }
+        }*/
         System.out.println("Number of sources: " + refSources.size());
         System.out.println("Number of sinks: " + refSinks.size());
     }

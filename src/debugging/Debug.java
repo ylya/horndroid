@@ -6,7 +6,12 @@ import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 
 import org.jf.dexlib2.iface.instruction.Instruction;
+import org.jf.dexlib2.iface.instruction.ReferenceInstruction;
+import org.jf.dexlib2.iface.reference.FieldReference;
+import org.jf.dexlib2.iface.reference.MethodReference;
+import org.jf.dexlib2.iface.reference.Reference;
 
+import util.Utils;
 import Dalvik.DalvikMethod;
 import analysis.Analysis;
 
@@ -92,7 +97,21 @@ public class Debug {
         writer.println("\\begin{itemize}");
         int codeAddr = 0;
         for (final Instruction inst : dc.getInstructions()){
-            writer.print("\\item $" + codeAddr + " : " + inst.getOpcode().toString().replaceAll("_", "\\\\;\\\\;") + "$\n");
+            if (inst instanceof ReferenceInstruction) {
+                ReferenceInstruction referenceInstruction = (ReferenceInstruction)inst;
+                Reference reference = referenceInstruction.getReference();
+                String referenceString = Utils.getShortReferenceString(reference);
+                String referenceStringClass = null;
+                if (reference instanceof MethodReference){
+                        referenceStringClass = ((MethodReference) reference).getDefiningClass();
+                }
+                if ((referenceString != null) && (referenceStringClass != null)){
+                    writer.print("\\item $" + codeAddr + " : " + inst.getOpcode().toString().replaceAll("_", "\\\\;\\\\;") + " " + referenceStringClass + " " + referenceString + "$\n");
+                }
+            }
+            else{
+                writer.print("\\item $" + codeAddr + " : " + inst.getOpcode().toString().replaceAll("_", "\\\\;\\\\;") + "$\n");
+            }
             codeAddr += inst.getCodeUnits();
         }
         writer.println("\\end{itemize}");
