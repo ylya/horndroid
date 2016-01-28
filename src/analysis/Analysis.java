@@ -955,7 +955,8 @@ public class Analysis {
         fetchAdditionalInfo(processCM);
         return processCM;
     }
-
+    
+    
     /*
      * Get the additional information from the added classes, by querying stubs object and apkInstances
      * Should only be used once
@@ -996,6 +997,7 @@ public class Analysis {
             }
         }
         staticConstructor.addAll(stubs.getStaticConstructor());
+        instances.addSuperInstances();
     }
     
     public void createHornClauses(){

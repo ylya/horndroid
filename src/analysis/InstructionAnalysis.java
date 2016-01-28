@@ -135,7 +135,7 @@ public class InstructionAnalysis {
         numParLoc = dm.getNumArg();
         regUpdate = new HashMap<>();
         regUpdateL = new HashMap<>();
-        regUpdateB = new HashMap<>();       
+        regUpdateB = new HashMap<>();    
         
         if ((options.debug) && apkClassesMethods.contains(new StringPair(className, methodName))){
             BoolExpr h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);

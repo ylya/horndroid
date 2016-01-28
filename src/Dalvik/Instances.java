@@ -74,4 +74,44 @@ public class Instances {
         return size;
         
     }
+    
+   /*
+    * Add super class instance 
+    */
+    private void addSuperInstance(final DalvikInstance di){
+        if (di.getType() instanceof DalvikClass){
+            final GeneralClass superClass = ((DalvikClass) di.getType()).getSuperClass();
+            if (superClass == null) return;
+            Set<DalvikInstance> superInstances = getByType(superClass.getType().hashCode());
+            if (superInstances.isEmpty()){
+                final DalvikInstance superInstance = new DalvikInstance(di.getC(), di.getM(), di.getPC(), superClass, true);
+                add(superInstance);
+                addSuperInstance(superInstance);
+            }
+            else{
+                boolean addedAlready = false;
+                for (final DalvikInstance si: superInstances){
+                    if ((si.getC() == di.getC()) && (si.getM() == di.getM()) && (si.getPC() == di.getPC())){
+                        addedAlready = true;
+                        break;
+                    }
+                }
+                if (!addedAlready){
+                    final DalvikInstance superInstance = new DalvikInstance(di.getC(), di.getM(), di.getPC(), superClass, true);
+                    add(superInstance);
+                    addSuperInstance(superInstance);
+                }
+            }
+        }
+    }
+   /*
+    * Add super class instances
+    */     
+    public void addSuperInstances(){
+        for (final DalvikInstance di: getAll()){
+            if (di.getType() instanceof DalvikClass){
+                    addSuperInstance(di);
+                }
+            }
+   }
 }

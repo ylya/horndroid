@@ -105,9 +105,11 @@ public class Debug {
                 if (reference instanceof MethodReference){
                         referenceStringClass = ((MethodReference) reference).getDefiningClass();
                 }
-                if ((referenceString != null) && (referenceStringClass != null)){
-                    writer.print("\\item $" + codeAddr + " : " + inst.getOpcode().toString().replaceAll("_", "\\\\;\\\\;") + " " + referenceStringClass + " " + referenceString + "$\n");
-                }
+                //if ((referenceString != null) && (referenceStringClass != null)){
+                    writer.print("\\item $" + codeAddr + " : " + inst.getOpcode().toString().replaceAll("_", "\\\\;\\\\;") + " \\quad " + 
+                (referenceStringClass!=null?referenceStringClass.replace("$", "\\$"):"") + 
+                            " \\quad " + (referenceString!=null?referenceString.replace("$", "\\$"):"") + "$\n");
+                //}
             }
             else{
                 writer.print("\\item $" + codeAddr + " : " + inst.getOpcode().toString().replaceAll("_", "\\\\;\\\\;") + "$\n");
