@@ -1060,9 +1060,7 @@ public class InstructionAnalysis {
                 this.invokeImpKnown(referenceReg, implementations, false);
             }
             else{
-                buildH();
-                buildB();
-                buildRule();
+                this.invokeImpNotKnown(false);
             }
         }
         break;
@@ -1092,9 +1090,7 @@ public class InstructionAnalysis {
                 this.invokeImpKnown(referenceReg, implementations, true);
             }
             else{
-                buildH();
-                buildB();
-                buildRule();
+               this.invokeImpNotKnown(true);
             }
         }
         break;
@@ -2550,8 +2546,19 @@ public class InstructionAnalysis {
             directInvoke(entry.getValue(),range,referenceReg,true);
         }
     }
-
-
+    
+    /*
+     * Advances pc with a top values for the return value (if exists)
+     */
+    private void invokeImpNotKnown(final Boolean range){
+        buildH();
+        //put top value to the return register
+        regUpdate.put(numRegLoc, var.getF());
+        regUpdateL.put(numRegLoc, var.getLf());
+        regUpdateB.put(numRegLoc, var.getBf());
+        buildB();
+        buildRule();
+    }
     /*
      * Direct invocation of a method, whose implementation is either a dalvik implementation
      * or a stub
@@ -2568,6 +2575,7 @@ public class InstructionAnalysis {
             if (implementation instanceof StubImplementation){
                 this.stubInvoke((StubImplementation) implementation, range, referenceReg, virtualDispatch);
             }else{
+                this.invokeImpNotKnown(range);
                 System.err.println("Direct implementation missing!");
             }
         }
@@ -2590,7 +2598,14 @@ public class InstructionAnalysis {
         }
         if (di.getInstances().isEmpty()){
             //TODO: output on err and not on out
-            System.out.println("Invoked class has no instances : " + di.getDalvikClass().getType() + " " + di.getMethod().getName());
+            final DalvikInstance newInstance = new DalvikInstance(0, 0, di.getDalvikClass().getType().hashCode(), di.getDalvikClass(), true);
+            di.putInstance(newInstance);
+            BoolExpr precond = z3engine.eq(
+                    var.getV(referenceReg),
+                    z3engine.mkBitVector(newInstance.hashCode(), analysis.getSize())
+                    );
+            directDalvikInvoke(precond, di, range);
+            //System.out.println("Invoked class has no instances : " + di.getDalvikClass().getType() + " " + di.getMethod().getName());
         }
     }
     
