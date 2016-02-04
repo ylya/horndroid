@@ -846,7 +846,7 @@ public class Analysis {
                                         Implementation implementation = getSuperImplementation(lazyUnion, referenceClassIndex, referenceString.hashCode());
                                         if (implementation != null && implementation instanceof DalvikImplementation){
                                             DalvikImplementation di = (DalvikImplementation) implementation;
-                                            if (!di.getInstances().isEmpty() || isLauncherActivity){
+                                            if (!instances.getByType(di.getDalvikClass().getType().hashCode()).isEmpty()){
                                                 cmMap.put(di.getDalvikClass(), di.getMethod());
                                             }
                                         }else{
@@ -854,7 +854,7 @@ public class Analysis {
                                                 StubImplementation si = (StubImplementation) implementation;
 
                                                 for (DalvikImplementation di : si.getDalvikImp()){
-                                                    if (!di.getInstances().isEmpty() || isLauncherActivity){
+                                                    if (!instances.getByType(di.getDalvikClass().getType().hashCode()).isEmpty()){
                                                         cmMap.put(di.getDalvikClass(),di.getMethod());
                                                     }
                                                 }
@@ -871,20 +871,21 @@ public class Analysis {
                                 case INVOKE_VIRTUAL_RANGE:
                                 case INVOKE_INTERFACE_RANGE:
                                 {
+                                   
                                     Map<Integer,Implementation> implementations = getVirtualImplementations(lazyUnion,referenceClassIndex, referenceString.hashCode(),
                                             referenceClass, referenceString);
                                     if (implementations != null){
                                         for (Implementation implementation : implementations.values()){
                                             if (implementation instanceof DalvikImplementation){
                                                 DalvikImplementation di = (DalvikImplementation) implementation;   
-                                                if (!di.getInstances().isEmpty() || isLauncherActivity){
+                                                if (!instances.getByType(di.getDalvikClass().getType().hashCode()).isEmpty()){
                                                     cmMap.put(di.getDalvikClass(), di.getMethod());
                                                 }
                                             }else{
                                                 if (implementation instanceof StubImplementation){
                                                     StubImplementation si = (StubImplementation) implementation;
                                                     for (DalvikImplementation di : si.getDalvikImp()){
-                                                        if (!di.getInstances().isEmpty() || isLauncherActivity){
+                                                        if (!instances.getByType(di.getDalvikClass().getType().hashCode()).isEmpty()){
                                                             cmMap.put(di.getDalvikClass(),di.getMethod());
                                                         }
                                                     }
@@ -902,7 +903,7 @@ public class Analysis {
                                     Implementation implementation = getDirectImplementation(lazyUnion, referenceClassIndex, referenceString.hashCode());
                                     if (implementation != null && implementation instanceof DalvikImplementation){
                                         DalvikImplementation di = (DalvikImplementation) implementation;
-                                        if (!di.getInstances().isEmpty()){
+                                        if (!instances.getByType(di.getDalvikClass().getType().hashCode()).isEmpty()){
                                             cmMap.put(di.getDalvikClass(), di.getMethod());
                                         }
                                     }else{
@@ -910,7 +911,7 @@ public class Analysis {
                                             StubImplementation si = (StubImplementation) implementation;
                                             
                                             for (DalvikImplementation di : si.getDalvikImp()){
-                                                if (!di.getInstances().isEmpty() || isLauncherActivity){
+                                                if (!instances.getByType(di.getDalvikClass().getType().hashCode()).isEmpty()){
                                                     cmMap.put(di.getDalvikClass(),di.getMethod());
                                                 }
                                             }
@@ -1030,6 +1031,16 @@ public class Analysis {
         System.out.println("Number of instructions in APK: "+ instructionNumberAPK);
 
         
+        addEntryPointsInstances();
+        instances.addSuperInstances();
+        addStaticFieldsValues();
+        
+        // Populate refSources and refSinks with sources and sinks
+        setSourceSink();
+                
+        // Initialize allocationPointOffset,allocationPointNumbers and allocationPointSize
+        initializeAllocationMapping();
+        
         // Get the unknown classes from Java standard and Android libraries
         Set<CMPair> processCM = fetchUnknownMethod();
                 
@@ -1052,14 +1063,7 @@ public class Analysis {
         System.out.println("Number of instructions: "+ instructionNumber);
         System.out.println("Number of instances : " + instances.size());
 
-        addEntryPointsInstances();
-        addStaticFieldsValues();
         
-        // Populate refSources and refSinks with sources and sinks
-        setSourceSink();
-                
-        // Initialize allocationPointOffset,allocationPointNumbers and allocationPointSize
-        initializeAllocationMapping();
         // Correctly set the corresponding fields in the FSEngine
         fsengine.initialize(localHeapSize, allocationPointOffset, allocationPointSize);
         
@@ -1222,7 +1226,9 @@ public class Analysis {
                 for( DalvikInstance childInstance : instances.getByType(child.getType().hashCode())){
                     di.putInstance(childInstance);
                 }
-                vd.put(dc.getType().hashCode(), di);
+                if (!di.getInstances().isEmpty()){
+                    vd.put(dc.getType().hashCode(), di);
+                }
                 virtualDispatchPopulate(classes, m, child, vd, childMethod);
             }else{
                 System.out.println(m + " not implemented in " + dc.getType());

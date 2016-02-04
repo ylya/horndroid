@@ -137,9 +137,11 @@ public class InstructionAnalysis {
         regUpdateL = new HashMap<>();
         regUpdateB = new HashMap<>();    
         
-        if ((options.debug) && apkClassesMethods.contains(new StringPair(className, methodName))){
+        if ((options.debug) && apkClassesMethods.contains(new StringPair(className, methodName))
+                && (c == "Landroid/app/Activity;".hashCode()) && (m == "onCreate(Landroid/os/Bundle;)V".hashCode())){
             BoolExpr h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            for (int i = 0; i < numRegLoc; i++){
+            //for (int i = 0; i < numRegLoc; i++){
+            int i =0;
                 BoolExpr h2 = z3engine.and(var.getL(i),h);
                 BoolExpr h3 = z3engine.and(var.getB(i),h);
                 Z3Query q1 = new Z3Query(h,i,QUERY_TYPE.STANDARD_REACH,className,methodName,Integer.toString(codeAddress));
@@ -152,7 +154,7 @@ public class InstructionAnalysis {
                 if (analysis.getDebugNumber() >= 3){
                     z3engine.addQueryDebug(q3);
                 }
-            }
+            //}
         }
 
 
