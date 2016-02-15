@@ -31,13 +31,50 @@ public class Instances {
      * Return all instances whose type name string hashcode is typeHash
      * If there is no instance mathching, then return an empty set
      */
-    public Set<DalvikInstance> getByType(int typeHash){
+    public Set<DalvikInstance> getExactByType(int typeHash){
         Set<DalvikInstance> set = instances.get(typeHash);
         if (set == null){
             return new HashSet<DalvikInstance>();
         }else{
             return set;
         }
+    }
+    
+    /*
+     * Return all instances whose type is compatible with c
+     * If there is no instance mathching, then return an empty set
+     */
+    public Set<DalvikInstance> getVirtualByType(GeneralClass c){
+        Set<DalvikInstance> set = new HashSet<DalvikInstance>();
+        set.addAll(instances.get(c.getType().hashCode()));
+        if (set.isEmpty()){
+            if (c instanceof DalvikClass){
+                final DalvikClass dc = (DalvikClass) c;
+                set.addAll(getVirtualByType(dc.getSuperClass()));
+            }
+            return new HashSet<DalvikInstance>();
+        }else{
+            return set;
+        }
+    }
+    
+    /*
+     * Return all instances who implement c
+     * If there is no instance mathching, then return an empty set
+     */
+    public Set<DalvikInstance> getInterfaceByType(GeneralClass c, final Map<Integer,GeneralClass> classes){
+        Set<DalvikInstance> set = new HashSet<DalvikInstance>();
+        for (final GeneralClass gc: classes.values()){
+            if (gc instanceof DalvikClass){
+                final DalvikClass dc = (DalvikClass) gc;
+                for (final GeneralClass ic: dc.getInterfaces()){
+                    if (ic.getType().hashCode() == c.getType().hashCode()){
+                        set.addAll(getVirtualByType(dc));
+                    }
+                }
+            }
+        }
+        return set;
     }
     
     /*
@@ -75,43 +112,43 @@ public class Instances {
         
     }
     
-   /*
-    * Add super class instance 
-    */
-    private void addSuperInstance(final DalvikInstance di){
-        if (di.getType() instanceof DalvikClass){
-            final GeneralClass superClass = ((DalvikClass) di.getType()).getSuperClass();
-            if (superClass == null) return;
-            Set<DalvikInstance> superInstances = getByType(superClass.getType().hashCode());
-            if (superInstances.isEmpty()){
-                final DalvikInstance superInstance = new DalvikInstance(di.getC(), di.getM(), di.getPC(), superClass, true);
-                add(superInstance);
-                addSuperInstance(superInstance);
-            }
-            else{
-                boolean addedAlready = false;
-                for (final DalvikInstance si: superInstances){
-                    if ((si.getC() == di.getC()) && (si.getM() == di.getM()) && (si.getPC() == di.getPC())){
-                        addedAlready = true;
-                        break;
-                    }
-                }
-                if (!addedAlready){
-                    final DalvikInstance superInstance = new DalvikInstance(di.getC(), di.getM(), di.getPC(), superClass, true);
-                    add(superInstance);
-                    addSuperInstance(superInstance);
-                }
-            }
-        }
-    }
-   /*
-    * Add super class instances
-    */     
-    public void addSuperInstances(){
-        for (final DalvikInstance di: getAll()){
-            if (di.getType() instanceof DalvikClass){
-                    addSuperInstance(di);
-                }
-            }
-   }
+//   /*
+//    * Add super class instance 
+//    */
+//    private void addSuperInstance(final DalvikInstance di){
+//        if (di.getType() instanceof DalvikClass){
+//            final GeneralClass superClass = ((DalvikClass) di.getType()).getSuperClass();
+//            if (superClass == null) return;
+//            Set<DalvikInstance> superInstances = getByType(superClass.getType().hashCode());
+//            if (superInstances.isEmpty()){
+//                final DalvikInstance superInstance = new DalvikInstance(di.getC(), di.getM(), di.getPC(), superClass, true);
+//                add(superInstance);
+//                addSuperInstance(superInstance);
+//            }
+//            else{
+//                boolean addedAlready = false;
+//                for (final DalvikInstance si: superInstances){
+//                    if ((si.getC() == di.getC()) && (si.getM() == di.getM()) && (si.getPC() == di.getPC())){
+//                        addedAlready = true;
+//                        break;
+//                    }
+//                }
+//                if (!addedAlready){
+//                    final DalvikInstance superInstance = new DalvikInstance(di.getC(), di.getM(), di.getPC(), superClass, true);
+//                    add(superInstance);
+//                    addSuperInstance(superInstance);
+//                }
+//            }
+//        }
+//    }
+//   /*
+//    * Add super class instances
+//    */     
+//    public void addSuperInstances(){
+//        for (final DalvikInstance di: getAll()){
+//            if (di.getType() instanceof DalvikClass){
+//                    addSuperInstance(di);
+//                }
+//            }
+//   }
 }
