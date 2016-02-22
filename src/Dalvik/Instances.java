@@ -26,57 +26,11 @@ public class Instances {
         }
         instances.get(key).add(di);
     }
-
-    /*
-     * Return all instances whose type name string hashcode is typeHash
-     * If there is no instance mathching, then return an empty set
-     */
-    public Set<DalvikInstance> getExactByType(int typeHash){
-        Set<DalvikInstance> set = instances.get(typeHash);
-        if (set == null){
-            return new HashSet<DalvikInstance>();
-        }else{
-            return set;
-        }
-    }
     
-    /*
-     * Return all instances whose type is compatible with c
-     * If there is no instance mathching, then return an empty set
-     */
-    public Set<DalvikInstance> getVirtualByType(GeneralClass c){
-        Set<DalvikInstance> set = new HashSet<DalvikInstance>();
-        set.addAll(instances.get(c.getType().hashCode()));
-        if (set.isEmpty()){
-            if (c instanceof DalvikClass){
-                final DalvikClass dc = (DalvikClass) c;
-                set.addAll(getVirtualByType(dc.getSuperClass()));
-            }
-            return new HashSet<DalvikInstance>();
-        }else{
-            return set;
-        }
+    public Map<Integer,HashSet<DalvikInstance>> get(){
+        return (Map<Integer,HashSet<DalvikInstance>>) instances;
     }
-    
-    /*
-     * Return all instances who implement c
-     * If there is no instance mathching, then return an empty set
-     */
-    public Set<DalvikInstance> getInterfaceByType(GeneralClass c, final Map<Integer,GeneralClass> classes){
-        Set<DalvikInstance> set = new HashSet<DalvikInstance>();
-        for (final GeneralClass gc: classes.values()){
-            if (gc instanceof DalvikClass){
-                final DalvikClass dc = (DalvikClass) gc;
-                for (final GeneralClass ic: dc.getInterfaces()){
-                    if (ic.getType().hashCode() == c.getType().hashCode()){
-                        set.addAll(getVirtualByType(dc));
-                    }
-                }
-            }
-        }
-        return set;
-    }
-    
+  
     /*
      * Give a Set view of all instances. This operation may be a bit costly, and should be avoided as much as possible
      */

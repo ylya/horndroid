@@ -11,7 +11,10 @@ import org.jf.dexlib2.util.ReferenceUtil;
 import org.jf.util.StringUtils;
 
 public class Utils {
-
+    
+    public static enum CallType {
+        STATIC, DIRECT, INTERFACE, VIRTUAL, SUPER
+    }
 
     private static String hexDec64It(String it, int size)
     {

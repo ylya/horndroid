@@ -81,5 +81,11 @@ public class LazyUnion implements Map<Integer,GeneralClass> {
     public Set<java.util.Map.Entry<Integer, GeneralClass>> entrySet() {
         throw new RuntimeException("LazyUnion");
     }
+    public Collection<GeneralClass> values1() {
+        return map1.values();
+    }
+    public Collection<GeneralClass> values2() {
+        return map2.values();
+    }
 
 }

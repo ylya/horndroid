@@ -33,7 +33,6 @@ import java.util.concurrent.ExecutorService;
 
 import javax.annotation.Nonnull;
 
-
 import org.jf.dexlib2.iface.ClassDef;
 import org.jf.dexlib2.iface.instruction.Instruction;
 import org.jf.dexlib2.iface.instruction.ReferenceInstruction;
@@ -47,6 +46,7 @@ import payload.PackedSwitch;
 import payload.SparseSwitch;
 import strings.ConstString;
 import util.*;
+import util.Utils.CallType;
 import z3.FSEngine;
 import z3.FSVariable;
 import z3.Z3Engine;
@@ -75,6 +75,7 @@ public class Analysis {
     final private Z3Variable var;
     final private FSVariable fsvar;
     final private Stubs stubs;
+    private Dispatch dispatch;
     
     final ExecutorService instructionExecutorService;
     private Set<CMPair> refSources;
@@ -137,6 +138,7 @@ public class Analysis {
         this.overapprox.add("Landroid/app/ListFragment;".hashCode());
         this.overapprox.add("Landroid/support/v4/app/ListFragment;".hashCode());
         this.overapprox.add("Landroid/os/Handler;".hashCode());
+        this.dispatch = null;
         
         /*
         this.callbacks.add("onCreate"); 
@@ -400,8 +402,17 @@ public class Analysis {
         return result;
     }
     
+//    public Integer getInstNum(final int c, final int m, final int pc){
+//        return DalvikInstance.hashCode(c, m, pc);
+//    }
+    
     public Integer getInstNum(final int c, final int m, final int pc){
-        return DalvikInstance.hashCode(c, m, pc);
+        for (final DalvikInstance di: instances.getAll()){
+            if ((di.getC() == c) && (di.getM() == m) && (di.getPC() == pc)){
+                return di.hashCode();
+            }
+        }
+        return null;
     }
     
     private void addToMain(final DalvikClass dc, final int methodIndex, final int numRegCall, final int regCount){
@@ -776,15 +787,21 @@ public class Analysis {
         }
     }
     
+    public Dispatch makeDispatch(){
+        return new Dispatch(instances.get(), classes);
+    }
+    
     /*
      * Fetch the classes from standard java and android for all unknown classes
      */
     private Set<CMPair> fetchUnknownMethod(){
+        DispatchResult dispatchResult = null;
         LinkedList<SimpleEntry<GeneralClass,String>> pool = new LinkedList<SimpleEntry<GeneralClass,String>>();
         Set<GeneralClass> addedInPool = new HashSet<GeneralClass>();
         Set<CMPair> processCM  = new HashSet<CMPair>();
         
         LazyUnion lazyUnion = new LazyUnion(apkClasses, stubs.getClasses());
+        Dispatch lazyDispatch = new Dispatch(instances.get(), lazyUnion);
         
         // We initialize the pool
         for (final GeneralClass c: classes.values()){
@@ -796,7 +813,7 @@ public class Analysis {
             SimpleEntry<GeneralClass,String> entry = pool.poll();
             GeneralClass c = entry.getKey();
             String mString = entry.getValue();
- 
+            CallType callType = null;
             addClass(c,addedInPool);
 
             if (c instanceof DalvikClass){
@@ -832,136 +849,38 @@ public class Analysis {
                                 switch (instruction.getOpcode()){
                                 case INVOKE_SUPER:
                                 case INVOKE_SUPER_RANGE:
-                                {
-                                    {
-                                        Implementation implementation = getSuperImplementation(lazyUnion, referenceClassIndex, referenceString.hashCode());
-                                        if (implementation != null && implementation instanceof DalvikImplementation){
-                                            DalvikImplementation di = (DalvikImplementation) implementation;
-                                            if (!instances.getVirtualByType(di.getDalvikClass()).isEmpty()){
-                                                cmMap.put(di.getDalvikClass(), di.getMethod());
-                                            }
-                                        }else{
-                                            if (implementation != null && implementation instanceof StubImplementation){
-                                                StubImplementation si = (StubImplementation) implementation;
-
-                                                for (DalvikImplementation di : si.getDalvikImp()){
-                                                    if (!instances.getVirtualByType(di.getDalvikClass()).isEmpty()){
-                                                        cmMap.put(di.getDalvikClass(),di.getMethod());
-                                                    }
-                                                }
-                                            }else{
-                                                System.out.println("Not Found :" + ((MethodReference) reference).getDefiningClass() + " " + referenceString+ " " + instruction.getOpcode().toString());
-                                            }
-                                        }
-                                    }
-                                }
-                                break;
-                                    
+                                    callType = CallType.SUPER;
+                                    break;
                                 case INVOKE_INTERFACE:
                                 case INVOKE_INTERFACE_RANGE:
-                                {
-                                    
-                                    Map<Integer,Implementation> implementations = getVirtualImplementations(lazyUnion,referenceClassIndex, referenceString.hashCode(),
-                                            referenceClass, referenceString);
-                                    if (implementations != null){
-                                        for (Implementation implementation : implementations.values()){
-                                            if (implementation instanceof DalvikImplementation){
-                                                DalvikImplementation di = (DalvikImplementation) implementation;   
-                                                if (!instances.getInterfaceByType(di.getDalvikClass(), classes).isEmpty()){
-                                                    cmMap.put(di.getDalvikClass(), di.getMethod());
-                                                }
-                                            }else{
-                                                if (implementation instanceof StubImplementation){
-                                                    StubImplementation si = (StubImplementation) implementation;
-                                                    for (DalvikImplementation di : si.getDalvikImp()){
-                                                        if (!instances.getInterfaceByType(di.getDalvikClass(), classes).isEmpty()){
-                                                            cmMap.put(di.getDalvikClass(),di.getMethod());
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                break;
+                                    callType = CallType.INTERFACE;
+                                    break;
                                 case INVOKE_VIRTUAL:
                                 case INVOKE_VIRTUAL_RANGE:
-                                
-                                {
-                                   
-                                    Map<Integer,Implementation> implementations = getVirtualImplementations(lazyUnion,referenceClassIndex, referenceString.hashCode(),
-                                            referenceClass, referenceString);
-                                    if (implementations != null){
-                                        for (Implementation implementation : implementations.values()){
-                                            if (implementation instanceof DalvikImplementation){
-                                                DalvikImplementation di = (DalvikImplementation) implementation;   
-                                                if (!instances.getVirtualByType(di.getDalvikClass()).isEmpty()){
-                                                    cmMap.put(di.getDalvikClass(), di.getMethod());
-                                                }
-                                            }else{
-                                                if (implementation instanceof StubImplementation){
-                                                    StubImplementation si = (StubImplementation) implementation;
-                                                    for (DalvikImplementation di : si.getDalvikImp()){
-                                                        if (!instances.getVirtualByType(di.getDalvikClass()).isEmpty()){
-                                                            cmMap.put(di.getDalvikClass(),di.getMethod());
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                break;
-
-                                    
+                                    callType = CallType.VIRTUAL;
+                                    break;
                                 case INVOKE_DIRECT:
                                 case INVOKE_DIRECT_RANGE:
-                                {
-                                    Implementation implementation = getDirectImplementation(lazyUnion, referenceClassIndex, referenceString.hashCode());
-                                    if (implementation != null && implementation instanceof DalvikImplementation){
-                                        DalvikImplementation di = (DalvikImplementation) implementation;
-                                        if (!instances.getExactByType(di.getDalvikClass().getType().hashCode()).isEmpty()){
-                                            cmMap.put(di.getDalvikClass(), di.getMethod());
-                                        }
-                                    }else{
-                                        if (implementation != null && implementation instanceof StubImplementation){
-                                            StubImplementation si = (StubImplementation) implementation;
-                                            
-                                            for (DalvikImplementation di : si.getDalvikImp()){
-                                                if (!instances.getExactByType(di.getDalvikClass().getType().hashCode()).isEmpty()){
-                                                    cmMap.put(di.getDalvikClass(),di.getMethod());
-                                                }
-                                            }
-                                        }else{
-                                            System.out.println("Not Found :" + ((MethodReference) reference).getDefiningClass() + " " + referenceString+ " " + instruction.getOpcode().toString());
-                                        }
-                                    }
-                                }
-                                break;
+                                    callType = CallType.DIRECT;
+                                    break;
                                 case INVOKE_STATIC:
                                 case INVOKE_STATIC_RANGE:
-                                {
-                                    Implementation implementation = getDirectImplementation(lazyUnion, referenceClassIndex, referenceString.hashCode());
-                                    if (implementation != null && implementation instanceof DalvikImplementation){
-                                        DalvikImplementation di = (DalvikImplementation) implementation;
-                                        cmMap.put(di.getDalvikClass(), di.getMethod());
-                                    }else{
-                                        if (implementation != null && implementation instanceof StubImplementation){
-                                            StubImplementation si = (StubImplementation) implementation;
-                                            
-                                            for (DalvikImplementation di : si.getDalvikImp()){
-                                                cmMap.put(di.getDalvikClass(),di.getMethod());
-                                            }
-                                        }else{
-                                            System.out.println("Not Found :" + ((MethodReference) reference).getDefiningClass() + " " + referenceString+ " " + instruction.getOpcode().toString());
-                                        }
-                                    }
-                                }
-                                break;
-
+                                    callType = CallType.STATIC;
+                                    break;
                                 default:
                                     throw new RuntimeException("MethodReference in a instruction which is not a invocation: "+ instruction.getOpcode().toString());
                                 }
+                                dispatchResult = lazyDispatch.dispatch(referenceClassIndex, referenceString.hashCode(), 
+                                        ((MethodReference) reference).getDefiningClass(), referenceString, callType);
+                                if (dispatchResult != null){
+                                   for (final DalvikImplementation di: dispatchResult.getImplementations()){
+                                       cmMap.put(di.getDalvikClass(), di.getMethod());
+                                   }
+                                }
+                                else{
+                                    System.out.println("Not Found :" + ((MethodReference) reference).getDefiningClass() + " " + referenceString+ " " + instruction.getOpcode().toString());
+                                }
+                                
                                 addClass(lazyUnion.get(referenceClassIndex),addedInPool);
                                 addToPool(lazyUnion,pool, processCM, cmMap);
                             }
@@ -1158,292 +1077,6 @@ public class Analysis {
     public int getLocalHeapNumberEntries(){
         return localHeapNumberEntries;
     }
-    
-
-    /*
-     * Return the implementations of mi in ci and in its child classes.
-     * Return null if no implementation was found
-     */
-    public Map<Integer,Implementation> getVirtualImpl(final int ci, final int mi, final String className, final String methodName){
-        return getVirtualImplementations(classes,ci,mi, className, methodName);
-    }
-
-    private Map<Integer,Implementation> getVirtualImpl(Map<Integer,GeneralClass> classes,final int ci, final int mi, final String className, final String methodName){
-        StubImplementation stub = threadStubs(ci,mi);
-        if (stub.hasStub()){
-            HashMap<Integer,Implementation> hm = new HashMap<Integer,Implementation>();
-            for (CMPair cmp : stub.getStubsCM()){
-                for (Entry<Integer, DalvikImplementation> entry : getVirtualDalvikImpl(classes, cmp.getC(), cmp.getM(), className, methodName).entrySet()){
-                    if (!hm.containsKey(entry.getKey())){
-                        hm.put(entry.getKey(), new StubImplementation(entry.getKey(),cmp.getM()));
-                    }
-
-                    StubImplementation si = (StubImplementation) hm.get(entry.getKey());
-                    si.addMethod(cmp);
-                    si.addDalvikImp(entry.getValue());
-                }
-            }
-            return hm;
-        }else{
-            HashMap<Integer,Implementation> hm = new HashMap<Integer,Implementation>();
-            Map<Integer,DalvikImplementation> mDalvik = getVirtualDalvikImpl(classes, ci, mi, className, methodName);
-            if (mDalvik != null){
-                for (Entry<Integer, DalvikImplementation> entry :mDalvik.entrySet()){
-                    hm.put(entry.getKey(),(Implementation) entry.getValue());
-                }
-                return hm;
-            }
-            else{
-                return null;
-            }
-        }
-        
-    }
-    
-    /*
-     * Return a mapping between the hashcode of the class names of all child classes
-     * of ci to the DalvikImplementation of mi in this child class.
-     * This compute a virtual dispatch table
-     */
-    private Map<Integer,DalvikImplementation> getVirtualDalvikImpl(Map<Integer,GeneralClass> classes,final int ci, final int mi,
-            final String className, final String methodName){
-        Map<Integer,DalvikImplementation> vd = new HashMap<Integer,DalvikImplementation>();     
-        if (classes.containsKey(ci)){
-            GeneralClass c = classes.get(ci);
-            if (c instanceof DalvikClass){
-                DalvikClass dc = (DalvikClass) c;
-                DalvikImplementation di = getDalvikImplementation(classes,ci,mi);
-                DalvikMethod m = null;
-                if (di == null){
-                    DalvikImplementation sdi = getSuperDalvikImpl(classes,ci,mi);
-                    if (sdi != null){
-                        m = sdi.getMethod();
-                        vd.put(ci, sdi);
-                    }
-                }else{
-                    m = di.getMethod();
-                    vd.put(ci, di);
-                }
-                virtualDispatchPopulate(classes,mi,dc,vd,m);
-                return vd;
-            }
-        }
-        System.err.println("Virtual Dispatch failed for: " + className + "->" + methodName);
-        return null;
-    }
-
-    /*
-     * Go through the class tree and build the implementation of all child classes of dc
-     * Should only be called on getVirtualImplementations
-     */
-    private void virtualDispatchPopulate(Map<Integer,GeneralClass> classes, int m, DalvikClass dc, Map<Integer,DalvikImplementation> vd, DalvikMethod superM){
-
-        for (final DalvikClass child : dc.getChildClasses()){
-           
-            DalvikMethod childMethod = superM;
-            DalvikMethod newMethod = child.getMethod(m);
-            if (newMethod != null){
-                childMethod = newMethod;
-            }
-            if (childMethod != null){
-                DalvikImplementation di = new DalvikImplementation(child,childMethod);
-
-                for( DalvikInstance childInstance : instances.getExactByType(child.getType().hashCode())){
-                    di.putInstance(childInstance);
-                }
-                if (!di.getInstances().isEmpty()){
-                    vd.put(dc.getType().hashCode(), di);
-                }
-                virtualDispatchPopulate(classes, m, child, vd, childMethod);
-            }else{
-                System.out.println(m + " not implemented in " + dc.getType());
-            }
-        }
-    }
-
-    /*
-     * Return the implementation (which is either a Dalvik Implementation or a Stub Implementation)
-     * of mi in class ci.
-     * Return null if no implementation was found
-     */
-    public Implementation getDirectImpl(final int ci, final int mi){
-        return getDirectImpl(classes,ci,mi);
-    }
-
-    private Implementation getDirectImpl(Map<Integer,GeneralClass> classes, final int ci, final int mi){
-        StubImplementation stub = threadStubs(ci,mi);
-        if (stub.hasStub()){
-            for (CMPair cmp : stub.getStubsCM()){
-                stub.addDalvikImp(getDalvikImpl(classes,cmp.getC(),cmp.getM()));
-            }
-            return stub;
-        }else{
-            return getDalvikImpl(classes, ci, mi);
-        }
-    }
-    
-    /*
-     * Return the DalvikImplementation of some method ci,mi by looking into the set of classes in argument
-     */
-    private DalvikImplementation getDalvikImpl(Map<Integer,GeneralClass> classes, final int ci, final int mi){
-        if (classes.containsKey(ci)){
-            GeneralClass c = classes.get(ci);
-            if (c instanceof DalvikClass){
-                DalvikClass dc = (DalvikClass) c;
-                DalvikMethod m = dc.getMethod(mi);
-                if (m != null){
-                    final DalvikImplementation di = new DalvikImplementation(dc, m);
-                    for (DalvikInstance instance : instances.getByType(ci)){
-                        di.putInstance(instance);
-                    }
-                    return di;
-                }
-            }
-        }
-        return null;
-    }
-
-
-    /*
-     * Return the implementation (Dalvik or stub) of mi in the super classes of ci
-     * Return null if no implementation was found
-     */
-    public Implementation getSuperImpl(final int ci, final int mi){
-        return getSuperImpl(classes,ci, mi);
-    }
-        
-    private Implementation getSuperImpl(Map<Integer,GeneralClass> classes, final int ci, final int mi){
-        StubImplementation stub = threadStubs(ci,mi);
-        if (stub.hasStub()){
-            for (CMPair cmp : stub.getStubsCM()){
-                stub.addDalvikImp(getSuperDalvikImpl(classes,cmp.getC(),cmp.getM()));
-            }
-            return stub;
-        }else{
-            return getSuperDalvikImpl(classes, ci, mi);
-        }
-    }
-
-    private DalvikImplementation getSuperDalvikImpl(Map<Integer,GeneralClass> classes,final int ci, final int mi){
-    final AbstractMap.SimpleEntry<DalvikClass, DalvikMethod> definition = getSuperMethod(classes,ci, mi);
-        if (definition != null){
-            final DalvikImplementation di = new DalvikImplementation(definition.getKey(), definition.getValue());
-            for (DalvikInstance instance : instances.getVirtualByType(definition.getKey())){
-                di.putInstance(instance);
-            }
-            return di;
-        }
-        return null;
-    }
-
-    
-    private StubImplementation threadStubs(int ci, int mi){
-        StubImplementation stub = new StubImplementation(ci,mi);
-        boolean isThread = isThread(ci);
-        
-        /*
-         * AsynTask: we start all possible thread directly
-         * http://developer.android.com/reference/android/os/AsyncTask.html
-         */
-        if (isThread && (mi == "execute([Ljava/lang/Object;)Landroid/os/AsyncTask;".hashCode())){
-            // On the background thread. Should contain the interesting computations
-            stub.addMethod(new CMPair(ci,"doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode()));
-            // On the UI thread
-            stub.addMethod(new CMPair(ci,"onPreExecute()V".hashCode()));
-            // On the UI thread
-            // This method should get the result from doInBackground
-            stub.addDependentMethod(new CMPair(ci,"doInBackground([Ljava/lang/Object;)Ljava/lang/Object;".hashCode()), new CMPair(ci,"onPostExecute(Ljava/lang/Object;)V".hashCode()));
-        }
-        
-        /*
-         * Executor: we over approximate by starting any runnable
-         * (instead of just the runnable sent to the executor)
-         */
-        if (isThread && (mi == "execute(Ljava/lang/Runnable;)V".hashCode())){
-            stub.addMethod(new CMPair("Ljava/lang/Runnable;".hashCode(),"run()V".hashCode()));
-        }
-
-        if (isThread && (mi == "start()V".hashCode())){
-            stub.addMethod(new CMPair(ci,"run()V".hashCode()));
-        }
-        
-        return stub;
-    }
-    
-    /*
-     * Return the dalvik class and dalvik method implementing mi in ci's super classes (including ci)
-     * Return null if this method is not found
-     */
-    private AbstractMap.SimpleEntry<DalvikClass, DalvikMethod> getSuperMethod(Map<Integer,GeneralClass> classes,final int ci, int mi){ 
-        if (classes.containsKey(ci)){
-            GeneralClass c = classes.get(ci);
-            if (c instanceof DalvikClass){
-                final DalvikClass cd = ((DalvikClass) c);
-
-                DalvikMethod m = cd.getMethod(mi);
-                if (m != null){
-                    return new AbstractMap.SimpleEntry<DalvikClass, DalvikMethod>(cd, m);
-                }else{
-                    final GeneralClass superClass = cd.getSuperClass();
-                    if (superClass != null){
-                        if (superClass instanceof DalvikClass){
-                            final DalvikClass scd = (DalvikClass) superClass;
-                            return getSuperMethod(classes,scd.getType().hashCode(), mi);
-                        }
-                    }
-                }
-            }
-        }
-        return null;
-    }
-
-        
-    
-    /*
-     * Return true is classInd is the identifier of a thread class by checking if :
-     * c or its superclasses implements java/lang/Runnable
-     * c or its superclasses implements java/util/concurrent/Executor
-     * c extends java/lang/Thread
-     * c extends Android/os/AsyncTask
-     */
-    private boolean isThread(final int classInd){        
-        if (classes.containsKey(classInd)){
-            GeneralClass c = classes.get(classInd);
-            if (c instanceof DalvikClass){
-                return isThreadAux((DalvikClass) c);   
-            }  
-        }
-        
-        return false;
-    }
-
-    /*
-     * Return true if the super class of c is a thread class
-     * Should not be used except in isThreadByInt
-     */
-    private boolean isThreadAux(final DalvikClass c){
-
-        final String className = c.getType();
-        if ((className.equals("Ljava/lang/Thread;")) || (className.equals("Landroid/os/AsyncTask;"))){
-            return true;
-        }
-        for (final GeneralClass interfaceName: c.getInterfaces()){
-            if (interfaceName.getType().equals("Ljava/lang/Runnable;")){
-                return true;
-            }
-            if (interfaceName.getType().equals("Ljava/util/concurrent/Executor;")){
-                return true;
-            }
-        }
-        final GeneralClass sc = c.getSuperClass();
-        if (sc != null && sc instanceof DalvikClass){
-            return isThreadAux((DalvikClass) sc);
-        }else{
-            return false;
-        }
-    }
-    
- 
 
     /*
      * Return true if c,m is a source, and if className, methodName is a method in the initial apk, and not
@@ -1526,20 +1159,15 @@ public class Analysis {
      */
     //TODO: we take only the apk sources/sinks calls
     private void setSourceSink() {
-        for (GeneralClass generalC : apkClasses.values()){
-            if (generalC instanceof DalvikClass){
-                DalvikClass dc = (DalvikClass) generalC;
-                for (DalvikMethod dm : dc.getMethods()){
-                    if (apkClassesMethods.contains(new StringPair(dc.getType(),dm.getName()))){
-                        Boolean isSourceSink = isSourceSink(dc.getType(), dm.getName());
-                        if (isSourceSink != null){
-                            if (isSourceSink){
-                                refSources.add(new CMPair(dc.getType().hashCode(), dm.getName().hashCode()));
-                            }else{
-                                refSinks.add(new CMPair(dc.getType().hashCode(), dm.getName().hashCode()));
-                            }
-                        }
-                    }
+        for (final StringPair sp : apkClassesMethods) {
+            final String c = sp.st1;
+            final String m = sp.st2;
+            Boolean isSourceSink = isSourceSink(c,m);
+            if (isSourceSink != null) {
+                if (isSourceSink) {
+                    refSources.add(new CMPair(c.hashCode(),m.hashCode()));
+                } else {
+                    refSinks.add(new CMPair(c.hashCode(),m.hashCode()));
                 }
             }
         }

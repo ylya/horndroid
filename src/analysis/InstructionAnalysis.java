@@ -15,6 +15,7 @@ import horndroid.options;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,6 +40,7 @@ import payload.SparseSwitch;
 import util.CMPair;
 import util.StringPair;
 import util.Utils;
+import util.Utils.CallType;
 import z3.*;
 
 public class InstructionAnalysis {
@@ -94,6 +96,8 @@ public class InstructionAnalysis {
         this.codeAddress = codeAddress;
     }
     public void CreateHornClauses(options options, Set<StringPair> apkClassesMethods){
+        final Dispatch dispatch = analysis.makeDispatch();
+        DispatchResult dispatchResult = null;
         Integer staticFieldClassName;
         DalvikMethod dmc;
         final int size = analysis.getSize();
@@ -1040,12 +1044,29 @@ public class InstructionAnalysis {
             break;//((short)0x6d, "sput-short", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
         case INVOKE_SUPER:
         {
-            Implementation implementation = analysis.getSuperImplementation(referenceClassIndex, referenceIntIndex);
-                        
-            this.directInvoke(implementation, false, 0, false);
+            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.SUPER);
+            int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
+            if (dispatchResult != null){
+                this.invoke(dispatchResult, false, referenceReg);
+            }
+            else{
+                this.invokeNotKnown(false);
+            }
         }
         break;
-
+        
+        case INVOKE_SUPER_RANGE:
+        {
+            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.SUPER);
+            int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
+            if (dispatchResult != null){
+                this.invoke(dispatchResult, true, referenceReg);
+            }
+            else{
+                this.invokeNotKnown(true);
+            }
+        }
+        break;
             /*
              * Should be handled like invoke_virtual:
              * "invoke-interface is used to invoke an interface method, that is, 
@@ -1054,63 +1075,92 @@ public class InstructionAnalysis {
              * Source : https://source.android.com/devices/tech/dalvik/dalvik-bytecode.html
              */
         case INVOKE_INTERFACE:
-        case INVOKE_VIRTUAL:
         {
-            Map<Integer,Implementation> implementations = analysis.getVirtualImplementations(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString);
-            if (implementations != null){
-                int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
-                this.invokeImpKnown(referenceReg, implementations, false);
+            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.INTERFACE);
+            int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
+            if (dispatchResult != null){
+                this.invoke(dispatchResult, false, referenceReg);
             }
             else{
-                this.invokeImpNotKnown(false);
+                this.invokeNotKnown(false);
             }
         }
         break;
-
-        case INVOKE_SUPER_RANGE:
-        {
-            Implementation implementation = analysis.getSuperImplementation(referenceClassIndex, referenceIntIndex);
-                        
-            this.directInvoke(implementation, true, 0, false);
-        }
-        break;
-            
-        case INVOKE_VIRTUAL_RANGE:
-
-            /*
-             * Should be handled like invoke_virtual:
-             * "invoke-interface is used to invoke an interface method, that is, 
-             * on an object whose concrete class isn't known, using a method_id 
-             * that refers to an interface."
-             * Source : https://source.android.com/devices/tech/dalvik/dalvik-bytecode.html
-             */
         case INVOKE_INTERFACE_RANGE:
         {
-            Map<Integer,Implementation> implementations = analysis.getVirtualImplementations(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString);
-            if (implementations != null){
-                int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
-                this.invokeImpKnown(referenceReg, implementations, true);
+            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.INTERFACE);
+            int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
+            if (dispatchResult != null){
+                this.invoke(dispatchResult, true, referenceReg);
             }
             else{
-               this.invokeImpNotKnown(true);
+                this.invokeNotKnown(true);
+            }
+        }
+        break;
+        case INVOKE_VIRTUAL:
+        {
+            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.VIRTUAL);
+            int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
+            if (dispatchResult != null){
+                this.invoke(dispatchResult, false, referenceReg);
+            }
+            else{
+                this.invokeNotKnown(false);
+            }
+        }
+        break;
+        case INVOKE_VIRTUAL_RANGE:
+        {
+            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.VIRTUAL);
+            int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
+            if (dispatchResult != null){
+                this.invoke(dispatchResult, true, referenceReg);
+            }
+            else{
+                this.invokeNotKnown(true);
+            }
+        }
+        break;
+        case INVOKE_DIRECT:
+            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.DIRECT);
+            if (dispatchResult != null){
+                this.invoke(dispatchResult, false, null);
+            }
+            else{
+                this.invokeNotKnown(false);
+            }
+        break;
+        case INVOKE_DIRECT_RANGE:
+            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.DIRECT);
+            if (dispatchResult != null){
+                this.invoke(dispatchResult, true, null);
+            }
+            else{
+                this.invokeNotKnown(true);
+            }
+        break;
+        case INVOKE_STATIC:
+        {
+            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.STATIC);
+            if (dispatchResult != null){
+                this.invoke(dispatchResult, false, null);
+            }
+            else{
+                this.invokeNotKnown(false);
             }
         }
         break;
 
-
-        case INVOKE_DIRECT:
-        case INVOKE_STATIC:
-        {
-            Implementation implementation = analysis.getDirectImplementation(referenceClassIndex, referenceIntIndex);
-            this.directInvoke(implementation, false, 0, false);
-        }
-        break;
-
-        case INVOKE_DIRECT_RANGE:
         case INVOKE_STATIC_RANGE:
         {
-            Implementation implementation = analysis.getDirectImplementation(referenceClassIndex, referenceIntIndex);
-            this.directInvoke(implementation, true, 0, false);
+            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.STATIC);
+            if (dispatchResult != null){
+                this.invoke(dispatchResult, true, null);
+            }
+            else{
+                this.invokeNotKnown(true);
+            }
         }
         break;
 
@@ -1817,19 +1867,19 @@ public class InstructionAnalysis {
         }
     }
 
-    private void stubInvoke(StubImplementation implementation, boolean range, int referenceReg, boolean virtualDispatch) {
-        Map<CMPair, CMPair> dependentInvoke = implementation.getDependentInvokation();
-        for (DalvikImplementation di : implementation.getDalvikImp()){
-            CMPair cmp = new CMPair(di.getDalvikClass().getType().hashCode(),di.getMethod().getName().hashCode());
-            if (!dependentInvoke.values().contains(cmp)){
-                this.directInvoke(di, range, referenceReg, virtualDispatch);
-            }else{
-                DalvikImplementation from = implementation.getDalvikImpByID(dependentInvoke.get(cmp).hashCode());
-                this.directDalvikInvokeAux(z3engine.mkTrue(), di, range, from);
-            }
-        }
-    }
-    
+//    private void stubInvoke(StubImplementation implementation, boolean range, int referenceReg, boolean virtualDispatch) {
+//        Map<CMPair, CMPair> dependentInvoke = implementation.getDependentInvokation();
+//        for (DalvikImplementation di : implementation.getDalvikImp()){
+//            CMPair cmp = new CMPair(di.getDalvikClass().getType().hashCode(),di.getMethod().getName().hashCode());
+//            if (!dependentInvoke.values().contains(cmp)){
+//                this.invoke(di, range, referenceReg, virtualDispatch);
+//            }else{
+//                DalvikImplementation from = implementation.getDalvikImpByID(dependentInvoke.get(cmp).hashCode());
+//                this.directDalvikInvokeAux(z3engine.mkTrue(), di, range, from);
+//            }
+//        }
+//    }
+//    
     private BitVecExpr regA(){
         return var.getV(((OneRegisterInstruction)instruction).getRegisterA());
     }
@@ -2538,21 +2588,11 @@ public class InstructionAnalysis {
         return false;
     }
     
-    /*
-     * implementations: set of implementations of the invoked method
-     * Perform dynamic dispatch
-     */
-    private void invokeImpKnown(final int referenceReg, final Map<Integer,Implementation> implementations, final Boolean range){
-        
-        for (final Map.Entry<Integer, Implementation> entry : implementations.entrySet()){
-            directInvoke(entry.getValue(),range,referenceReg,true);
-        }
-    }
     
     /*
      * Advances pc with a top values for the return value (if exists)
      */
-    private void invokeImpNotKnown(final Boolean range){
+    private void invokeNotKnown(final Boolean range){
         buildH();
         //put top value to the return register
         regUpdate.put(numRegLoc, var.getF());
@@ -2565,20 +2605,14 @@ public class InstructionAnalysis {
      * Direct invocation of a method, whose implementation is either a dalvik implementation
      * or a stub
      */
-    private void directInvoke(Implementation implementation, Boolean range, int referenceReg, Boolean virtualDispatch){
-        if (implementation instanceof DalvikImplementation){
-            DalvikImplementation dalvikImp = (DalvikImplementation) implementation;
-            if (virtualDispatch){
-                this.virtualDalvikInvoke(dalvikImp, referenceReg, range);
-            }else{
-                this.directDalvikInvoke(z3engine.mkTrue(), dalvikImp, range); 
-            }
-        }else{
-            if (implementation instanceof StubImplementation){
-                this.stubInvoke((StubImplementation) implementation, range, referenceReg, virtualDispatch);
-            }else{
-                this.invokeImpNotKnown(range);
-                System.err.println("Direct implementation missing!");
+    private void invoke(final DispatchResult dispatchResult,
+            final Boolean range, final Integer referenceReg) {
+        for (final DalvikImplementation di : dispatchResult
+                .getImplementations()) {
+            if (referenceReg != null) {
+                this.virtualDalvikInvoke(di, referenceReg, range, dispatchResult.getInstances());
+            } else {
+                this.directDalvikInvoke(z3engine.mkTrue(), di, range);
             }
         }
     }
@@ -2587,8 +2621,8 @@ public class InstructionAnalysis {
      * This method is used to performe virtual dispatch:
      * the generated Horn clauses check that the callee is of the correct class before invoking
      */
-    private void virtualDalvikInvoke(DalvikImplementation di, int referenceReg, Boolean range){
-        for (final DalvikInstance instance: di.getInstances()){
+    private void virtualDalvikInvoke(final DalvikImplementation di, final int referenceReg, final Boolean range, final HashSet<DalvikInstance> instances){
+        for (final DalvikInstance instance: instances){
             //TODO: this can be improved by adding a predicate Class and
             // doing Class(instance.hashcode(),classID) and Class(referenceReg,classID) 
             // so has to share all this between invocation
@@ -2598,30 +2632,19 @@ public class InstructionAnalysis {
                             );
             directDalvikInvoke(precond, di, range);
         }
-        if (di.getInstances().isEmpty()){
-            //TODO: output on err and not on out
-            final DalvikInstance newInstance = new DalvikInstance(0, 0, di.getDalvikClass().getType().hashCode(), di.getDalvikClass(), true);
-            di.putInstance(newInstance);
-            BoolExpr precond = z3engine.eq(
-                    var.getV(referenceReg),
-                    z3engine.mkBitVector(newInstance.hashCode(), analysis.getSize())
-                    );
-            directDalvikInvoke(precond, di, range);
-            //System.out.println("Invoked class has no instances : " + di.getDalvikClass().getType() + " " + di.getMethod().getName());
-        }
     }
     
     /*
      * Invocation of a Dalvik Implementation with precondition 'precond'
      */
     private void directDalvikInvoke(BoolExpr precond, DalvikImplementation di, Boolean range){
-        directDalvikInvokeAux(precond, di, range, null);
+        directDalvikInvokeAux(precond, di, range);
     }
     
     /*
      * if dependentInv is not null then the first argument of di's invocation is the result of dependentInv invocation
      */
-    private void directDalvikInvokeAux(BoolExpr precond, DalvikImplementation di, Boolean range, DalvikImplementation dependentInv){
+    private void directDalvikInvokeAux(BoolExpr precond, DalvikImplementation di, Boolean range){
         int size = analysis.getSize();
 
         DalvikClass cInvoked = di.getDalvikClass();
@@ -2644,46 +2667,46 @@ public class InstructionAnalysis {
         regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
 
         buildH();        
-        if (dependentInv != null){
-            /*
-             * We get the Res predicate of the dependent invocation. 
-             * Observe that the call context of the dependent invocation is the same than the call context of the invoked method.
-             */
-            int numRegDependent = dependentInv.getMethod().getNumReg();
-            int numArgDependent = dependentInv.getMethod().getNumArg();
-
-            String classDependentStringName = Integer.toString(dependentInv.getDalvikClass().getType().hashCode());
-            String methodDependentStringName = Integer.toString(dependentInv.getMethod().getName().hashCode());
-
-            regUpdate = updateResult(numRegDependent, numArgDependent, BitVecExpr.class, var.getInjectV(var), range);
-            regUpdateL = updateResult(numRegDependent, numArgDependent, BoolExpr.class, var.getInjectL(var), range);
-            regUpdateB = updateResult(numRegDependent, numArgDependent, BoolExpr.class, var.getInjectB(var), range);
-            
-            // getRez, getLRez and getBRez contain the result of the dependent call
-            regUpdate.put(numArgDependent, var.getRez());
-            regUpdateL.put(numArgDependent, var.getLrez());
-            regUpdateB.put(numArgDependent, var.getBrez());
-
-            BoolExpr depExpr = z3engine.resPred(classDependentStringName, methodDependentStringName, regUpdate, regUpdateL, regUpdateB, numArgDependent);
-            
-            regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
-            
-            h = z3engine.and(h,precond,depExpr);
-        }else{
-            h = z3engine.and(h,precond);
-        }
-        
-        
-        regUpdate = updateRegister(numRegCall, numArgCall, BitVecExpr.class, var.getInjectV(var), range);
-        regUpdateL = updateRegister(numRegCall, numArgCall, BoolExpr.class, var.getInjectL(var), range);
-        regUpdateB = updateRegister(numRegCall, numArgCall, BoolExpr.class, var.getInjectB(var), range);
-        
-        if (dependentInv != null){
-            //We use the result of the dependent call as the first argument of the invoked method
-            regUpdate.put(numRegCall - numArgCall, var.getRez());
-            regUpdateL.put(numRegCall - numArgCall, var.getLrez());
-            regUpdateB.put(numRegCall - numArgCall, var.getBrez());
-        }
+//        if (dependentInv != null){
+//            /*
+//             * We get the Res predicate of the dependent invocation. 
+//             * Observe that the call context of the dependent invocation is the same than the call context of the invoked method.
+//             */
+//            int numRegDependent = dependentInv.getMethod().getNumReg();
+//            int numArgDependent = dependentInv.getMethod().getNumArg();
+//
+//            String classDependentStringName = Integer.toString(dependentInv.getDalvikClass().getType().hashCode());
+//            String methodDependentStringName = Integer.toString(dependentInv.getMethod().getName().hashCode());
+//
+//            regUpdate = updateResult(numRegDependent, numArgDependent, BitVecExpr.class, var.getInjectV(var), range);
+//            regUpdateL = updateResult(numRegDependent, numArgDependent, BoolExpr.class, var.getInjectL(var), range);
+//            regUpdateB = updateResult(numRegDependent, numArgDependent, BoolExpr.class, var.getInjectB(var), range);
+//            
+//            // getRez, getLRez and getBRez contain the result of the dependent call
+//            regUpdate.put(numArgDependent, var.getRez());
+//            regUpdateL.put(numArgDependent, var.getLrez());
+//            regUpdateB.put(numArgDependent, var.getBrez());
+//
+//            BoolExpr depExpr = z3engine.resPred(classDependentStringName, methodDependentStringName, regUpdate, regUpdateL, regUpdateB, numArgDependent);
+//            
+//            regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
+//            
+//            h = z3engine.and(h,precond,depExpr);
+//        }else{
+//            h = z3engine.and(h,precond);
+//        }
+//        
+//        
+//        regUpdate = updateRegister(numRegCall, numArgCall, BitVecExpr.class, var.getInjectV(var), range);
+//        regUpdateL = updateRegister(numRegCall, numArgCall, BoolExpr.class, var.getInjectL(var), range);
+//        regUpdateB = updateRegister(numRegCall, numArgCall, BoolExpr.class, var.getInjectB(var), range);
+//        
+//        if (dependentInv != null){
+//            //We use the result of the dependent call as the first argument of the invoked method
+//            regUpdate.put(numRegCall - numArgCall, var.getRez());
+//            regUpdateL.put(numRegCall - numArgCall, var.getLrez());
+//            regUpdateB.put(numRegCall - numArgCall, var.getBrez());
+//        }
         
         b = z3engine.rInvokePred(classInvokedStringName, methodInvokedStringName, 0, regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, size);
         buildRule();
