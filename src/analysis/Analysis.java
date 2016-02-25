@@ -712,36 +712,36 @@ public class Analysis {
     }
     
 
-    private void addClass(final GeneralClass cp, final Set<GeneralClass> addedInPool){
-        if(!addedInPool.contains(cp) && cp != null){
-            addedInPool.add(cp);
-            
-            classes.put(cp.getType().hashCode(),cp);
-            if (cp instanceof DalvikClass){
-                // Add the superclass of cp
-                GeneralClass superClass = ((DalvikClass)cp).getSuperClass();
-                if (! (superClass == null)){
-                    if(apkClasses.containsKey(superClass.getType().hashCode())){
-                        GeneralClass supClass = apkClasses.get(superClass.getType().hashCode());
-                        addClass(supClass, addedInPool);
-                    }else{                    
-                        GeneralClass stub = stubs.getClasses().get(superClass.getType().hashCode());
-                        if (stub != null){
-                            ((DalvikClass) cp).putSuperClass(stub);
-                            addClass(stub,addedInPool);
-                        }else{
-                            throw new RuntimeException("addClass " + cp.getType());
-                        }
-                    }
-                }else{
-                    if (!cp.getType().equals("Ljava/lang/Object;")){
-                        System.out.println("Should be Ljava/lang/Object; " + cp.getType());
-                    }
-                }
-            }
-            
-        }
-    }
+//    private void addClass(final GeneralClass cp, final Set<GeneralClass> addedInPool){
+//        if(!addedInPool.contains(cp) && cp != null){
+//            addedInPool.add(cp);
+//            
+//            classes.put(cp.getType().hashCode(),cp);
+//            if (cp instanceof DalvikClass){
+//                // Add the superclass of cp
+//                GeneralClass superClass = ((DalvikClass)cp).getSuperClass();
+//                if (! (superClass == null)){
+//                    if(apkClasses.containsKey(superClass.getType().hashCode())){
+//                        GeneralClass supClass = apkClasses.get(superClass.getType().hashCode());
+//                        addClass(supClass, addedInPool);
+//                    }else{                    
+//                        GeneralClass stub = stubs.getClasses().get(superClass.getType().hashCode());
+//                        if (stub != null){
+//                            ((DalvikClass) cp).putSuperClass(stub);
+//                            addClass(stub,addedInPool);
+//                        }else{
+//                            throw new RuntimeException("addClass " + cp.getType());
+//                        }
+//                    }
+//                }else{
+//                    if (!cp.getType().equals("Ljava/lang/Object;")){
+//                        System.out.println("Should be Ljava/lang/Object; " + cp.getType());
+//                    }
+//                }
+//            }
+//            
+//        }
+//    }
     
 
     private void addClassFromApk(final GeneralClass cp, final LinkedList<SimpleEntry<GeneralClass,String>> pool,
@@ -757,20 +757,20 @@ public class Analysis {
                     processCM.add(new CMPair(cp.getType().hashCode(),m.getName().hashCode()));
                 }
 
-                // Add the superclass of cp
-                GeneralClass superClass = ((DalvikClass)cp).getSuperClass();
-                if (superClass != null){
-                    if(apkClasses.containsKey(superClass.getType().hashCode())){
-                        GeneralClass supClass = apkClasses.get(superClass.getType().hashCode());
-
-                        addClass(supClass, addedInPool);
-                    }else{                    
-                        GeneralClass stub = stubs.getClasses().get(superClass.getType().hashCode());
-
-                        ((DalvikClass) cp).putSuperClass(stub);
-                        addClass(stub,addedInPool);
-                    }
-                }
+//                // Add the superclass of cp
+//                GeneralClass superClass = ((DalvikClass)cp).getSuperClass();
+//                if (superClass != null){
+//                    if(apkClasses.containsKey(superClass.getType().hashCode())){
+//                        GeneralClass supClass = apkClasses.get(superClass.getType().hashCode());
+//
+//                        addClass(supClass, addedInPool);
+//                    }else{                    
+//                        GeneralClass stub = stubs.getClasses().get(superClass.getType().hashCode());
+//
+//                        ((DalvikClass) cp).putSuperClass(stub);
+//                        addClass(stub,addedInPool);
+//                    }
+//                }
             }
         }
     }
@@ -789,6 +789,69 @@ public class Analysis {
     
     public Dispatch makeDispatch(){
         return new Dispatch(instances.get(), classes);
+    }
+    
+    private void fetchNewInstance(final int c, final String className){
+        final GeneralClass gc = stubs.getClasses().get(c);
+        if (gc instanceof GeneralClass){
+            System.err.println("Unknown class, fields fetch failure: " + className);
+        }
+        else{
+            if (gc instanceof DalvikClass){
+                final DalvikClass dc = (DalvikClass) gc;
+                if (classes.containsKey(dc.getType().hashCode())){
+                    final GeneralClass gcNew = classes.get(dc.getType().hashCode());
+                    if (gcNew instanceof DalvikClass){
+                        ((DalvikClass) gcNew).putFields(dc.getFields());
+                    }
+                }
+                else{
+                    final DalvikClass dcNew = new DalvikClass(dc.getType());
+                    dcNew.putFields(dc.getFields());
+                    dcNew.putSuperClass(dc.getSuperClass());
+                    dcNew.putInterfaces(dc.getInterfaces());
+                    for (final DalvikClass child: dc.getChildClasses()){
+                        dcNew.putChildClass(child);
+                    }
+                    classes.put(dcNew.getType().hashCode(), dcNew);
+                }
+            }
+        }     
+    }
+    
+    private void fetchInvoke(final DispatchResult dr){
+        for (final DalvikImplementation di: dr.getImplementations()){
+            final DalvikClass c = di.getDalvikClass();
+            final DalvikMethod m = di.getMethod();
+            boolean added = false;
+            if (classes.containsKey(c.getType().hashCode())){
+                final GeneralClass gc = classes.get(c.getType().hashCode());
+                if (gc instanceof DalvikClass){
+                    final DalvikClass dc = (DalvikClass) gc;
+                    final Set<DalvikMethod> methods = Collections.newSetFromMap(new ConcurrentHashMap<DalvikMethod, Boolean>());;
+                    for (final DalvikMethod dm: dc.getMethods()){
+                        methods.add(dm);
+                    }
+                    methods.add(m);
+                    dc.putMethods(methods);
+                    added = true;
+                }
+            }
+            if (!added){
+                final DalvikClass dcNew = new DalvikClass(c.getType());
+                dcNew.putSuperClass(c.getSuperClass());
+                for (final DalvikClass child: c.getChildClasses()){
+                    dcNew.putChildClass(child);
+                }
+                dcNew.putInterfaces(c.getInterfaces());
+                final Set<DalvikMethod> methods = Collections.newSetFromMap(new ConcurrentHashMap<DalvikMethod, Boolean>());;
+                for (final DalvikMethod dm: c.getMethods()){
+                    methods.add(dm);
+                }
+                dcNew.putMethods(methods);
+                classes.put(dcNew.getType().hashCode(), dcNew);
+            }
+        }
     }
     
     /*
@@ -814,21 +877,24 @@ public class Analysis {
             GeneralClass c = entry.getKey();
             String mString = entry.getValue();
             CallType callType = null;
-            addClass(c,addedInPool);
+            //addClass(c,addedInPool);
 
             if (c instanceof DalvikClass){
                 final DalvikClass dc = (DalvikClass) c;
                 DalvikMethod m = dc.getMethod(mString.hashCode());
-                if (m == null){
-                    continue; //we fetch implementation that does not exist, e.g., method is implemented in super class only but we ask its child for the implementation
+   /*             if (m == null) {
+                    continue; // we fetch implementation that does not exist,
+                              // e.g., method is implemented in super class only
+                              // but we ask its child for the implementation
                 }
-                // We look for classes and method in the instructions of m
+*/       // We look for classes and method in the instructions of m
                 for (Instruction instruction : m.getInstructions()){
                     if (instruction instanceof ReferenceInstruction) {
                         Reference reference = ((ReferenceInstruction)instruction).getReference();
                         if (reference instanceof FieldReference) {
                             int referenceClassIndex = ((FieldReference) reference).getDefiningClass().hashCode();
-                            addClass(lazyUnion.get(referenceClassIndex),addedInPool);
+                            String referenceString = Utils.getShortReferenceString(reference);
+                            fetchNewInstance(referenceClassIndex, referenceString);
                         }
                         else{
                             if (reference instanceof MethodReference){
@@ -876,13 +942,13 @@ public class Analysis {
                                    for (final DalvikImplementation di: dispatchResult.getImplementations()){
                                        cmMap.put(di.getDalvikClass(), di.getMethod());
                                    }
+                                   fetchInvoke(dispatchResult);
+                                   addToPool(lazyUnion,pool, processCM, cmMap);
                                 }
                                 else{
                                     System.out.println("Not Found :" + ((MethodReference) reference).getDefiningClass() + " " + referenceString+ " " + instruction.getOpcode().toString());
                                 }
                                 
-                                addClass(lazyUnion.get(referenceClassIndex),addedInPool);
-                                addToPool(lazyUnion,pool, processCM, cmMap);
                             }
                         }
                     }

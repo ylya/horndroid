@@ -62,6 +62,7 @@ public class DalvikClass extends GeneralClass {
 	 * Return the fields of the class, always in the same order.
 	 */
 	public Set<DalvikField> getFields(){
+	    if (fields == null) return new HashSet<DalvikField>();
 	    TreeSet<DalvikField> f = new TreeSet<DalvikField>(fields);
 	    if (this.superClass instanceof DalvikClass){
 	        f.addAll(((DalvikClass) this.superClass).getFields());
@@ -69,6 +70,7 @@ public class DalvikClass extends GeneralClass {
 		return f;
 	}
 	public Set<DalvikField> getExactFields(){
+	    if (fields == null) return new HashSet<DalvikField>();
         return fields;
     }
 	public Collection<DalvikMethod> getMethods(){
