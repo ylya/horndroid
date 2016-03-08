@@ -10,12 +10,9 @@ import Dalvik.DalvikInstance;
 import Dalvik.DalvikMethod;
 import Dalvik.DalvikStaticField;
 import Dalvik.GeneralClass;
-import Dalvik.Implementation;
 import Dalvik.Instances;
-import Dalvik.StubImplementation;
 import horndroid.options;
 
-import java.util.AbstractMap;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -75,7 +72,6 @@ public class Analysis {
     final private Z3Variable var;
     final private FSVariable fsvar;
     final private Stubs stubs;
-    private Dispatch dispatch;
     
     final ExecutorService instructionExecutorService;
     private Set<CMPair> refSources;
@@ -138,7 +134,6 @@ public class Analysis {
         this.overapprox.add("Landroid/app/ListFragment;".hashCode());
         this.overapprox.add("Landroid/support/v4/app/ListFragment;".hashCode());
         this.overapprox.add("Landroid/os/Handler;".hashCode());
-        this.dispatch = null;
         
         /*
         this.callbacks.add("onCreate"); 
@@ -215,7 +210,8 @@ public class Analysis {
      * Also gather additional information: payloads data, switches information, static constructor and strings
      */
     public void collectDataFromApk( List<? extends ClassDef> classDefs){
-        DataExtraction de = new DataExtraction(apkClasses, apkInstances, arrayDataPayload, packedSwitchPayload, sparseSwitchPayload, staticConstructor, constStrings, launcherActivities);
+        DataExtraction de = new DataExtraction(apkClasses, apkInstances, arrayDataPayload, packedSwitchPayload, sparseSwitchPayload, 
+                staticConstructor, constStrings, launcherActivities, true, sourcesSinks, refSources, refSinks);
         de.collectData(classDefs);
         
     }
@@ -1063,7 +1059,8 @@ public class Analysis {
         addStaticFieldsValues();
         
         // Populate refSources and refSinks with sources and sinks
-        setSourceSink();
+        //setSourceSink();
+        printSourceSink();
         
         System.out.println("Ready to start generating Horn Clauses:");
         System.out.println("Number of classes : " + classes.size());
@@ -1179,67 +1176,34 @@ public class Analysis {
     
     public boolean hasStaticConstructor(int c){
         return staticConstructor.contains(c);
-    }
+    }  
     
-
-    /*
-     * Return true if classNameBis, methodName is a source, false if it is a sink and null otherwise
-     * Where classNameBis is either className of or super class of className
-     * 
-     */
-    private Boolean isSourceSink(final String className, final String methodName){
-        final int classIndex = className.hashCode();
-        final String classNameFormat = className.substring(1, className.length()-1);
-        final String methodNameFormat = methodName.substring(0, methodName.indexOf('('));
-        
-        //Lookup in sourcesSinks to check if className, methodName appears
-        Boolean bool = sourcesSinks.isSourceSink(classNameFormat, methodNameFormat);
-        if (bool != null){
-            return bool;
-        }
-
-        if (classes.containsKey(classIndex)){
-            GeneralClass classDef = classes.get(classIndex);
-            if (classDef instanceof DalvikClass){
-                DalvikClass cd = (DalvikClass) classDef;
-                for (GeneralClass interfaceClass: cd.getInterfaces()){
-                    final String interfaceNameFormat = interfaceClass.getType().substring(1, interfaceClass.getType().length()-1);
-                    
-                    Boolean boolInterface = sourcesSinks.isSourceSink(interfaceNameFormat, methodNameFormat);
-                    if (boolInterface != null){
-                        return bool;
-                    }
-                }
-
-                if (cd.getSuperClass() != null){
-                    return isSourceSink(cd.getSuperClass().getType(), methodName);
-                }
-            }
-        }
-        return null;
-    }
-
-    /*
-     * Populate the sets refSources and refSinks with sources and sinks
-     * Should be called only once
-     */
-    //TODO: we take only the apk sources/sinks calls
-    private void setSourceSink() {
-        for (final StringPair sp : apkClassesMethods) {
-            final String c = sp.st1;
-            final String m = sp.st2;
-            Boolean isSourceSink = isSourceSink(c,m);
-            if (isSourceSink != null) {
-                if (isSourceSink) {
-                    refSources.add(new CMPair(c.hashCode(),m.hashCode()));
-                } else {
-                    refSinks.add(new CMPair(c.hashCode(),m.hashCode()));
-                }
-            }
-        }
+    private void printSourceSink(){
         System.out.println("Number of sources: " + refSources.size());
         System.out.println("Number of sinks: " + refSinks.size());
     }
+
+//    /*
+//     * Populate the sets refSources and refSinks with sources and sinks
+//     * Should be called only once
+//     */
+//    //TODO: we take only the apk sources/sinks calls
+//    private void setSourceSink() {
+//        for (final StringPair sp : apkClassesMethods) {
+//            final String c = sp.st1;
+//            final String m = sp.st2;
+//            Boolean isSourceSink = isSourceSink(c,m);
+//            if (isSourceSink != null) {
+//                if (isSourceSink) {
+//                    refSources.add(new CMPair(c.hashCode(),m.hashCode()));
+//                } else {
+//                    refSinks.add(new CMPair(c.hashCode(),m.hashCode()));
+//                }
+//            }
+//        }
+//        System.out.println("Number of sources: " + refSources.size());
+//        System.out.println("Number of sinks: " + refSinks.size());
+//    }
     public boolean isFlowSens() {
         return options.fsanalysis;
     }

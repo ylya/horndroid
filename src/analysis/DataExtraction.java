@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-
 import org.jf.baksmali.Adaptors.ClassDefinition;
 import org.jf.baksmali.Adaptors.MethodDefinition;
 import org.jf.baksmali.Adaptors.MethodDefinition.InvalidSwitchPayload;
@@ -42,6 +41,8 @@ import payload.ArrayData;
 import payload.PackedSwitch;
 import payload.SparseSwitch;
 import strings.ConstString;
+import util.CMPair;
+import util.SourcesSinks;
 import util.Utils;
 
 import com.google.common.collect.ImmutableList;
@@ -62,17 +63,21 @@ public class DataExtraction {
     final private Set<SparseSwitch> sparseSwitchPayload;
     final private Set<Integer> staticConstructor;
     final private Set<ConstString> constStrings;
-    
+    final private SourcesSinks sourcesSinks;
+    private Set<CMPair> refSources;
+    private Set<CMPair> refSinks;
     
     private final Set<Integer> launcherActivities;
     
 
-    
+    private final boolean fromApk;
 
 
     public DataExtraction(Map<Integer,GeneralClass> classes, Instances instances, Set<ArrayData> arrayDataPayload, 
              Set<PackedSwitch> packedSwitchPayload, Set<SparseSwitch> sparseSwitchPayload, 
-             Set<Integer> staticConstructor, Set<ConstString> constStrings, Set<Integer> launcherActivities){
+             Set<Integer> staticConstructor, Set<ConstString> constStrings, Set<Integer> launcherActivities, final boolean fromApk,
+             final SourcesSinks sourcesSinks,
+             final Set<CMPair> refSources, final Set<CMPair> refSinks){
         this.classes = classes;
         this.instances = instances;
         this.arrayDataPayload = arrayDataPayload;
@@ -80,8 +85,11 @@ public class DataExtraction {
         this.sparseSwitchPayload = sparseSwitchPayload;
         this.staticConstructor = staticConstructor;
         this.constStrings = constStrings;
-        
+        this.fromApk = fromApk;
         this.launcherActivities = launcherActivities;
+        this.sourcesSinks = sourcesSinks;
+        this.refSinks = refSinks;
+        this.refSources = refSources;
     }
     
     private void formClassStructure(){
@@ -122,10 +130,16 @@ public class DataExtraction {
     public void collectData(final List<? extends ClassDef> classDefs) {
         ConcurrentHashMap<Integer,ClassDef> classDefsMap = new ConcurrentHashMap<Integer,ClassDef>();
         for (ClassDef classDef : classDefs){
+            if (classDef.getType().startsWith("Landroid/support/v4/") || classDef.getType().startsWith("Landroid/support/v7/")){
+                continue;
+            }
             classDefsMap.put(classDef.getType().hashCode(),classDef);
         }
         
         for (final ClassDef classDef: classDefsMap.values()) {
+            if (classDef.getType().startsWith("Landroid/support/v4/") || classDef.getType().startsWith("Landroid/support/v7/")){
+                continue;
+            }
             DalvikClass c = collectDataFromClass(classDefsMap, classDef);
             classes.put(c.getType().hashCode(),c);
         }
@@ -340,7 +354,21 @@ public class DataExtraction {
                 instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass(referenceString), false));
             break;
         case Format35c:
-
+            
+            if (fromApk){
+                if (!refSources.contains(new CMPair(referenceStringClass.hashCode(),referenceString.hashCode())) &&
+                        !refSinks.contains(new CMPair(referenceStringClass.hashCode(),referenceString.hashCode()))){
+                    Boolean isSourceSink = isSourceSink(referenceStringClass,referenceString);
+                    if (isSourceSink != null) {
+                        if (isSourceSink) {
+                            refSources.add(new CMPair(referenceStringClass.hashCode(),referenceString.hashCode()));
+                        } else {
+                            refSinks.add(new CMPair(referenceStringClass.hashCode(),referenceString.hashCode()));
+                        }
+                    }
+                }
+            }
+            
             if (opcode.name.equals((String) "filled-new-array")){
                 instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass(referenceString), false));
                 break;
@@ -422,6 +450,21 @@ public class DataExtraction {
             }
             break;
         case Format3rc:
+            
+            if (fromApk){
+                if (!refSources.contains(new CMPair(referenceStringClass.hashCode(),referenceString.hashCode())) &&
+                        !refSinks.contains(new CMPair(referenceStringClass.hashCode(),referenceString.hashCode()))){
+                    Boolean isSourceSink = isSourceSink(referenceStringClass,referenceString);
+                    if (isSourceSink != null) {
+                        if (isSourceSink) {
+                            refSources.add(new CMPair(referenceStringClass.hashCode(),referenceString.hashCode()));
+                        } else {
+                            refSinks.add(new CMPair(referenceStringClass.hashCode(),referenceString.hashCode()));
+                        }
+                    }
+                }
+            }
+            
             if (opcode.name.equals((String) "filled-new-array/range")){
                 instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass(referenceString), false));
                 break;
@@ -452,6 +495,43 @@ public class DataExtraction {
         default:
             break;
         }
+    }
+    
+    /*
+     * Return true if classNameBis, methodName is a source, false if it is a sink and null otherwise
+     * Where classNameBis is either className of or super class of className
+     * 
+     */
+    private Boolean isSourceSink(final String className, final String methodName){
+        final int classIndex = className.hashCode();
+        final String classNameFormat = className.substring(1, className.length()-1);
+        final String methodNameFormat = methodName.substring(0, methodName.indexOf('('));
+        
+        //Lookup in sourcesSinks to check if className, methodName appears
+        Boolean bool = sourcesSinks.isSourceSink(classNameFormat, methodNameFormat);
+        if (bool != null){
+            return bool;
+        }
+
+        if (classes.containsKey(classIndex)){
+            GeneralClass classDef = classes.get(classIndex);
+            if (classDef instanceof DalvikClass){
+                DalvikClass cd = (DalvikClass) classDef;
+                for (GeneralClass interfaceClass: cd.getInterfaces()){
+                    final String interfaceNameFormat = interfaceClass.getType().substring(1, interfaceClass.getType().length()-1);
+                    
+                    Boolean boolInterface = sourcesSinks.isSourceSink(interfaceNameFormat, methodNameFormat);
+                    if (boolInterface != null){
+                        return bool;
+                    }
+                }
+
+                if (cd.getSuperClass() != null){
+                    return isSourceSink(cd.getSuperClass().getType(), methodName);
+                }
+            }
+        }
+        return null;
     }
     
     public void putStaticConstructor(int c){
