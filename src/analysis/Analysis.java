@@ -72,6 +72,7 @@ public class Analysis {
     final private Z3Variable var;
     final private FSVariable fsvar;
     final private Stubs stubs;
+    private int numberOfHornCLauseInstructions = 0;
     
     final ExecutorService instructionExecutorService;
     private Set<CMPair> refSources;
@@ -552,6 +553,8 @@ public class Analysis {
 
             int codeAddress = 0;
             for (final Instruction instruction: m.getInstructions()){
+                numberOfHornCLauseInstructions = numberOfHornCLauseInstructions + 1;
+                System.out.print("\rNumber of processed instructions : " + numberOfHornCLauseInstructions);
                 if (options.fsanalysis){
                     FSInstructionAnalysis ia = new FSInstructionAnalysis(this, instruction, dc, m, codeAddress);
                     ia.CreateHornClauses(options, apkClassesMethods);
@@ -1067,7 +1070,7 @@ public class Analysis {
         System.out.println("Number of methods: " + processCM.size());
         System.out.println("Number of instructions: "+ instructionNumber);
         System.out.println("Number of instances : " + instances.size());
-
+        System.out.print("Number of processed instructions : " + numberOfHornCLauseInstructions);
         
         // Correctly set the corresponding fields in the FSEngine
         fsengine.initialize(localHeapSize, allocationPointOffset, allocationPointSize);
