@@ -34,15 +34,15 @@ public class DalvikInstance {
 		this.type = type;
 	}
 	
-//	/*
-//	 * Return the an hashcode, which depends only on c,m and pc
-//	 */
-//    @Override
-//	public int hashCode(){
-//        return (c + "_" + m + "_" + pc).hashCode();
-//    }
-//    
-//    static public int hashCode(int c, int m, int pc){
-//        return (c + "_" + m + "_" + pc).hashCode();
-//    }
+	/*
+	 * Return the an hashcode, which depends only on c,m and pc
+	 */
+    @Override
+	public int hashCode(){
+        return (c + "_" + m + "_" + pc).hashCode();
+    }
+    
+    static public int hashCode(int c, int m, int pc){
+        return (c + "_" + m + "_" + pc).hashCode();
+    }
 }

@@ -299,7 +299,7 @@ public class Analysis {
     private void initializeAllocationMapping(){
         Integer itNumber = 0;
         Integer offset = 0;
-        for (DalvikInstance i : instances.getAll()){
+        for (DalvikInstance i : instances.getAllOnce()){
             final int instanceNum = i.hashCode();
             final String referenceString = i.getType().getType();
             final Map<Integer, Boolean> fieldsMap = getClassFields(referenceString, instanceNum);
@@ -399,18 +399,18 @@ public class Analysis {
         return result;
     }
     
-//    public Integer getInstNum(final int c, final int m, final int pc){
-//        return DalvikInstance.hashCode(c, m, pc);
-//    }
-    
     public Integer getInstNum(final int c, final int m, final int pc){
+        return DalvikInstance.hashCode(c, m, pc);
+    }
+    
+   /* public Integer getInstNum(final int c, final int m, final int pc){
         for (final DalvikInstance di: instances.getAll()){
             if ((di.getC() == c) && (di.getM() == m) && (di.getPC() == pc)){
                 return di.hashCode();
             }
         }
         return null;
-    }
+    }*/
     
     private void addToMain(final DalvikClass dc, final int methodIndex, final int numRegCall, final int regCount){
         final int classIndex = dc.getType().hashCode();
@@ -787,11 +787,11 @@ public class Analysis {
     }
     
     public Dispatch makeDispatch(){
-        return new Dispatch(instances.get(), classes);
+        return new Dispatch(instances, classes);
     }
     
-    private void fetchNewInstance(final int c, final String className){
-        final GeneralClass gc = stubs.getClasses().get(c);
+    private void fetchNewInstance(final int cp, final String className, final int c, final int m, final int pc){
+        final GeneralClass gc = stubs.getClasses().get(cp);
         if (gc instanceof GeneralClass){
             System.err.println("Unknown class, fields fetch failure: " + className);
         }
@@ -803,6 +803,8 @@ public class Analysis {
                     if (gcNew instanceof DalvikClass){
                         ((DalvikClass) gcNew).putFields(dc.getFields());
                     }
+                    final DalvikInstance di = new DalvikInstance(c, m, pc, gcNew, true);
+                    instances.add(di);
                 }
                 else{
                     final DalvikClass dcNew = new DalvikClass(dc.getType());
@@ -813,6 +815,8 @@ public class Analysis {
                         dcNew.putChildClass(child);
                     }
                     classes.put(dcNew.getType().hashCode(), dcNew);
+                    final DalvikInstance di = new DalvikInstance(c, m, pc, dcNew, true);
+                    instances.add(di);
                 }
             }
         }     
@@ -863,7 +867,7 @@ public class Analysis {
         Set<CMPair> processCM  = new HashSet<CMPair>();
         
         LazyUnion lazyUnion = new LazyUnion(apkClasses, stubs.getClasses());
-        Dispatch lazyDispatch = new Dispatch(instances.get(), lazyUnion);
+        Dispatch lazyDispatch = new Dispatch(instances, lazyUnion);
         
         // We initialize the pool
         for (final GeneralClass c: classes.values()){
@@ -887,13 +891,15 @@ public class Analysis {
                               // but we ask its child for the implementation
                 }
 */       // We look for classes and method in the instructions of m
+                
+                int codeAddress = 0;
                 for (Instruction instruction : m.getInstructions()){
                     if (instruction instanceof ReferenceInstruction) {
                         Reference reference = ((ReferenceInstruction)instruction).getReference();
                         if (reference instanceof FieldReference) {
                             int referenceClassIndex = ((FieldReference) reference).getDefiningClass().hashCode();
                             String referenceString = Utils.getShortReferenceString(reference);
-                            fetchNewInstance(referenceClassIndex, referenceString);
+                            fetchNewInstance(referenceClassIndex, referenceString, c.getType().hashCode(), m.getName().hashCode(),codeAddress);
                         }
                         else{
                             if (reference instanceof MethodReference){
@@ -951,6 +957,7 @@ public class Analysis {
                             }
                         }
                     }
+                    codeAddress += instruction.getCodeUnits();
                 }
             }
         }
@@ -964,16 +971,16 @@ public class Analysis {
      * Should only be used once
      */
     private void fetchAdditionalInfo(Set<CMPair> processCM){
-        for (DalvikInstance instance: stubs.getInstances().getAll()){
+        /*for (DalvikInstance instance: stubs.getInstances().getAll()){
             if (processCM.contains(new CMPair(instance.getC(), instance.getM()))){
                 instances.add(instance);
             }
-        }
-        for (DalvikInstance instance: apkInstances.getAll()){
+        }*/
+        /*for (DalvikInstance instance: apkInstances.getAll()){
             if (processCM.contains(new CMPair(instance.getC(), instance.getM()))){
                 instances.add(instance);
             }
-        }
+        }*/
         
         for (ArrayData aData : stubs.getArrayDataPayload()){
             if (processCM.contains(new CMPair(aData.getC(), aData.getM()))){
@@ -1029,7 +1036,7 @@ public class Analysis {
        /*
         * Add instances from the added classes
         */
-        for (DalvikInstance di: apkInstances.getAll()){
+        for (DalvikInstance di: apkInstances.getAllOnce()){
             if (classes.containsKey(di.getC())){
                 instances.add(di);
             }
@@ -1075,7 +1082,28 @@ public class Analysis {
         // Correctly set the corresponding fields in the FSEngine
         fsengine.initialize(localHeapSize, allocationPointOffset, allocationPointSize);
         
-        for (final StringPair p: apkClassesMethods){
+        
+        for (final GeneralClass c: classes.values()){
+            if ((c instanceof DalvikClass)){
+                final DalvikClass dc = (DalvikClass) c;
+
+                final boolean isDisabledActivity = testDisabledActivity(dc);
+                final boolean isLauncherActivity = testLauncherActivity(dc);
+                final boolean isApplication = testApplication(dc);
+                final boolean isOverapprox = testOverapprox(dc);
+                boolean isCallbackImplementation = false;
+                for (final GeneralClass interfaceC: dc.getInterfaces()){
+                    if (callbackImplementations.contains(interfaceC.getType().hashCode())){
+                        isCallbackImplementation = true;
+                    }
+                }
+
+                final boolean isci = isCallbackImplementation;
+                processClass(dc, isDisabledActivity, isci, isLauncherActivity, isApplication, isOverapprox);
+            }
+        }
+        
+        /*for (final StringPair p: apkClassesMethods){
             if (classes.containsKey(p.st1.hashCode())){
                 final GeneralClass c = classes.get(p.st1.hashCode());
                 if ((c instanceof DalvikClass)){
@@ -1096,7 +1124,7 @@ public class Analysis {
                     processClass(dc, isDisabledActivity, isci, isLauncherActivity, isApplication, isOverapprox);
                 }
             }
-        }
+        }*/
     }
     
     

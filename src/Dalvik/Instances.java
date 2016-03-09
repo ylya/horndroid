@@ -27,14 +27,18 @@ public class Instances {
         instances.get(key).add(di);
     }
     
-    public Map<Integer,HashSet<DalvikInstance>> get(){
-        return (Map<Integer,HashSet<DalvikInstance>>) instances;
+    public HashSet<DalvikInstance> getByType(final int c){
+        return instances.get(c);
     }
-  
+    
+//    public Map<Integer,HashSet<DalvikInstance>> get(){
+//        return (Map<Integer,HashSet<DalvikInstance>>) instances;
+//    }
+//  
     /*
      * Give a Set view of all instances. This operation may be a bit costly, and should be avoided as much as possible
      */
-    public Set<DalvikInstance> getAll(){
+    public Set<DalvikInstance> getAllOnce(){
         HashSet<DalvikInstance> hset = new HashSet<DalvikInstance>();
         for (int hc : instances.keySet()){
             hset.addAll(instances.get(hc));

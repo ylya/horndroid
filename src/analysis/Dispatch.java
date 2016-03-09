@@ -13,15 +13,16 @@ import Dalvik.DalvikClass;
 import Dalvik.DalvikImplementation;
 import Dalvik.DalvikInstance;
 import Dalvik.GeneralClass;
+import Dalvik.Instances;
 
 public class Dispatch {
-    final private Map<Integer,HashSet<DalvikInstance>> instances;
+    final private Instances instances;
     final private Map<Integer,GeneralClass> classes;
     final private Map<Integer,HashSet<DalvikInstance>> dispatchedInstances;
     final private Map<Integer,HashSet<DalvikImplementation>> dispatchedImplementations;
     final private Map<Integer,StringPair> failedDispatch;
     
-    public Dispatch(Map<Integer,HashSet<DalvikInstance>> instances, final Map<Integer,GeneralClass> classes){
+    public Dispatch(final Instances instances, final Map<Integer,GeneralClass> classes){
         this.instances = instances;
         this.classes = classes;
         this.dispatchedImplementations = new ConcurrentHashMap<Integer,HashSet<DalvikImplementation>>();
@@ -213,8 +214,8 @@ public class Dispatch {
     
     private void superVirtualDispatch(final DalvikClass dc, final int m, final Set<DalvikInstance> instSet, 
             final Set<DalvikImplementation> implSet){
-        if (instances.get(dc.getType().hashCode()) != null){
-            instSet.addAll(instances.get(dc.getType().hashCode()));
+        if (instances.getByType(dc.getType().hashCode()) != null){
+            instSet.addAll(instances.getByType(dc.getType().hashCode()));
         }        
         if (dc.getMethod(m) != null){
             implSet.add(new DalvikImplementation(dc, dc.getMethod(m)));
@@ -315,8 +316,8 @@ public class Dispatch {
                 final HashSet<DalvikInstance> instSet = new HashSet<DalvikInstance>();
                 final HashSet<DalvikImplementation> implSet = new HashSet<DalvikImplementation>();
                 final GeneralClass gc = classes.get(c);
-                if (instances.get(c) != null){
-                    instSet.addAll(instances.get(c));
+                if (instances.getByType(c) != null){
+                    instSet.addAll(instances.getByType(c));
                 }
                 if (gc instanceof DalvikClass) {
                     final DalvikClass dc = (DalvikClass) gc;
@@ -369,8 +370,8 @@ public class Dispatch {
                             for (final GeneralClass ic : dc.getInterfaces()) {
                                 if ((dc.getMethod(m) != null)
                                         && (ic.getType().hashCode() == c)) {
-                                    if (instances.get(dc.getType().hashCode()) != null) {
-                                        instSet.addAll(instances.get(dc
+                                    if (instances.getByType(dc.getType().hashCode()) != null) {
+                                        instSet.addAll(instances.getByType(dc
                                                 .getType().hashCode()));
                                     }
                                     implSet.add(new DalvikImplementation(dc, dc
@@ -387,8 +388,8 @@ public class Dispatch {
                             for (final GeneralClass ic : dc.getInterfaces()) {
                                 if ((dc.getMethod(m) != null)
                                         && (ic.getType().hashCode() == c)) {
-                                    if (instances.get(dc.getType().hashCode()) != null) {
-                                        instSet.addAll(instances.get(dc
+                                    if (instances.getByType(dc.getType().hashCode()) != null) {
+                                        instSet.addAll(instances.getByType(dc
                                                 .getType().hashCode()));
                                     }
                                     implSet.add(new DalvikImplementation(dc, dc
@@ -403,8 +404,8 @@ public class Dispatch {
                             for (final GeneralClass ic : dc.getInterfaces()) {
                                 if ((dc.getMethod(m) != null)
                                         && (ic.getType().hashCode() == c)) {
-                                    if (instances.get(dc.getType().hashCode()) != null) {
-                                        instSet.addAll(instances.get(dc
+                                    if (instances.getByType(dc.getType().hashCode()) != null) {
+                                        instSet.addAll(instances.getByType(dc
                                                 .getType().hashCode()));
                                     }
                                     implSet.add(new DalvikImplementation(dc, dc
@@ -443,8 +444,8 @@ public class Dispatch {
                 final HashSet<DalvikInstance> instSet = new HashSet<DalvikInstance>();
                 final HashSet<DalvikImplementation> implSet = new HashSet<DalvikImplementation>();
                 final GeneralClass gc = classes.get(c);
-                if (instances.get(c) != null){
-                    instSet.addAll(instances.get(c));
+                if (instances.getByType(c) != null){
+                    instSet.addAll(instances.getByType(c));
                 }
                 if (gc instanceof DalvikClass) {
                     final DalvikClass dc = (DalvikClass) gc;
@@ -458,9 +459,9 @@ public class Dispatch {
                     }
                     if (instSet.isEmpty() || implSet.isEmpty()) {
                         for (final DalvikClass child : dc.getChildClasses()) {
-                            if (instances.get(child.getType()
+                            if (instances.getByType(child.getType()
                                     .hashCode()) != null){
-                                instSet.addAll(instances.get(child.getType()
+                                instSet.addAll(instances.getByType(child.getType()
                                         .hashCode()));
                             }
                             if (child.getMethod(m) != null) {
