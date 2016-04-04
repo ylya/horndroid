@@ -52,9 +52,8 @@ public class main {
         options.addOption("d", true, "print debugging information (argument: integer 1, 2 or 3)");
         options.addOption("f", false, "flow-sensitive heap");
         options.addOption("w", false, "sensitive array indexes");
-        options.addOption("s", true, "number of queries per file, run Z3 in parallel saving results to the /out folder");
         options.addOption("n", true, "bitvector size (default 64)");
-        options.addOption("m", true, "max numer of files with queries");
+        options.addOption("s", true, "fetch stubs");
     }
     public static void main(String[] args) {
         parseCommandLine(args);
@@ -65,13 +64,19 @@ public class main {
             System.out.println("Standard Analysis on "+ hornDroidOptions.bitvectorSize + " bitvectors size");
         }
         
-        long startTimeA = System.nanoTime();
-        System.out.print("Loading Standard Java and Android libraries ...");
         Stubs stubs = new Stubs(hornDroidOptions);
-        stubs.process();
-        long endTimeA = System.nanoTime();
-        System.out.println("done in " + Long.toString((endTimeA - startTimeA) / 1000000) + " milliseconds");
-
+        if (hornDroidOptions.stubs) {
+            long startTimeA = System.nanoTime();
+            System.out.print("Loading Standard Java and Android libraries ...");
+            stubs.process();
+            long endTimeA = System.nanoTime();
+            System.out.println("done in "
+                    + Long.toString((endTimeA - startTimeA) / 1000000)
+                    + " milliseconds");
+        }
+        else{
+            System.out.println("Not Loading stubs!");
+        }
         
         //add all known sources and sinks
         final SourcesSinks sourcesSinks = new SourcesSinks();
@@ -209,41 +214,6 @@ public class main {
             System.out.println("...done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
         }
     }
-    
-    private static void clean(){
-        if (new File(hornDroidOptions.outputDirectory).exists()){
-            Runtime runtime = Runtime.getRuntime();
-            Process proc;
-            try {
-                proc = runtime.exec(new String[]{"/bin/sh", "-c",
-                        "cd " + hornDroidOptions.outputDirectory + ';' + 
-                " rm *.txt"});
-
-                BufferedReader stdInput = new BufferedReader(new 
-                        InputStreamReader(proc.getInputStream()));
-
-                BufferedReader stdError = new BufferedReader(new 
-                        InputStreamReader(proc.getErrorStream()));
-
-                // read the output from the command
-                String s = null;
-                while ((s = stdInput.readLine()) != null) {
-                    System.out.println(s);
-                }
-
-                // read any errors from the attempted command
-                if (stdError.readLine() != null)
-                    System.out.println("Here is the standard error of the command (if any):\n");
-                while ((s = stdError.readLine()) != null) {
-                    System.out.println(s);
-                }
-                proc.destroy();
-            }
-            catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
 
     public static void parseCommandLine(String[] args){
         System.out.println("Starting Horndroid...");
@@ -282,13 +252,10 @@ public class main {
                 }
                 break;
             case 's':
-                hornDroidOptions.numQueries = Integer.parseInt(commandLine.getOptionValue("s"));;
+                hornDroidOptions.stubs = true;
                 break;
             case 'n':
                 hornDroidOptions.bitvectorSize = Integer.parseInt(commandLine.getOptionValue("n"));
-                break;
-            case 'm':
-                hornDroidOptions.bitvectorSize = Integer.parseInt(commandLine.getOptionValue("m"));
                 break;
             }
         }
@@ -329,8 +296,7 @@ public class main {
         System.out.println("-f flow-sensitive heap");
         System.out.println("-d print debugging information (argument: integer 1, 2 or 3)");
         System.out.println("-w sensitive array indexes");
-        System.out.println("-s one query per file, run Z3 in parallel saving results to the /out folder");
         System.out.println("-n bitvector size (default 64)");
-        System.out.println("-m max numer of files with queries");
+        System.out.println("-s fetch stubs");
     }
 }

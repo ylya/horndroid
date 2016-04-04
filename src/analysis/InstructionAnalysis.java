@@ -64,6 +64,7 @@ public class InstructionAnalysis {
     private int referenceIntIndex;
 
     private Boolean callReturns;
+    private List<? extends CharSequence> parameterTypes;
 
     private int numRegLoc;
     private int numParLoc;
@@ -128,6 +129,7 @@ public class InstructionAnalysis {
                     returnType = ((MethodReference) reference).getReturnType();
                     if (returnType.equals((String) "V")) callReturns = false;
                     else callReturns = true;
+                    parameterTypes = ((MethodReference) reference).getParameterTypes();
                 }
             referenceIntIndex = referenceString.hashCode();
         }
@@ -1050,7 +1052,7 @@ public class InstructionAnalysis {
                 this.invoke(dispatchResult, false, referenceReg);
             }
             else{
-                this.invokeNotKnown(false);
+                this.invokeNotKnown(false, referenceStringClass, referenceString);
             }
         }
         break;
@@ -1063,7 +1065,7 @@ public class InstructionAnalysis {
                 this.invoke(dispatchResult, true, referenceReg);
             }
             else{
-                this.invokeNotKnown(true);
+                this.invokeNotKnown(true, referenceStringClass, referenceString);
             }
         }
         break;
@@ -1082,7 +1084,7 @@ public class InstructionAnalysis {
                 this.invoke(dispatchResult, false, referenceReg);
             }
             else{
-                this.invokeNotKnown(false);
+                this.invokeNotKnown(false, referenceStringClass, referenceString);
             }
         }
         break;
@@ -1094,7 +1096,7 @@ public class InstructionAnalysis {
                 this.invoke(dispatchResult, true, referenceReg);
             }
             else{
-                this.invokeNotKnown(true);
+                this.invokeNotKnown(true, referenceStringClass, referenceString);
             }
         }
         break;
@@ -1106,7 +1108,7 @@ public class InstructionAnalysis {
                 this.invoke(dispatchResult, false, referenceReg);
             }
             else{
-                this.invokeNotKnown(false);
+                this.invokeNotKnown(false, referenceStringClass, referenceString);
             }
         }
         break;
@@ -1118,7 +1120,7 @@ public class InstructionAnalysis {
                 this.invoke(dispatchResult, true, referenceReg);
             }
             else{
-                this.invokeNotKnown(true);
+                this.invokeNotKnown(true, referenceStringClass, referenceString);
             }
         }
         break;
@@ -1128,7 +1130,7 @@ public class InstructionAnalysis {
                 this.invoke(dispatchResult, false, null);
             }
             else{
-                this.invokeNotKnown(false);
+                this.invokeNotKnown(false, referenceStringClass, referenceString);
             }
         break;
         case INVOKE_DIRECT_RANGE:
@@ -1137,7 +1139,7 @@ public class InstructionAnalysis {
                 this.invoke(dispatchResult, true, null);
             }
             else{
-                this.invokeNotKnown(true);
+                this.invokeNotKnown(true, referenceStringClass, referenceString);
             }
         break;
         case INVOKE_STATIC:
@@ -1147,7 +1149,7 @@ public class InstructionAnalysis {
                 this.invoke(dispatchResult, false, null);
             }
             else{
-                this.invokeNotKnown(false);
+                this.invokeNotKnown(false, referenceStringClass, referenceString);
             }
         }
         break;
@@ -1159,7 +1161,7 @@ public class InstructionAnalysis {
                 this.invoke(dispatchResult, true, null);
             }
             else{
-                this.invokeNotKnown(true);
+                this.invokeNotKnown(true, referenceStringClass, referenceString);
             }
         }
         break;
@@ -2589,17 +2591,224 @@ public class InstructionAnalysis {
     }
     
     
+    private BoolExpr getLabels(){
+        FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
+        final int regCount = instruction.getRegisterCount();
+        switch (regCount) {
+            case 1:
+                return z3engine.or( z3engine.mkFalse(),
+                                    z3engine.getVars().getL(instruction.getRegisterC()));
+            case 2:
+
+                return z3engine.or( z3engine.mkFalse(),
+                                    z3engine.getVars().getL(instruction.getRegisterC()),
+                                    z3engine.getVars().getL(instruction.getRegisterD()));
+            case 3:
+
+                return z3engine.or( z3engine.mkFalse(),
+                                    z3engine.getVars().getL(instruction.getRegisterC()),
+                                    z3engine.getVars().getL(instruction.getRegisterD()),
+                                    z3engine.getVars().getL(instruction.getRegisterE()));
+            case 4:
+
+                return z3engine.or( z3engine.mkFalse(),
+                                    z3engine.getVars().getL(instruction.getRegisterC()),
+                                    z3engine.getVars().getL(instruction.getRegisterD()),
+                                    z3engine.getVars().getL(instruction.getRegisterE()),
+                                    z3engine.getVars().getL(instruction.getRegisterF()));
+
+            case 5:
+
+                return z3engine.or( z3engine.mkFalse(),
+                                    z3engine.getVars().getL(instruction.getRegisterC()),
+                                    z3engine.getVars().getL(instruction.getRegisterD()),
+                                    z3engine.getVars().getL(instruction.getRegisterE()),
+                                    z3engine.getVars().getL(instruction.getRegisterF()),
+                                    z3engine.getVars().getL(instruction.getRegisterG()));
+            default:
+                return z3engine.mkFalse();
+        }
+    }
+
+    private BoolExpr getLabelsRange(){
+        RegisterRangeInstruction instruction = (RegisterRangeInstruction)this.instruction;
+        int regCount = instruction.getRegisterCount();
+        int startRegister = instruction.getStartRegister();
+        int endRegister   =   startRegister+regCount-1;
+
+        BoolExpr labels = z3engine.mkFalse();
+        for(int reg = startRegister; reg <= endRegister; reg++){
+            labels = z3engine.or(
+                    labels, z3engine.getVars().getL(reg)
+            );
+        }
+        return z3engine.or(labels);
+    }
+    
+    
     /*
      * Advances pc with a top values for the return value (if exists)
      */
-    private void invokeNotKnown(final Boolean range){
-        buildH();
-        //put top value to the return register
-        regUpdate.put(numRegLoc, var.getF());
-        regUpdateL.put(numRegLoc, var.getLf());
-        regUpdateB.put(numRegLoc, var.getBf());
-        buildB();
-        buildRule();
+    private void invokeNotKnown(final Boolean range, final String sinkClass, final String sinkMethod){
+        if (analysis.isSink(className,methodName,sinkClass.hashCode(), sinkMethod.hashCode())){
+            if (range) {
+                addQueryRange(z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
+                        className, methodName, Integer.toString(codeAddress), sinkMethod, analysis.optionVerbose());
+            }else{
+                addQuery(z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
+                        className, methodName, Integer.toString(codeAddress), sinkMethod, analysis.optionVerbose());
+            }
+        }
+        
+       /*
+        * For all parameters identify whther they are references or primitives (stored in heapParamteter)
+        */
+        
+        int numberOfArg = 0;
+        if(this.instruction instanceof FiveRegisterInstruction){
+            numberOfArg = ((FiveRegisterInstruction) instruction).getRegisterCount();
+        } else {
+            numberOfArg = ((RegisterRangeInstruction) instruction).getRegisterCount();
+        }
+        
+        Map<Integer, Boolean> heapParameter =  new HashMap<Integer, Boolean>();
+        int i = 0;
+        boolean onlyPrimitives = true;
+        switch (numberOfArg - parameterTypes.size()){
+            case 0: 
+                i = 1;
+                break;
+            case 1:
+                i = 2;
+                heapParameter.put(1, true);
+                break;
+            default:
+                System.err.println("Problem with arguments:"  + Integer.toString(numberOfArg - parameterTypes.size()));
+        }  
+        
+        for (final CharSequence type: parameterTypes){
+            if (type.toString().contains(";") || type.toString().contains("]")){
+                heapParameter.put(i, true);
+                onlyPrimitives = false;
+            }
+            else{
+                heapParameter.put(i, false);
+            }
+        }
+        
+        boolean returnsRef = false;
+        if (callReturns){
+            if (returnType.contains(";") || returnType.contains("]")){
+                returnsRef = true;
+            }
+        }
+        
+        
+       /*
+        * Case 1: method does not return and parameters are only primitives: no change to the labels
+        */
+        
+        if (!callReturns && onlyPrimitives){
+            buildH();
+            buildB();
+            buildRule();
+        }
+        
+        /*
+         * Case 2: method returns primitive and parameters are only primitives: result label is the join
+         */
+        
+        if (callReturns && onlyPrimitives && !returnsRef){
+            buildH();
+            regUpdate.put(numRegLoc, var.getF());
+            if (!range){
+                regUpdateL.put(numRegLoc, getLabels());
+            }
+            else{
+                regUpdateL.put(numRegLoc, getLabelsRange());
+            }
+            regUpdateB.put(numRegLoc, z3engine.mkFalse());
+            buildB();
+            buildRule();
+        }
+        
+        /*
+         * Case 3: method returns reference and parameters are only primitives: result label is the join, create an object on the heap
+         */
+        
+        if (callReturns && onlyPrimitives && returnsRef) {
+            buildH();
+
+            instanceNum = analysis.getInstNum(c, m, codeAddress);
+            regUpdate.put(numRegLoc,
+                    z3engine.mkBitVector(instanceNum, analysis.getSize()));
+            regUpdateB.put(numRegLoc, z3engine.mkTrue());
+            if (!range) {
+                regUpdateL.put(numRegLoc, getLabels());
+            } else {
+                regUpdateL.put(numRegLoc, getLabelsRange());
+            }
+            buildB();
+            buildRule();
+            
+            regUpdate.clear();
+            regUpdateL.clear();
+            regUpdateB.clear();
+
+            Map<Integer, Boolean> fields = Collections
+                    .synchronizedMap(new HashMap<Integer, Boolean>());
+            fields = analysis.getClassFields(referenceString, instanceNum);
+            if (fields != null)
+                for (Map.Entry<Integer, Boolean> fieldN : fields.entrySet()) {
+                    buildH();
+                    b = z3engine.hPred(
+                            z3engine.mkBitVector(referenceIntIndex,
+                                    analysis.getSize()),
+                            z3engine.mkBitVector(instanceNum,
+                                    analysis.getSize()),
+                            z3engine.mkBitVector(fieldN.getKey(),
+                                    analysis.getSize()),
+                            var.getF(),
+                            range?getLabelsRange(): getLabels(),
+                            z3engine.mkBool(fieldN.getValue()));
+                    buildRule();
+                }
+            else {
+                buildH();
+                b = z3engine.hPred(
+                        z3engine.mkBitVector(referenceIntIndex,
+                                analysis.getSize()),
+                        z3engine.mkBitVector(instanceNum, analysis.getSize()),
+                        var.getF(),
+                        var.getFpp(),
+                        range?getLabelsRange(): getLabels(), var.getBf());
+                buildRule();
+            }
+
+            regUpdate.clear();
+            regUpdateL.clear();
+            regUpdateB.clear();
+
+            if (analysis.hasStaticConstructor(referenceIntIndex)) {
+                int staticConstNum = "<clinit>()V".hashCode();
+                DalvikMethod dmc;
+                dmc = analysis
+                        .getExactMethod(referenceIntIndex, staticConstNum);
+                if (dmc != null) {
+                    buildH();
+                    b = z3engine.rPred(Integer.toString(referenceIntIndex),
+                            Integer.toString(staticConstNum), 0, regUpdate,
+                            regUpdateL, regUpdateB, dmc.getNumArg(),
+                            dmc.getNumReg());
+                    buildRule();
+                } else {
+                    System.err
+                            .println("Static consturctor implementation not found for the class: "
+                                    + referenceStringClass);
+                }
+            }
+        }
+        
     }
     /*
      * Direct invocation of a method, whose implementation is either a dalvik implementation
