@@ -355,7 +355,7 @@ public class DataExtraction {
             break;
         case Format35c:
             
-            if (fromApk){
+            if (fromApk && referenceStringClass != null && referenceString != null){
                 if (!refSources.contains(new CMPair(referenceStringClass.hashCode(),referenceString.hashCode())) &&
                         !refSinks.contains(new CMPair(referenceStringClass.hashCode(),referenceString.hashCode()))){
                     Boolean isSourceSink = isSourceSink(referenceStringClass,referenceString);

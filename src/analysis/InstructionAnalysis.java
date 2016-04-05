@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.jf.dexlib2.iface.instruction.FiveRegisterInstruction;
@@ -143,11 +144,9 @@ public class InstructionAnalysis {
         regUpdateL = new HashMap<>();
         regUpdateB = new HashMap<>();    
         
-        if ((options.debug) && apkClassesMethods.contains(new StringPair(className, methodName))
-                && (c == "Landroid/app/Activity;".hashCode()) && (m == "onCreate(Landroid/os/Bundle;)V".hashCode())){
+        if ((options.debug)){
             BoolExpr h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            //for (int i = 0; i < numRegLoc; i++){
-            int i =0;
+            for (int i = 0; i < numRegLoc; i++){
                 BoolExpr h2 = z3engine.and(var.getL(i),h);
                 BoolExpr h3 = z3engine.and(var.getB(i),h);
                 Z3Query q1 = new Z3Query(h,i,QUERY_TYPE.STANDARD_REACH,className,methodName,Integer.toString(codeAddress));
@@ -160,7 +159,7 @@ public class InstructionAnalysis {
                 if (analysis.getDebugNumber() >= 3){
                     z3engine.addQueryDebug(q3);
                 }
-            //}
+            }
         }
 
 
@@ -2646,108 +2645,116 @@ public class InstructionAnalysis {
     }
     
     
+    private Integer getRegisterNumber(final boolean range, final int regInt){
+        if (range){
+            RegisterRangeInstruction instruction = (RegisterRangeInstruction)this.instruction;
+            int startRegister = instruction.getStartRegister();
+            return startRegister + regInt -1;
+        }
+        else{
+            FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
+            switch (regInt) {
+                case 1:
+                    return instruction.getRegisterC();
+                case 2:
+                    return instruction.getRegisterD();
+                case 3:
+                    return instruction.getRegisterE();
+                case 4:
+                    return instruction.getRegisterF();
+                case 5:
+                    return instruction.getRegisterG();
+                default:
+                    return null;
+            }
+        }
+    }
+    
     /*
      * Advances pc with a top values for the return value (if exists)
      */
-    private void invokeNotKnown(final Boolean range, final String sinkClass, final String sinkMethod){
-        if (analysis.isSink(className,methodName,sinkClass.hashCode(), sinkMethod.hashCode())){
+    private void invokeNotKnown(final Boolean range, final String invClass, final String invMethod){
+        if (analysis.isSink(className,methodName,invClass.hashCode(), invMethod.hashCode())){
             if (range) {
                 addQueryRange(z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                        className, methodName, Integer.toString(codeAddress), sinkMethod, analysis.optionVerbose());
+                        className, methodName, Integer.toString(codeAddress), invMethod, analysis.optionVerbose());
             }else{
                 addQuery(z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                        className, methodName, Integer.toString(codeAddress), sinkMethod, analysis.optionVerbose());
+                        className, methodName, Integer.toString(codeAddress), invMethod, analysis.optionVerbose());
             }
         }
         
-       /*
-        * For all parameters identify whther they are references or primitives (stored in heapParamteter)
-        */
-        
-        int numberOfArg = 0;
-        if(this.instruction instanceof FiveRegisterInstruction){
-            numberOfArg = ((FiveRegisterInstruction) instruction).getRegisterCount();
-        } else {
-            numberOfArg = ((RegisterRangeInstruction) instruction).getRegisterCount();
-        }
-        
-        Map<Integer, Boolean> heapParameter =  new HashMap<Integer, Boolean>();
-        int i = 0;
-        boolean onlyPrimitives = true;
-        switch (numberOfArg - parameterTypes.size()){
-            case 0: 
-                i = 1;
-                break;
-            case 1:
-                i = 2;
-                heapParameter.put(1, true);
-                break;
-            default:
-                System.err.println("Problem with arguments:"  + Integer.toString(numberOfArg - parameterTypes.size()));
-        }  
-        
-        for (final CharSequence type: parameterTypes){
-            if (type.toString().contains(";") || type.toString().contains("]")){
-                heapParameter.put(i, true);
-                onlyPrimitives = false;
-            }
-            else{
-                heapParameter.put(i, false);
-            }
-        }
-        
+        BoolExpr joinLabel = null;
         boolean returnsRef = false;
         if (callReturns){
             if (returnType.contains(";") || returnType.contains("]")){
                 returnsRef = true;
             }
+            joinLabel = analysis.isSource(className,methodName,invClass.hashCode(), invMethod.hashCode()) 
+                    ? z3engine.mkTrue() : null;
         }
         
-        
        /*
-        * Case 1: method does not return and parameters are only primitives: no change to the labels
+        * If we call a sink the join label will high, o.w. the label is the join of the label of arguments 
         */
         
-        if (!callReturns && onlyPrimitives){
+        if (joinLabel == null){
+            joinLabel = range ? getLabelsRange() : getLabels();
+        }
+        
+       /*
+        *  If an unknown method has a reference as an argument, let the top value and the label join be dereferenced
+        */
+        
+        int i = 1;
+        
+        for (final CharSequence type : parameterTypes) {
+            if (type.toString().contains(";") || type.toString().contains("]")) {
+                buildH();
+                b = z3engine.hPred(var.getV(getRegisterNumber(range, i)), var
+                        .getCn(), var.getF(), var.getFpp(),
+                        joinLabel, var.getBf());
+                buildRule();
+
+            }
+            i = i + 1;
+        }
+                
+       /*
+        * Case 1: method does not return: no change to the labels
+        */
+        
+        if (!callReturns){
             buildH();
             buildB();
             buildRule();
         }
         
         /*
-         * Case 2: method returns primitive and parameters are only primitives: result label is the join
+         * Case 2: method returns primitive: result label is the join
          */
         
-        if (callReturns && onlyPrimitives && !returnsRef){
+        if (callReturns && !returnsRef){
             buildH();
             regUpdate.put(numRegLoc, var.getF());
-            if (!range){
-                regUpdateL.put(numRegLoc, getLabels());
-            }
-            else{
-                regUpdateL.put(numRegLoc, getLabelsRange());
-            }
+            regUpdateL.put(numRegLoc, joinLabel);
             regUpdateB.put(numRegLoc, z3engine.mkFalse());
             buildB();
             buildRule();
         }
         
         /*
-         * Case 3: method returns reference and parameters are only primitives: result label is the join, create an object on the heap
+         * Case 3: method returns reference: result label is the join, create an object on the heap
          */
         
-        if (callReturns && onlyPrimitives && returnsRef) {
+        if (callReturns && returnsRef) {
             buildH();
 
             instanceNum = analysis.getInstNum(c, m, codeAddress);
             regUpdate.put(numRegLoc,
                     z3engine.mkBitVector(instanceNum, analysis.getSize()));
             regUpdateB.put(numRegLoc, z3engine.mkTrue());
-            if (!range) {
-                regUpdateL.put(numRegLoc, getLabels());
-            } else {
-                regUpdateL.put(numRegLoc, getLabelsRange());
-            }
+            regUpdateL.put(numRegLoc, joinLabel);
             buildB();
             buildRule();
             
@@ -2769,7 +2776,7 @@ public class InstructionAnalysis {
                             z3engine.mkBitVector(fieldN.getKey(),
                                     analysis.getSize()),
                             var.getF(),
-                            range?getLabelsRange(): getLabels(),
+                            joinLabel,
                             z3engine.mkBool(fieldN.getValue()));
                     buildRule();
                 }
@@ -2781,7 +2788,7 @@ public class InstructionAnalysis {
                         z3engine.mkBitVector(instanceNum, analysis.getSize()),
                         var.getF(),
                         var.getFpp(),
-                        range?getLabelsRange(): getLabels(), var.getBf());
+                        joinLabel, var.getBf());
                 buildRule();
             }
 
@@ -2803,12 +2810,11 @@ public class InstructionAnalysis {
                     buildRule();
                 } else {
                     System.err
-                            .println("Static consturctor implementation not found for the class: "
+                            .println("Static constructor implementation not found for the class: "
                                     + referenceStringClass);
                 }
             }
-        }
-        
+        }  
     }
     /*
      * Direct invocation of a method, whose implementation is either a dalvik implementation
@@ -2916,6 +2922,11 @@ public class InstructionAnalysis {
 //            regUpdateL.put(numRegCall - numArgCall, var.getLrez());
 //            regUpdateB.put(numRegCall - numArgCall, var.getBrez());
 //        }
+        
+        h = z3engine.and(h,precond);
+        regUpdate = updateRegister(numRegCall, numArgCall, BitVecExpr.class, var.getInjectV(var), range);
+        regUpdateL = updateRegister(numRegCall, numArgCall, BoolExpr.class, var.getInjectL(var), range);
+        regUpdateB = updateRegister(numRegCall, numArgCall, BoolExpr.class, var.getInjectB(var), range);
         
         b = z3engine.rInvokePred(classInvokedStringName, methodInvokedStringName, 0, regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, size);
         buildRule();
