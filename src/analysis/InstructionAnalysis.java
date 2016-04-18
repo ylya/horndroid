@@ -149,6 +149,13 @@ public class InstructionAnalysis {
             for (int i = 0; i < numRegLoc; i++){
                 BoolExpr h2 = z3engine.and(var.getL(i),h);
                 BoolExpr h3 = z3engine.and(var.getB(i),h);
+                
+                /*BoolExpr h1 = z3engine.and(
+                        h,
+                        z3engine.eq(
+                                var.getL(5),
+                                z3engine.mkTrue()
+                                ));*/
                 Z3Query q1 = new Z3Query(h,i,QUERY_TYPE.STANDARD_REACH,className,methodName,Integer.toString(codeAddress));
                 Z3Query q2 = new Z3Query(h2,i,QUERY_TYPE.STANDARD_HIGH,className,methodName,Integer.toString(codeAddress));
                 Z3Query q3 = new Z3Query(h3,i,QUERY_TYPE.STANDARD_BLOCK,className,methodName,Integer.toString(codeAddress));
@@ -1979,9 +1986,17 @@ public class InstructionAnalysis {
         for (int reg = startRegister; reg <= endRegister; reg++ ){
             BoolExpr q = z3engine.and(
                     p,
-                    z3engine.eq(var.getL(reg), z3engine.mkTrue())
+                    z3engine.eq(var.getL(reg), z3engine.mkTrue()),
+                    z3engine.eq(var.getB(reg), z3engine.mkFalse())
                     );
-            String d = "Test if register " + Integer.toString(reg) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            String d = "[PRIM] Test if register " + Integer.toString(reg) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            z3engine.addQuery(new Z3Query(q, d, verboseOption, className, methodName, pc, sinkName));
+            q = z3engine.and(
+                    p,
+                    z3engine.taintPred(var.getV(reg), z3engine.mkTrue()),
+                    z3engine.eq(var.getB(reg), z3engine.mkTrue())
+                    );
+            d = "[REF] Test if register " + Integer.toString(reg) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             z3engine.addQuery(new Z3Query(q, d, verboseOption, className, methodName, pc, sinkName));
         }
     }
@@ -1994,37 +2009,77 @@ public class InstructionAnalysis {
         case 5:
             BoolExpr q5 = z3engine.and(
                     p,
-                    z3engine.eq(var.getL(instruction.getRegisterG()), z3engine.mkTrue())
+                    z3engine.eq(var.getL(instruction.getRegisterG()), z3engine.mkTrue()),
+                    z3engine.eq(var.getB(instruction.getRegisterG()), z3engine.mkFalse())
                     );
-            String d5 = "Test if register " + Integer.toString(instruction.getRegisterG()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            String d5 = "[PRIM] Test if register " + Integer.toString(instruction.getRegisterG()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            z3engine.addQuery(new Z3Query(q5, d5, verboseResults, className, methodName, pc, sinkName));
+            q5 = z3engine.and(
+                    p,
+                    z3engine.taintPred(var.getV(instruction.getRegisterG()), z3engine.mkTrue()),
+                    z3engine.eq(var.getB(instruction.getRegisterG()), z3engine.mkTrue())
+                    );
+            d5 = "[REF] Test if register " + Integer.toString(instruction.getRegisterG()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             z3engine.addQuery(new Z3Query(q5, d5, verboseResults, className, methodName, pc, sinkName));
         case 4:
             BoolExpr q4 = z3engine.and(
                     p,
-                    z3engine.eq(var.getL(instruction.getRegisterF()), z3engine.mkTrue())
+                    z3engine.eq(var.getL(instruction.getRegisterF()), z3engine.mkTrue()),
+                    z3engine.eq(var.getB(instruction.getRegisterF()), z3engine.mkFalse())
                     );
-            String d4 = "Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            String d4 = "[PRIM] Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            z3engine.addQuery(new Z3Query(q4, d4, verboseResults, className, methodName, pc, sinkName));
+            q4 = z3engine.and(
+                    p,
+                    z3engine.taintPred(var.getV(instruction.getRegisterF()), z3engine.mkTrue()),
+                    z3engine.eq(var.getB(instruction.getRegisterF()), z3engine.mkTrue())
+                    );
+            d4 = "[REF] Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             z3engine.addQuery(new Z3Query(q4, d4, verboseResults, className, methodName, pc, sinkName));
         case 3:
             BoolExpr q3 = z3engine.and(
                     p,
-                    z3engine.eq(var.getL(instruction.getRegisterE()), z3engine.mkTrue())
+                    z3engine.eq(var.getL(instruction.getRegisterE()), z3engine.mkTrue()),
+                    z3engine.eq(var.getB(instruction.getRegisterE()), z3engine.mkFalse())
                     );
-            String d3 = "Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            String d3 = "[PRIM] Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            z3engine.addQuery(new Z3Query(q3, d3, verboseResults, className, methodName, pc, sinkName));
+            q3 = z3engine.and(
+                    p,
+                    z3engine.taintPred(var.getV(instruction.getRegisterE()), z3engine.mkTrue()),
+                    z3engine.eq(var.getB(instruction.getRegisterE()), z3engine.mkTrue())
+                    );
+            d3 = "[REF] Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             z3engine.addQuery(new Z3Query(q3, d3, verboseResults, className, methodName, pc, sinkName));
         case 2:
             BoolExpr q2 = z3engine.and(
                     p,
-                    z3engine.eq(var.getL(instruction.getRegisterD()), z3engine.mkTrue())
+                    z3engine.eq(var.getL(instruction.getRegisterD()), z3engine.mkTrue()),
+                    z3engine.eq(var.getB(instruction.getRegisterD()), z3engine.mkFalse())
                     );
-            String d2 = "Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            String d2 = "[PRIM] Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            z3engine.addQuery(new Z3Query(q2, d2, verboseResults, className, methodName, pc, sinkName));
+            q2 = z3engine.and(
+                    p,
+                    z3engine.taintPred(var.getV(instruction.getRegisterD()), z3engine.mkTrue()),
+                    z3engine.eq(var.getB(instruction.getRegisterD()), z3engine.mkTrue())
+                    );
+            d2 = "[REF] Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             z3engine.addQuery(new Z3Query(q2, d2, verboseResults, className, methodName, pc, sinkName));
         case 1:
             BoolExpr q1 = z3engine.and(
                     p,
-                    z3engine.eq(var.getL(instruction.getRegisterC()), z3engine.mkTrue())
+                    z3engine.eq(var.getL(instruction.getRegisterC()), z3engine.mkTrue()),
+                    z3engine.eq(var.getB(instruction.getRegisterC()), z3engine.mkFalse())
                     );
-            String d1 = "Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            String d1 = "[PRIM] Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            z3engine.addQuery(new Z3Query(q1, d1, verboseResults, className, methodName, pc, sinkName));
+            q1 = z3engine.and(
+                    p,
+                    z3engine.taintPred(var.getV(instruction.getRegisterC()), z3engine.mkTrue()),
+                    z3engine.eq(var.getB(instruction.getRegisterC()), z3engine.mkTrue())
+                    );
+            d1 = "[REF] Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             z3engine.addQuery(new Z3Query(q1, d1, verboseResults, className, methodName, pc, sinkName));
         }
     }
@@ -2711,9 +2766,38 @@ public class InstructionAnalysis {
         for (final CharSequence type : parameterTypes) {
             if (type.toString().contains(";") || type.toString().contains("]")) {
                 buildH();
-                b = z3engine.hPred(var.getV(getRegisterNumber(range, i)), var
-                        .getCn(), var.getF(), var.getFpp(),
+                /*
+                 * we should bind Cn and F
+                 */
+                b = z3engine.hPred(var.getCn(), 
+                        var.getV(getRegisterNumber(range, i))
+                        ,var.getF(), var.getFpp(),
                         joinLabel, var.getBf());
+                buildRule();
+                
+                h = z3engine.and(
+                        z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
+                        z3engine.eq(var.getB(getRegisterNumber(range, i)), z3engine.mkTrue()),
+                        z3engine.taintPred(var.getV(getRegisterNumber(range, i)), var.getLf())
+                        );
+               /*
+                * we should bind Cn and F
+                */
+                b = z3engine.hPred(var.getCn(), 
+                        var.getV(getRegisterNumber(range, i))
+                        ,var.getF(), var.getFpp(),
+                        var.getLf(), var.getBf());
+                buildRule();
+                
+                h = z3engine.and(
+                        z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
+                        z3engine.eq(var.getB(getRegisterNumber(range, i)), z3engine.mkTrue()),
+                        z3engine.taintPred(var.getV(getRegisterNumber(range, i)), var.getLf())
+                        );
+                b = z3engine.hPred(z3engine.mkBitVector("anything".hashCode(), analysis.getSize()), 
+                        z3engine.mkBitVector("anything".hashCode(), analysis.getSize())
+                        ,var.getF(), var.getFpp(),
+                        var.getLf(), var.getBf());
                 buildRule();
 
             }

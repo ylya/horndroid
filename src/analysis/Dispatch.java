@@ -61,7 +61,6 @@ public class Dispatch {
     private Set<CMPair> threadInvokes(int ci, int mi){
         Set<CMPair> threadInvokes = new HashSet<CMPair>();
         boolean isThread = isThread(ci);
-        
         /*
          * AsynTask: we start all possible thread directly
          * http://developer.android.com/reference/android/os/AsyncTask.html
@@ -88,6 +87,13 @@ public class Dispatch {
         if (isThread && (mi == "start()V".hashCode())){
             threadInvokes.add(new CMPair(ci,"run()V".hashCode()));
         }
+        //we do a resolution on thread init, not on thread start, as at thread start the class information is lost
+        //(it is stored somewhere in the thread class by the operating system, we can also simulate that storing class name somewhere).
+        //on the other hand, if one initializes the thread and never spawns it? rare
+        //JavaThread2 for the reference
+        if ((ci == "Ljava/lang/Thread;".hashCode()) && (mi == "<init>(Ljava/lang/Runnable;)V".hashCode())){
+            threadInvokes.add(new CMPair("Ljava/lang/Runnable;".hashCode(),"run()V".hashCode()));
+        }
         
         return threadInvokes;
     }
@@ -99,14 +105,18 @@ public class Dispatch {
      * c extends java/lang/Thread
      * c extends Android/os/AsyncTask
      */
-    private boolean isThread(final int classInd){        
+    private boolean isThread(final int classInd){
+        if (classInd == "Ljava/lang/Thread;".hashCode()
+                || classInd == "Landroid/os/AsyncTask;".hashCode()
+                || classInd == "Ljava/lang/Runnable;".hashCode()
+                || classInd == "Ljava/util/concurrent/Executor;".hashCode()
+                || classInd == "Ljava/util/concurrent/ExecutorService;".hashCode()){
+            return true;
+        }
         if (classes.containsKey(classInd)){
             GeneralClass c = classes.get(classInd);
-            if (c instanceof DalvikClass){
-                return isThreadAux((DalvikClass) c);   
-            }  
+            return isThreadAux(c);   
         }
-        
         return false;
     }
 
@@ -114,26 +124,33 @@ public class Dispatch {
      * Return true if the super class of c is a thread class
      * Should not be used except in isThreadByInt
      */
-    private boolean isThreadAux(final DalvikClass c){
-
-        final String className = c.getType();
+    private boolean isThreadAux(final GeneralClass gc){
+        final String className = gc.getType();
         if ((className.equals("Ljava/lang/Thread;")) || (className.equals("Landroid/os/AsyncTask;"))){
             return true;
         }
-        for (final GeneralClass interfaceName: c.getInterfaces()){
-            if (interfaceName.getType().equals("Ljava/lang/Runnable;")){
-                return true;
-            }
-            if (interfaceName.getType().equals("Ljava/util/concurrent/Executor;")){
-                return true;
+        if (gc instanceof DalvikClass){
+            final DalvikClass c = (DalvikClass) gc;
+            for (final GeneralClass interfaceName: c.getInterfaces()){
+                if (interfaceName.getType().equals("Ljava/lang/Runnable;")){
+                    return true;
+                }
+                if (interfaceName.getType().equals("Ljava/util/concurrent/Executor;")){
+                    return true;
+                }
+                if (interfaceName.getType().equals("Ljava/util/concurrent/ExecutorService;")){
+                    return true;
+                }
+                
+            }           
+            final GeneralClass sc = c.getSuperClass();
+            if (sc != null){
+                return isThreadAux(sc);
+            }else{
+                return false;
             }
         }
-        final GeneralClass sc = c.getSuperClass();
-        if (sc != null && sc instanceof DalvikClass){
-            return isThreadAux((DalvikClass) sc);
-        }else{
-            return false;
-        }
+        return false;
     }
     
     public DispatchResult dispatch(final int c, final int m,
@@ -149,47 +166,53 @@ public class Dispatch {
                 switch (callType) {
                 case SUPER:
                     dr2 = superDispatch(newC, newM, className, methodName);
-                    if (dr != null){
+                    if (dr != null && dr2 != null){
                         dr.mergeResults(dr2);
                     }
                     else{
-                        dr = dr2;
-                    }
+                        if (dr2 != null){
+                            dr = dr2;
+                        }                    }
                     break;
                 case STATIC:
                     dr2 = staticDispatch(newC, newM, className, methodName);
-                    if (dr != null){
+                    if (dr != null && dr2 != null){
                         dr.mergeResults(dr2);
                     }
                     else{
-                        dr = dr2;
-                    }
+                        if (dr2 != null){
+                            dr = dr2;
+                        }                    }
                     break;
                 case DIRECT:
                     dr2 = directDispatch(newC, newM, className, methodName);
-                    if (dr != null){
+                    if (dr != null && dr2 != null){
                         dr.mergeResults(dr2);
                     }
                     else{
-                        dr = dr2;
-                    }
+                        if (dr2 != null){
+                            dr = dr2;
+                        }                    }
                     break;
                 case INTERFACE:
                     dr2 = interfaceDispatch(newC, newM, className, methodName);
-                    if (dr != null){
+                    if (dr != null && dr2 != null){
                         dr.mergeResults(dr2);
                     }
                     else{
-                        dr = dr2;
-                    }
+                        if (dr2 != null){
+                            dr = dr2;
+                        }                    }
                     break;
                 case VIRTUAL:
                     dr2 = virtualDispatch(newC, newM, className, methodName);
-                    if (dr != null){
+                    if (dr != null && dr2 != null){
                         dr.mergeResults(dr2);
                     }
                     else{
-                        dr = dr2;
+                        if (dr2 != null){
+                            dr = dr2;
+                        }
                     }
                     break;
                 }
@@ -429,6 +452,53 @@ public class Dispatch {
          }
     }
     
+    /*private DispatchResult superSearch(final int c, final int m, final String className, final String methodName, GeneralClass currentClass){
+        for (final GeneralClass genCl: classes.values()){
+            if (genCl instanceof DalvikClass){
+                final DalvikClass dalCl = (DalvikClass) genCl;
+                if (dalCl.getSuperClass().getType().hashCode() == c){
+                    if (dalCl.getSuperClass() instanceof DalvikClass){
+                        final DalvikClass dc = (DalvikClass) dalCl.getSuperClass();
+                        final HashSet<DalvikInstance> instSet = new HashSet<DalvikInstance>();
+                        final HashSet<DalvikImplementation> implSet = new HashSet<DalvikImplementation>();
+                        if (dc.getMethod(m) != null) {
+                            implSet.add(new DalvikImplementation(dc, dc
+                                    .getMethod(m)));
+                        }
+                        if (dc.getSuperClass() instanceof DalvikClass) {
+                            superVirtualDispatch((DalvikClass) dc.getSuperClass(),
+                                    m, instSet, implSet);
+                        }
+                        if (instSet.isEmpty() || implSet.isEmpty()) {
+                            for (final DalvikClass child : dc.getChildClasses()) {
+                                if (instances.getByType(child.getType()
+                                        .hashCode()) != null){
+                                    instSet.addAll(instances.getByType(child.getType()
+                                            .hashCode()));
+                                }
+                                if (child.getMethod(m) != null) {
+                                    implSet.add(new DalvikImplementation(child,
+                                            child.getMethod(m)));
+                                }
+                            }
+                        }
+                        if (instSet.isEmpty()
+                                || implSet.isEmpty()) {
+                            putFailed(c,m,className,methodName);
+                            return null;
+                        }
+                        else{
+                            putImplementations(c,m,implSet);
+                            putInstances(c,m,instSet);
+                            return new DispatchResult(instSet, implSet);
+                        } 
+                    }
+                }
+            }
+        }
+        return null;
+    }*/
+    
     private DispatchResult virtualDispatch(final int c, final int m,
             final String className, final String methodName) {
         final StringPair checkFailed = getFailed(c, m);
@@ -482,10 +552,64 @@ public class Dispatch {
                     }
                 }
                 else{
-                    putFailed(c,m,className,methodName);
-                    return null;
+                    /*boolean found = false;
+                    if (!(classes instanceof LazyUnion)) {
+                        for (final GeneralClass genCl : classes.values()) {
+                            if (genCl instanceof DalvikClass){
+                                final DalvikClass dalCl = (DalvikClass) genCl;
+                                if (dalCl.getSuperClass().getType().hashCode() == c){
+                                    final DispatchResult dr = virtualDispatch(dalCl.getType().hashCode(), m, className, methodName);
+                                    if (dr != null){
+                                        putImplementations(c,m,dr.getImplementations());
+                                        putInstances(c,m,dr.getInstances());
+                                        implSet.addAll(dr.getImplementations());
+                                        instSet.addAll(dr.getInstances());
+                                        found = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else{
+                        for (final GeneralClass genCl : ((LazyUnion)classes).values1()) {
+                            if (genCl instanceof DalvikClass){
+                                final DalvikClass dalCl = (DalvikClass) genCl;
+                                if (dalCl.getSuperClass().getType().hashCode() == c){
+                                    final DispatchResult dr = virtualDispatch(dalCl.getType().hashCode(), m, className, methodName);
+                                    if (dr != null){
+                                        putImplementations(c,m,dr.getImplementations());
+                                        putInstances(c,m,dr.getInstances());
+                                        implSet.addAll(dr.getImplementations());
+                                        instSet.addAll(dr.getInstances());
+                                        found = true;
+                                    }
+                                }
+                            }
+                        }
+                        for (final GeneralClass genCl : ((LazyUnion)classes).values2()) {
+                            if (genCl instanceof DalvikClass){
+                                final DalvikClass dalCl = (DalvikClass) genCl;
+                                if (dalCl.getSuperClass().getType().hashCode() == c){
+                                    final DispatchResult dr = virtualDispatch(dalCl.getType().hashCode(), m, className, methodName);
+                                    if (dr != null){
+                                        putImplementations(c,m,dr.getImplementations());
+                                        putInstances(c,m,dr.getInstances());
+                                        implSet.addAll(dr.getImplementations());
+                                        instSet.addAll(dr.getInstances());
+                                        found = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (found){
+                        return new DispatchResult(instSet, implSet);
+                    }
+                    else{*/
+                        putFailed(c,m,className,methodName);
+                        return null;
+                    //}
                 }
-                
             }
         }
     }

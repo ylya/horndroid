@@ -939,7 +939,7 @@ public class Analysis {
                                     callType = CallType.STATIC;
                                     break;
                                 default:
-                                    throw new RuntimeException("MethodReference in a instruction which is not a invocation: "+ instruction.getOpcode().toString());
+                                    throw new RuntimeException("MethodReference in a instruction which is not an invocation: "+ instruction.getOpcode().toString());
                                 }
                                 dispatchResult = lazyDispatch.dispatch(referenceClassIndex, referenceString.hashCode(), 
                                         ((MethodReference) reference).getDefiningClass(), referenceString, callType);
@@ -1080,7 +1080,9 @@ public class Analysis {
         //System.out.print("Number of processed instructions : " + numberOfHornCLauseInstructions);
         
         // Correctly set the corresponding fields in the FSEngine
-        fsengine.initialize(localHeapSize, allocationPointOffset, allocationPointSize);
+        if (options.fsanalysis){
+            fsengine.initialize(localHeapSize, allocationPointOffset, allocationPointSize);
+        }
         
         
         for (final GeneralClass c: classes.values()){

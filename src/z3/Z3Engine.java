@@ -39,6 +39,8 @@ public class Z3Engine extends Z3Clauses{
             this.declareRel(func.getHi());
             this.declareRel(func.getI());
             this.declareRel(func.getS());
+            
+            this.declareRel(func.getTaint());
 
             // add main
             BoolExpr b1 = hPred( var.getCn(), var.getCn(),
@@ -56,6 +58,27 @@ public class Z3Engine extends Z3Clauses{
             BoolExpr b1b2b3_b4 = mContext.mkImplies(b1b2b3, b4);
 
             this.addRule(b1b2b3_b4, null);
+            
+            // adding rules for the connected component taint
+            // base
+            BoolExpr hh1 = hPred(var.getCn(), var.getVfp(),
+                    var.getF(),
+                    var.getVal(), var.getLf(), var.getBf());
+            BoolExpr bb1 = taintPred(var.getVfp(), var.getLf());
+            BoolExpr hh1_bb1 = mContext.mkImplies(hh1, bb1);
+            this.addRule(hh1_bb1, null);
+            // step
+            BoolExpr hh2 = mContext.mkAnd(
+                    hPred(var.getCn(), var.getVfp(),
+                            var.getF(),
+                            var.getVal(), var.getLf(), var.getBf()),
+                    this.eq(var.getBf(), mContext.mkTrue()),
+                    taintPred(var.getVal(), var.getLfp())
+                    );
+            BoolExpr bb2 = taintPred(var.getVfp(), var.getLfp());
+            BoolExpr hh2_bb2 = mContext.mkImplies(hh2, bb2);
+            this.addRule(hh2_bb2, null);
+            
         } catch (Z3Exception e){
             e.printStackTrace();
             throw new RuntimeException("Z3Engine Failed");
@@ -346,6 +369,15 @@ public class Z3Engine extends Z3Clauses{
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Z3Engine Failed: sPred");
+        }
+    }
+    
+    public BoolExpr taintPred(BitVecExpr value, BoolExpr label) {
+        try {
+            return (BoolExpr) func.getTaint().apply(value, label);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Z3Engine Failed: taintPred");
         }
     }
 

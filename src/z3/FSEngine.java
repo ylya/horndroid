@@ -64,6 +64,27 @@ public class FSEngine extends Z3Clauses{
             BoolExpr b1b2b3_b4 = mContext.mkImplies(b1b2b3, b4);
 
             this.addRule(b1b2b3_b4, null);
+            
+            // adding rules for the connected component taint
+            // base
+            BoolExpr hh1 = hPred(var.getCn(), var.getVfp(),
+                    var.getF(),
+                    var.getVal(), var.getLf(), var.getBf());
+            BoolExpr bb1 = taintPred(var.getVfp(), var.getLf());
+            BoolExpr hh1_bb1 = mContext.mkImplies(hh1, bb1);
+            this.addRule(hh1_bb1, null);
+            // step
+            BoolExpr hh2 = mContext.mkAnd(
+                    hPred(var.getCn(), var.getVfp(),
+                            var.getF(),
+                            var.getVal(), var.getLf(), var.getBf()),
+                    this.eq(var.getBf(), mContext.mkTrue()),
+                    taintPred(var.getVal(), var.getLfp())
+                    );
+            BoolExpr bb2 = taintPred(var.getVfp(), var.getLfp());
+            BoolExpr hh2_bb2 = mContext.mkImplies(hh2, bb2);
+            this.addRule(hh2_bb2, null);
+            
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("FSEngine Failed");
@@ -537,5 +558,40 @@ public class FSEngine extends Z3Clauses{
             throw new RuntimeException("FSEngine Failed: sPred");
         }
     }
+    
+    public BoolExpr taintPred(BitVecExpr value, BoolExpr label) {
+        try {
+            return (BoolExpr) func.getTaint().apply(value, label);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Z3Engine Failed: taintPred");
+        }
+    }
+    
+    /*private FuncDecl taintPredDef(String c, String m, int pc, int size) {
+        try {
+            // taintPredDef
+            BitVecSort bv64 = mContext.mkBitVecSort(bvSize);
+            BoolSort bool = mContext.mkBoolSort();
 
+            String funcName = "TA_" + c + '_' + m + '_' + Integer.toString(pc);
+            FuncDecl f = mContext.mkFuncDecl(funcName, new Sort[]{bv64, bool, bool}, bool);
+            this.declareRel(f);
+            return f;
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: rPredDef");
+        }
+    }
+    
+    public BoolExpr taintPred(final String c, final String m, final int pc, BitVecExpr value, BoolExpr global, BoolExpr label, int size) {
+        try {
+            FuncDecl taint = this.taintPredDef(c, m, pc, size);
+            BoolExpr rez = (BoolExpr) taint.apply(value, global, label);
+            return rez;
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Z3Engine Failed: taintPred");
+        }
+    }*/
 }

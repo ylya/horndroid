@@ -13,11 +13,12 @@ import Dalvik.StubImplementation;
 import debugging.QUERY_TYPE;
 import horndroid.options;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 
 import org.jf.dexlib2.iface.instruction.FiveRegisterInstruction;
 import org.jf.dexlib2.iface.instruction.Instruction;
@@ -39,6 +40,7 @@ import payload.SparseSwitch;
 import util.CMPair;
 import util.StringPair;
 import util.Utils;
+import util.Utils.CallType;
 import z3.*;
 
 public class FSInstructionAnalysis{
@@ -61,6 +63,8 @@ public class FSInstructionAnalysis{
     private int referenceIntIndex;
     
     private Boolean callReturns;
+    
+    private List<? extends CharSequence> parameterTypes;
     
     private int numRegLoc;
     private int numParLoc;
@@ -143,6 +147,8 @@ public class FSInstructionAnalysis{
     }
     
     public void CreateHornClauses(options options, Set<StringPair> apkClassesMethods){
+        final Dispatch dispatch = analysis.makeDispatch();
+        DispatchResult dispatchResult = null;
         Integer staticFieldClassName;
         final int size = analysis.getSize();
         fsvar = fsengine.getVars();
@@ -170,6 +176,7 @@ public class FSInstructionAnalysis{
                     returnType = ((MethodReference) reference).getReturnType();
                     if (returnType.equals((String) "V")) callReturns = false;
                     else callReturns = true;
+                    parameterTypes = ((MethodReference) reference).getParameterTypes();
                 }
             referenceIntIndex = referenceString.hashCode();
         }
@@ -1317,12 +1324,60 @@ public class FSInstructionAnalysis{
 
         case INVOKE_SUPER:
         {
-            Implementation implementation = analysis.getSuperImplementation(referenceClassIndex, referenceIntIndex);
-            
-            this.directInvoke(implementation, false, 0, false);
+            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.SUPER);
+            int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
+            if (dispatchResult != null){
+                this.invoke(dispatchResult, false, referenceReg);
+            }
+            else{
+                this.invokeNotKnown(false, referenceStringClass, referenceString);
+            }
         }
         break;
-
+        
+        case INVOKE_SUPER_RANGE:
+        {
+            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.SUPER);
+            int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
+            if (dispatchResult != null){
+                this.invoke(dispatchResult, true, referenceReg);
+            }
+            else{
+                this.invokeNotKnown(true, referenceStringClass, referenceString);
+            }
+        }
+        break;
+            /*
+             * Should be handled like invoke_virtual:
+             * "invoke-interface is used to invoke an interface method, that is, 
+             * on an object whose concrete class isn't known, using a method_id 
+             * that refers to an interface."
+             * Source : https://source.android.com/devices/tech/dalvik/dalvik-bytecode.html
+             */
+        case INVOKE_VIRTUAL:
+        {
+            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.VIRTUAL);
+            int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
+            if (dispatchResult != null){
+                this.invoke(dispatchResult, false, referenceReg);
+            }
+            else{
+                this.invokeNotKnown(false, referenceStringClass, referenceString);
+            }
+        }
+        break;
+        case INVOKE_VIRTUAL_RANGE:
+        {
+            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.VIRTUAL);
+            int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
+            if (dispatchResult != null){
+                this.invoke(dispatchResult, true, referenceReg);
+            }
+            else{
+                this.invokeNotKnown(true, referenceStringClass, referenceString);
+            }
+        }
+        break;
             /*
              * Should be handled like invoke_virtual:
              * "invoke-interface is used to invoke an interface method, that is, 
@@ -1331,57 +1386,72 @@ public class FSInstructionAnalysis{
              * Source : https://source.android.com/devices/tech/dalvik/dalvik-bytecode.html
              */
         case INVOKE_INTERFACE:
-        case INVOKE_VIRTUAL:
         {
-            Map<Integer,Implementation> implementations = analysis.getVirtualImplementations(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString);
-            
+            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.INTERFACE);
             int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
-            this.invokeImpKnown(referenceReg, implementations, false);
+            if (dispatchResult != null){
+                this.invoke(dispatchResult, false, referenceReg);
+            }
+            else{
+                this.invokeNotKnown(false, referenceStringClass, referenceString);
+            }
         }
         break;
-
-        case INVOKE_SUPER_RANGE:
-        {
-            Implementation implementation = analysis.getSuperImplementation(referenceClassIndex, referenceIntIndex);
-            
-            this.directInvoke(implementation, true, 0, false);
-        }
-        break;
-            
-        case INVOKE_VIRTUAL_RANGE:
-
-            /*
-             * Should be handled like invoke_virtual:
-             * "invoke-interface is used to invoke an interface method, that is, 
-             * on an object whose concrete class isn't known, using a method_id 
-             * that refers to an interface."
-             * Source : https://source.android.com/devices/tech/dalvik/dalvik-bytecode.html
-             */
         case INVOKE_INTERFACE_RANGE:
         {
-            Map<Integer,Implementation> implementations = analysis.getVirtualImplementations(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString);
-            
+            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.INTERFACE);
             int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
-            this.invokeImpKnown(referenceReg, implementations, true);
+            if (dispatchResult != null){
+                this.invoke(dispatchResult, true, referenceReg);
+            }
+            else{
+                this.invokeNotKnown(true, referenceStringClass, referenceString);
+            }
         }
         break;
-            
-            
         case INVOKE_DIRECT:
+        {
+            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.DIRECT);
+            if (dispatchResult != null){
+                this.invoke(dispatchResult, false, null);
+            }
+            else{
+                this.invokeNotKnown(false, referenceStringClass, referenceString);
+            }
+        }
+        break;
+        case INVOKE_DIRECT_RANGE:
+        {
+            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.DIRECT);
+            if (dispatchResult != null){
+                this.invoke(dispatchResult, true, null);
+            }
+            else{
+                this.invokeNotKnown(true, referenceStringClass, referenceString);
+            }
+        }
+        break;
         case INVOKE_STATIC:
         {
-            Implementation implementation = analysis.getDirectImplementation(referenceClassIndex, referenceIntIndex);
-
-            this.directInvoke(implementation, false, 0, false);
+            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.STATIC);
+            if (dispatchResult != null){
+                this.invoke(dispatchResult, false, null);
+            }
+            else{
+                this.invokeNotKnown(false, referenceStringClass, referenceString);
+            }
         }
         break;
 
-        case INVOKE_DIRECT_RANGE:
         case INVOKE_STATIC_RANGE:
         {
-            Implementation implementation = analysis.getDirectImplementation(referenceClassIndex, referenceIntIndex);
-
-            this.directInvoke(implementation, true, 0, false);
+            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.STATIC);
+            if (dispatchResult != null){
+                this.invoke(dispatchResult, true, null);
+            }
+            else{
+                this.invokeNotKnown(true, referenceStringClass, referenceString);
+            }
         }
         break;
         
@@ -2169,9 +2239,19 @@ public class FSInstructionAnalysis{
         for (int reg = startRegister; reg <= endRegister; reg++ ){
             BoolExpr q = fsengine.and(
                     p,
-                    fsengine.eq(fsvar.getH(reg), fsengine.mkTrue())
+                    fsengine.eq(fsvar.getH(reg), fsengine.mkTrue()),
+                    fsengine.eq(fsengine.or(fsvar.getG(reg), fsvar.getL(reg)), fsengine.mkFalse())
                     );
-            String d = "Test if register " + Integer.toString(reg) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            String d = "[PRIM] Test if register " + Integer.toString(reg) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            fsengine.addQuery(new Z3Query(q, d, verboseOption, className, methodName, pc, sinkName));
+        }
+        for (int reg = startRegister; reg <= endRegister; reg++ ){
+            BoolExpr q = fsengine.and(
+                    p,
+                    fsengine.taintPred(fsvar.getV(reg), fsengine.mkTrue()),
+                    fsengine.eq(fsengine.or(fsvar.getG(reg), fsvar.getL(reg)), fsengine.mkTrue())
+                    );
+            String d = "[REF] Test if register " + Integer.toString(reg) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             fsengine.addQuery(new Z3Query(q, d, verboseOption, className, methodName, pc, sinkName));
         }
     }
@@ -2184,37 +2264,77 @@ public class FSInstructionAnalysis{
         case 5:
             BoolExpr q5 = fsengine.and(
                     p,
-                    fsengine.eq(fsvar.getH(instruction.getRegisterG()), fsengine.mkTrue())
+                    fsengine.eq(fsvar.getH(instruction.getRegisterG()), fsengine.mkTrue()),
+                    fsengine.eq(fsengine.or(fsvar.getG(instruction.getRegisterG()), fsvar.getL(instruction.getRegisterG())), fsengine.mkFalse())
                     );
-            String d5 = "Test if register " + Integer.toString(instruction.getRegisterG()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            String d5 = "[PRIM] Test if register " + Integer.toString(instruction.getRegisterG()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            fsengine.addQuery(new Z3Query(q5, d5, verboseResults, className, methodName, pc, sinkName));
+            q5 = fsengine.and(
+                    p,
+                    fsengine.taintPred(fsvar.getV(instruction.getRegisterG()), fsengine.mkTrue()),
+                    fsengine.eq(fsengine.or(fsvar.getG(instruction.getRegisterG()), fsvar.getL(instruction.getRegisterG())), fsengine.mkTrue())
+                    );
+            d5 = "[REF] Test if register " + Integer.toString(instruction.getRegisterG()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             fsengine.addQuery(new Z3Query(q5, d5, verboseResults, className, methodName, pc, sinkName));
         case 4:
             BoolExpr q4 = fsengine.and(
                     p,
-                    fsengine.eq(fsvar.getH(instruction.getRegisterF()), fsengine.mkTrue())
+                    fsengine.eq(fsvar.getH(instruction.getRegisterF()), fsengine.mkTrue()),
+                    fsengine.eq(fsengine.or(fsvar.getG(instruction.getRegisterF()), fsvar.getL(instruction.getRegisterF())), fsengine.mkFalse())
                     );
-            String d4 = "Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            String d4 = "[PRIM] Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            fsengine.addQuery(new Z3Query(q4, d4, verboseResults, className, methodName, pc, sinkName));
+            q4 = fsengine.and(
+                    p,
+                    fsengine.taintPred(fsvar.getV(instruction.getRegisterF()), fsengine.mkTrue()),
+                    fsengine.eq(fsengine.or(fsvar.getG(instruction.getRegisterF()), fsvar.getL(instruction.getRegisterF())), fsengine.mkTrue())
+                    );
+            d4 = "[REF] Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             fsengine.addQuery(new Z3Query(q4, d4, verboseResults, className, methodName, pc, sinkName));
         case 3:
             BoolExpr q3 = fsengine.and(
                     p,
-                    fsengine.eq(fsvar.getH(instruction.getRegisterE()), fsengine.mkTrue())
+                    fsengine.eq(fsvar.getH(instruction.getRegisterE()), fsengine.mkTrue()),
+                    fsengine.eq(fsengine.or(fsvar.getG(instruction.getRegisterE()), fsvar.getL(instruction.getRegisterE())), fsengine.mkFalse())
                     );
-            String d3 = "Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            String d3 = "[PRIM] Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            fsengine.addQuery(new Z3Query(q3, d3, verboseResults, className, methodName, pc, sinkName));
+            q3 = fsengine.and(
+                    p,
+                    fsengine.taintPred(fsvar.getV(instruction.getRegisterE()), fsengine.mkTrue()),
+                    fsengine.eq(fsengine.or(fsvar.getG(instruction.getRegisterE()), fsvar.getL(instruction.getRegisterE())), fsengine.mkTrue())
+                    );
+            d3 = "[REF] Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             fsengine.addQuery(new Z3Query(q3, d3, verboseResults, className, methodName, pc, sinkName));
         case 2:
             BoolExpr q2 = fsengine.and(
                     p,
-                    fsengine.eq(fsvar.getH(instruction.getRegisterD()), fsengine.mkTrue())
+                    fsengine.eq(fsvar.getH(instruction.getRegisterD()), fsengine.mkTrue()),
+                    fsengine.eq(fsengine.or(fsvar.getG(instruction.getRegisterD()), fsvar.getL(instruction.getRegisterD())), fsengine.mkFalse())
                     );
-            String d2 = "Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            String d2 = "[PRIM] Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            fsengine.addQuery(new Z3Query(q2, d2, verboseResults, className, methodName, pc, sinkName));
+            q2 = fsengine.and(
+                    p,
+                    fsengine.taintPred(fsvar.getV(instruction.getRegisterD()), fsengine.mkTrue()),
+                    fsengine.eq(fsengine.or(fsvar.getG(instruction.getRegisterD()), fsvar.getL(instruction.getRegisterD())), fsengine.mkTrue())
+                    );
+            d2 = "[REF] Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             fsengine.addQuery(new Z3Query(q2, d2, verboseResults, className, methodName, pc, sinkName));
         case 1:
             BoolExpr q1 = fsengine.and(
                     p,
-                    fsengine.eq(fsvar.getH(instruction.getRegisterC()), fsengine.mkTrue())
+                    fsengine.eq(fsvar.getH(instruction.getRegisterC()), fsengine.mkTrue()),
+                    fsengine.eq(fsengine.or(fsvar.getG(instruction.getRegisterC()), fsvar.getL(instruction.getRegisterC())), fsengine.mkFalse())
                     );
-            String d1 = "Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            String d1 = "[PRIM] Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            fsengine.addQuery(new Z3Query(q1, d1, verboseResults, className, methodName, pc, sinkName));
+            q1 = fsengine.and(
+                    p,
+                    fsengine.taintPred(fsvar.getV(instruction.getRegisterC()), fsengine.mkTrue()),
+                    fsengine.eq(fsengine.or(fsvar.getG(instruction.getRegisterC()), fsvar.getL(instruction.getRegisterC())), fsengine.mkTrue())
+                    );
+            d1 = "[REF] Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             fsengine.addQuery(new Z3Query(q1, d1, verboseResults, className, methodName, pc, sinkName));
         }
     }
@@ -2473,50 +2593,293 @@ public class FSInstructionAnalysis{
                     );
         }
     }
+    
+    private BoolExpr getLabels(){
+        FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
+        final int regCount = instruction.getRegisterCount();
+        switch (regCount) {
+            case 1:
+                return fsengine.or( fsengine.mkFalse(),
+                                    fsengine.getVars().getL(instruction.getRegisterC()));
+            case 2:
 
+                return fsengine.or( fsengine.mkFalse(),
+                                    fsengine.getVars().getL(instruction.getRegisterC()),
+                                    fsengine.getVars().getL(instruction.getRegisterD()));
+            case 3:
 
-    private void stubInvoke(StubImplementation implementation, boolean range, int referenceReg, boolean virtualDispatch) {
-        Map<CMPair, CMPair> dependentInvoke = implementation.getDependentInvokation();
-        for (DalvikImplementation di : implementation.getDalvikImp()){
-            CMPair cmp = new CMPair(di.getDalvikClass().getType().hashCode(),di.getMethod().getName().hashCode());
-            if (!dependentInvoke.values().contains(cmp)){
-                //TODO: heap needs to be lifted !
-                this.directInvoke(di, range, referenceReg, virtualDispatch);
-            }else{
-                DalvikImplementation from = implementation.getDalvikImpByID(dependentInvoke.get(cmp).hashCode());
-                this.directDalvikInvokeAux(fsengine.mkTrue(), di, range, from, true);
+                return fsengine.or( fsengine.mkFalse(),
+                                    fsengine.getVars().getL(instruction.getRegisterC()),
+                                    fsengine.getVars().getL(instruction.getRegisterD()),
+                                    fsengine.getVars().getL(instruction.getRegisterE()));
+            case 4:
+
+                return fsengine.or( fsengine.mkFalse(),
+                                    fsengine.getVars().getL(instruction.getRegisterC()),
+                                    fsengine.getVars().getL(instruction.getRegisterD()),
+                                    fsengine.getVars().getL(instruction.getRegisterE()),
+                                    fsengine.getVars().getL(instruction.getRegisterF()));
+
+            case 5:
+
+                return fsengine.or( fsengine.mkFalse(),
+                                    fsengine.getVars().getL(instruction.getRegisterC()),
+                                    fsengine.getVars().getL(instruction.getRegisterD()),
+                                    fsengine.getVars().getL(instruction.getRegisterE()),
+                                    fsengine.getVars().getL(instruction.getRegisterF()),
+                                    fsengine.getVars().getL(instruction.getRegisterG()));
+            default:
+                return fsengine.mkFalse();
+        }
+    }
+
+    private BoolExpr getLabelsRange(){
+        RegisterRangeInstruction instruction = (RegisterRangeInstruction)this.instruction;
+        int regCount = instruction.getRegisterCount();
+        int startRegister = instruction.getStartRegister();
+        int endRegister   =   startRegister+regCount-1;
+
+        BoolExpr labels = fsengine.mkFalse();
+        for(int reg = startRegister; reg <= endRegister; reg++){
+            labels = fsengine.or(
+                    labels, fsengine.getVars().getL(reg)
+            );
+        }
+        return fsengine.or(labels);
+    }
+    
+    private Integer getRegisterNumber(final boolean range, final int regInt){
+        if (range){
+            RegisterRangeInstruction instruction = (RegisterRangeInstruction)this.instruction;
+            int startRegister = instruction.getStartRegister();
+            return startRegister + regInt -1;
+        }
+        else{
+            FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
+            switch (regInt) {
+                case 1:
+                    return instruction.getRegisterC();
+                case 2:
+                    return instruction.getRegisterD();
+                case 3:
+                    return instruction.getRegisterE();
+                case 4:
+                    return instruction.getRegisterF();
+                case 5:
+                    return instruction.getRegisterG();
+                default:
+                    return null;
             }
         }
     }
 
+
     /*
-     * implementations: set of implementations of the invoked method
-     * Perform dynamic dispatch
+     * Advances pc with a top values for the return value (if exists)
      */
-    private void invokeImpKnown(final int referenceReg, final Map<Integer,Implementation> implementations, final Boolean range){
-        for (final Map.Entry<Integer, Implementation> entry : implementations.entrySet()){
-            directInvoke(entry.getValue(),range,referenceReg,true);
+    private void invokeNotKnown(final Boolean range, final String invClass, final String invMethod){
+        
+        if (analysis.isSink(className,methodName,invClass.hashCode(), invMethod.hashCode())){
+            if (range) {
+                addQueryRange(fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
+                        className, methodName, Integer.toString(codeAddress), invMethod, analysis.optionVerbose());
+            }else{
+                addQuery(fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
+                        className, methodName, Integer.toString(codeAddress), invMethod, analysis.optionVerbose());
+            }
         }
+        
+        BoolExpr joinLabel = null;
+        boolean returnsRef = false;
+        if (callReturns){
+            if (returnType.contains(";") || returnType.contains("]")){
+                returnsRef = true;
+            }
+            joinLabel = analysis.isSource(className,methodName,invClass.hashCode(), invMethod.hashCode()) 
+                    ? fsengine.mkTrue() : null;
+        }
+        
+       /*
+        * If we call a sink the join label will high, o.w. the label is the join of the label of arguments 
+        */
+        
+        if (joinLabel == null){
+            joinLabel = range ? getLabelsRange() : getLabels();
+        }
+        
+       /*
+        *  If an unknown method has a reference as an argument, let the top value and the label join be dereferenced
+        */
+        
+        int i = 1;
+        
+        for (final CharSequence type : parameterTypes) {
+            if (type.toString().contains(";") || type.toString().contains("]")) {
+                
+                //TODO: lifting is required
+                
+               /*
+                * place taint from a primitive to the ref
+                */
+                h = fsengine.and(
+                        fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
+                        fsengine.hPred(fsvar.getCn(), 
+                                fsvar.getV(getRegisterNumber(range, i))
+                                ,fsvar.getF(), fsvar.getFpp(),
+                                fsvar.getLf(), fsvar.getBf())
+                        );
+                b = fsengine.hPred(fsvar.getCn(), 
+                        fsvar.getV(getRegisterNumber(range, i))
+                        ,fsvar.getF(), fsvar.getFpp(),
+                        joinLabel, fsvar.getBf());
+                buildRule();
+                
+                h = fsengine.and(
+                        fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
+                        fsengine.eq(fsengine.or(fsvar.getL(getRegisterNumber(range, i)), fsvar.getG(getRegisterNumber(range, i))), fsengine.mkTrue()),
+                        fsengine.taintPred(fsvar.getV(getRegisterNumber(range, i)), fsvar.getLf())
+                        );
+                b = fsengine.hPred(fsvar.getCn(), 
+                        fsvar.getV(getRegisterNumber(range, i))
+                        ,fsvar.getF(), fsvar.getFpp(),
+                        fsvar.getLf(), fsvar.getBf());
+                buildRule();
+                
+                h = fsengine.and(
+                        fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
+                        fsengine.eq(fsengine.or(fsvar.getL(getRegisterNumber(range, i)), fsvar.getG(getRegisterNumber(range, i))), fsengine.mkTrue()),
+                        fsengine.taintPred(fsvar.getV(getRegisterNumber(range, i)), fsvar.getLf())
+                        );
+                b = fsengine.hPred(fsengine.mkBitVector("anything".hashCode(), analysis.getSize()), 
+                        fsengine.mkBitVector("anything".hashCode(), analysis.getSize())
+                        ,fsvar.getF(), fsvar.getFpp(),
+                        fsvar.getLf(), fsvar.getBf());
+                buildRule();
+
+            }
+            i = i + 1;
+        }
+                
+       /*
+        * Case 1: method does not return: no change to the labels
+        */
+        
+        if (!callReturns){
+            //TODO: Should be correct, however one should be careful: while lifting we infer the next state with a lifted object, and this rule also computes the next state
+            buildH();
+            buildB();
+            buildRule();
+        }
+        
+        /*
+         * Case 2: method returns primitive: result label is the join
+         */
+        
+        if (callReturns && !returnsRef){
+            //TODO: Should be correct, however one should be careful: while lifting we infer the next state with a lifted object, and this rule also computes the next state
+            
+            buildH();
+            regUpV.put(numRegLoc, fsvar.getF());
+            regUpH.put(numRegLoc, joinLabel);
+            regUpL.put(numRegLoc, fsengine.mkFalse());
+            regUpG.put(numRegLoc, fsengine.mkFalse());   
+            buildB();
+            buildRule();
+        }
+        
+        /*
+         * Case 3: method returns reference: result label is the join, create an object on the heap
+         */
+        
+        if (callReturns && returnsRef) {
+            //TODO: Here we should create an obect which should be global
+            instanceNum = analysis.getInstNum(c, m, codeAddress);            
+            
+            //Lift old local heap object to the global heap
+            buildH();
+            this.liftObject(h, instanceNum);
+
+            regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
+            regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
+            
+            //Lift the whole local heap if the old local heap object which was lifted contained a local heap pointer
+            buildH();
+            //lift the registers to global heap pointers
+            for (int j = 0; j <= numRegLoc  ; j++){
+                regUpG.put(j,fsengine.or(fsvar.getG(j),fsvar.getL(j)));
+                regUpL.put(j,fsengine.mkFalse());
+            }
+            //update the register receiving the pointer to the newly created object
+            regUpV.put(numRegLoc, fsengine.mkBitVector(instanceNum, analysis.getSize()));
+            regUpH.put(numRegLoc, joinLabel);
+            regUpL.put(numRegLoc, fsengine.mkTrue());
+            regUpG.put(numRegLoc, fsengine.mkFalse());            
+            //Reset the local heap
+            for (int j = 0; j < analysis.getLocalHeapSize();j++) {
+                regUpLHV.put(j,fsengine.mkBitVector(0, analysis.getSize()));
+                regUpLHH.put(j,fsengine.mkFalse());
+                regUpLHL.put(j,fsengine.mkFalse());
+                regUpLHG.put(j,fsengine.mkFalse());
+                regUpLHF.put(j,fsengine.mkTrue());
+            }
+            buildB();
+            int lhoffset = fsengine.getOffset(instanceNum);
+            int lhsize = fsengine.getSize(instanceNum);
+            for (int j = lhoffset; j < lhoffset + lhsize + 1; j++){
+                fsengine.addRule(fsengine.implies(fsengine.and(h,fsvar.getLHL(j)),b),null);
+            }
+                        
+            regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
+            regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
+            
+            //Lift the whole local heap if the old local heap object which was lifted contained a local heap pointer
+            buildH();
+            for (int allocationPoint : analysis.getAllocationPoints()){
+                for (int j = lhoffset; j < lhoffset + lhsize + 1; j++){
+                    BoolExpr hh = fsengine.and(fsvar.getLHL(j),h);
+                    this.liftObject(hh, allocationPoint);
+                }
+            }
+            
+            
+            if (analysis.hasStaticConstructor(referenceIntIndex)){
+                //h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+                int staticConstNum = "<clinit>()V".hashCode();
+                DalvikMethod dmc = analysis.getExactMethod(referenceIntIndex, staticConstNum);
+
+                for (int j = 0; j < dmc.getNumArg() + dmc.getNumReg() + 1; j++){
+                    regUpV.put(j, fsengine.mkBitVector(0, analysis.getSize()));
+                    regUpLHH.put(j, fsengine.mkFalse());
+                    regUpL.put(j, fsengine.mkFalse());
+                    regUpG.put(j, fsengine.mkFalse());
+                }
+                
+                for (int j = 0; j < analysis.getLocalHeapSize(); j++){                    
+                    regUpLHV.put(j, fsengine.mkBitVector(0, analysis.getSize()));
+                    regUpLHH.put(j, fsengine.mkFalse());
+                    regUpLHL.put(j, fsengine.mkFalse());
+                    regUpLHG.put(j, fsengine.mkFalse());
+                    regUpLHF.put(j, fsengine.mkFalse());
+                }
+                
+                b = fsengine.rPred(Integer.toString(referenceIntIndex), Integer.toString(staticConstNum), 0, regUpV, regUpH, regUpL, regUpG,regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF,
+                        dmc.getNumArg(), dmc.getNumReg());
+                fsengine.addRule(b, null);
+            }
+        }  
     }
-
-
     /*
      * Direct invocation of a method, whose implementation is either a dalvik implementation
      * or a stub
      */
-    private void directInvoke(Implementation implementation, Boolean range, int referenceReg, Boolean virtualDispatch){
-        if (implementation instanceof DalvikImplementation){
-            DalvikImplementation dalvikImp = (DalvikImplementation) implementation;
-            if (virtualDispatch){
-                this.virtualDalvikInvoke(dalvikImp, referenceReg, range);
-            }else{
-                this.directDalvikInvoke(fsengine.mkTrue(), dalvikImp, range); 
-            }
-        }else{
-            if (implementation instanceof StubImplementation){
-                this.stubInvoke((StubImplementation) implementation, range, referenceReg, virtualDispatch);
-            }else{
-                throw new RuntimeException("Implementation missing!");
+    private void invoke(final DispatchResult dispatchResult,
+            final Boolean range, final Integer referenceReg) {
+        for (final DalvikImplementation di : dispatchResult
+                .getImplementations()) {
+            if (referenceReg != null) {
+                this.virtualDalvikInvoke(di, referenceReg, range, dispatchResult.getInstances());
+            } else {
+                this.directDalvikInvoke(fsengine.mkTrue(), di, range);
             }
         }
     }
@@ -2525,19 +2888,16 @@ public class FSInstructionAnalysis{
      * This method is used to performe virtual dispatch:
      * the generated Horn clauses check that the callee is of the correct class before invoking
      */
-    private void virtualDalvikInvoke(DalvikImplementation di, int referenceReg, Boolean range){
-        for (final DalvikInstance instance: di.getInstances()){
+    private void virtualDalvikInvoke(DalvikImplementation di, int referenceReg, Boolean range, final HashSet<DalvikInstance> instances){
             //TODO: this can be improved by adding a predicate Class and
             // doing Class(instance.hashcode(),classID) and Class(referenceReg,classID) 
             // so has to share all this between invocation
+        for (final DalvikInstance instance: instances){
             BoolExpr precond = fsengine.eq(
                             fsvar.getV(referenceReg),
                             fsengine.mkBitVector(instance.hashCode(), analysis.getSize())
                             );
             directDalvikInvoke(precond, di, range);
-        }
-        if (di.getInstances().isEmpty()){
-            System.out.println("Invoked class has no instances : " + di.getDalvikClass().getType() + " " + di.getMethod().getName());
         }
     }
     
