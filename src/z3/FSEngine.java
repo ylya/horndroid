@@ -51,7 +51,8 @@ public class FSEngine extends Z3Clauses{
             this.declareRel(func.getHi());
             this.declareRel(func.getI());
             this.declareRel(func.getS());
-
+            
+            this.declareRel(func.getTaint());
             // add main
             BoolExpr b1 = hPred(var.getCn(), var.getCn(), mContext.mkBV("parent".hashCode(), bvSize), var.getF(),
                     var.getLf(), var.getBf());
@@ -173,6 +174,7 @@ public class FSEngine extends Z3Clauses{
         for (int i = 0; i < mQueries.size(); i++) {
             
             final Z3Query q = mQueries.get(i);
+
             if(!q.debugging){
                 System.out.println((i + 1) + ": ");
                 if (q.isVerbose())
@@ -195,9 +197,7 @@ public class FSEngine extends Z3Clauses{
             Future<String> future = null;
             future = executor.submit(new Callable<String>() {
 
-
                 public String call() throws Exception {
-
                     Status result = temp.query(q.getQuery());
                     if(!q.debugging){
                         System.out.println(result);
@@ -214,7 +214,7 @@ public class FSEngine extends Z3Clauses{
             if (counter % 50 == 0){
                 System.gc();
             }
-            if ((counter >= currentPrint + (mQueriesLength/10)) && (mQueriesLength > 10)){
+            if ((counter >= currentPrint + (mQueriesLength/10)) && (mQueriesLength > 50)){
                 currentPrint = counter;
                 percentage+= 10;
                 System.out.println(percentage + "% of queries handled");
@@ -268,10 +268,13 @@ public class FSEngine extends Z3Clauses{
                 }
                 
             } catch (TimeoutException e) {
+                System.out.println("timeout!");
                 future.cancel(true);
             } catch (InterruptedException e) {
+                System.out.println("interupt!");
                 future.cancel(true);
             } catch (ExecutionException e) {
+                System.out.println("exec!" + e.getCause());
                 future.cancel(true);
             }
         }
