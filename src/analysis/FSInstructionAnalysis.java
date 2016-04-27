@@ -1197,8 +1197,6 @@ public class FSInstructionAnalysis{
             */
             buildB();
             buildRule();
-            
-            fsengine.addQuery(new Z3Query(fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc), "MY QUERY, true, "ece", "wecwc", 0, "no"));
 
 
             regUpH.clear();

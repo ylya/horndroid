@@ -11,4 +11,5 @@
 /test/
 /smali/
 *.aux
+/writeup/whoami.txt
 dependency-reduced-pom.xml
