@@ -8,12 +8,9 @@ import Dalvik.DalvikClass;
 import Dalvik.DalvikImplementation;
 import Dalvik.DalvikInstance;
 import Dalvik.DalvikMethod;
-import Dalvik.Implementation;
-import Dalvik.StubImplementation;
 import debugging.QUERY_TYPE;
 import horndroid.options;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -37,7 +34,6 @@ import org.jf.dexlib2.iface.reference.Reference;
 import payload.ArrayData;
 import payload.PackedSwitch;
 import payload.SparseSwitch;
-import util.CMPair;
 import util.StringPair;
 import util.Utils;
 import util.Utils.CallType;
@@ -193,6 +189,7 @@ public class FSInstructionAnalysis{
         if ((options.debug) && apkClassesMethods.contains(new StringPair(className, methodName))){
            buildH();
            for (int i = 0; i < this.numRegLoc; i++){
+        	   //TODO: remove to put back h1 instead of h
                BoolExpr h1 = fsengine.and(fsvar.getH(i),h);
                BoolExpr h2 = fsengine.and(fsvar.getL(i),h);
                BoolExpr h3 = fsengine.and(fsvar.getG(i),h);
@@ -216,6 +213,7 @@ public class FSInstructionAnalysis{
                 int apc = analysis.getAllocationPointPC(instanceNumber);
                 
                 for (int j = 0; j <= lhsize; j++){
+             	   //TODO: remove to put back h1 instead of h
                     BoolExpr h1 = fsengine.and(fsvar.getLHH(lhoffset + j),h);
                     BoolExpr h2 = fsengine.and(fsvar.getLHL(lhoffset + j),h);
                     BoolExpr h3 = fsengine.and(fsvar.getLHG(lhoffset + j),h);

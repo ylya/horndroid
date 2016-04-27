@@ -8,8 +8,6 @@ import Dalvik.DalvikClass;
 import Dalvik.DalvikImplementation;
 import Dalvik.DalvikInstance;
 import Dalvik.DalvikMethod;
-import Dalvik.Implementation;
-import Dalvik.StubImplementation;
 import debugging.QUERY_TYPE;
 import horndroid.options;
 
@@ -18,7 +16,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.jf.dexlib2.iface.instruction.FiveRegisterInstruction;
@@ -38,7 +35,6 @@ import org.jf.dexlib2.iface.reference.Reference;
 import payload.ArrayData;
 import payload.PackedSwitch;
 import payload.SparseSwitch;
-import util.CMPair;
 import util.StringPair;
 import util.Utils;
 import util.Utils.CallType;

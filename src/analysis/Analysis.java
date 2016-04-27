@@ -72,7 +72,6 @@ public class Analysis {
     final private Z3Variable var;
     final private FSVariable fsvar;
     final private Stubs stubs;
-    private int numberOfHornCLauseInstructions = 0;
     
     final ExecutorService instructionExecutorService;
     private Set<CMPair> refSources;
