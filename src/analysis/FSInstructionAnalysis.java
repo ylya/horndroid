@@ -2509,35 +2509,35 @@ public class FSInstructionAnalysis{
     // Lift the whole local heap if 'h' holds
     // Besides apply the single register update 'u' after lifting
     private void liftIfLocal(BoolExpr h,FSSingleRegUpdate u){
-        int size = analysis.getSize();
-        // Lift the registers to global heap pointers
-        for (int i = 0; i <= numRegLoc  ; i++){
-            regUpG.put(i,fsengine.or(fsvar.getG(i),fsvar.getL(i)));
-            regUpL.put(i,fsengine.mkFalse());
-        }
-        // Reset the local heap
-        // Everybody is overwritten by 0 here
-        for (int i = 0; i < analysis.getLocalHeapSize();i++) {
-            regUpLHV.put(i,fsengine.mkBitVector(0, size));
-            regUpLHH.put(i,fsengine.mkFalse());
-            regUpLHL.put(i,fsengine.mkFalse());
-            regUpLHG.put(i,fsengine.mkFalse());
-            regUpLHF.put(i,fsengine.mkTrue());
-        }
-        // Update the registers with u if necessary
-        if (u != null){
-            u.apply(regUpV, regUpH, regUpL, regUpG);
-        }
-        buildB();
-        fsengine.addRule(fsengine.implies(h, b), null);
-        
-        regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
-        regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
+    	int size = analysis.getSize();
+    	// Lift the registers to global heap pointers
+    	for (int i = 0; i <= numRegLoc  ; i++){
+    		regUpG.put(i,fsengine.or(fsvar.getG(i),fsvar.getL(i)));
+    		regUpL.put(i,fsengine.mkFalse());
+    	}
+    	// Reset the local heap
+    	// Everybody is overwritten by 0 here
+    	for (int i = 0; i < analysis.getLocalHeapSize();i++) {
+    		regUpLHV.put(i,fsengine.mkBitVector(0, size));
+    		regUpLHH.put(i,fsengine.mkFalse());
+    		regUpLHL.put(i,fsengine.mkFalse());
+    		regUpLHG.put(i,fsengine.mkFalse());
+    		regUpLHF.put(i,fsengine.mkTrue());
+    	}
+    	// Update the registers with u if necessary
+    	if (u != null){
+    		u.apply(regUpV, regUpH, regUpL, regUpG);
+    	}
+    	buildB();
+    	fsengine.addRule(fsengine.implies(h, b), null);
 
-        // Create the new global heap objects
-        for (int allocationPoint : analysis.getAllocationPoints()){
-                this.liftObject(h, allocationPoint);
-        }
+    	regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
+    	regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
+
+    	// Create the new global heap objects
+    	for (int allocationPoint : analysis.getAllocationPoints()){
+    		this.liftObject(h, allocationPoint);
+    	}
     }
 
     // For comparison instruction. Jump iff boolexpr is true
@@ -2599,6 +2599,64 @@ public class FSInstructionAnalysis{
         switch (regCount) {
             case 1:
                 return fsengine.or( fsengine.mkFalse(),
+                                    fsengine.getVars().getH(instruction.getRegisterC()));
+            case 2:
+
+                return fsengine.or( fsengine.mkFalse(),
+                                    fsengine.getVars().getH(instruction.getRegisterC()),
+                                    fsengine.getVars().getH(instruction.getRegisterD()));
+            case 3:
+
+                return fsengine.or( fsengine.mkFalse(),
+                                    fsengine.getVars().getH(instruction.getRegisterC()),
+                                    fsengine.getVars().getH(instruction.getRegisterD()),
+                                    fsengine.getVars().getH(instruction.getRegisterE()));
+            case 4:
+
+                return fsengine.or( fsengine.mkFalse(),
+                                    fsengine.getVars().getH(instruction.getRegisterC()),
+                                    fsengine.getVars().getH(instruction.getRegisterD()),
+                                    fsengine.getVars().getH(instruction.getRegisterE()),
+                                    fsengine.getVars().getH(instruction.getRegisterF()));
+
+            case 5:
+
+                return fsengine.or( fsengine.mkFalse(),
+                                    fsengine.getVars().getH(instruction.getRegisterC()),
+                                    fsengine.getVars().getH(instruction.getRegisterD()),
+                                    fsengine.getVars().getH(instruction.getRegisterE()),
+                                    fsengine.getVars().getH(instruction.getRegisterF()),
+                                    fsengine.getVars().getH(instruction.getRegisterG()));
+            default:
+                return fsengine.mkFalse();
+        }
+    }
+
+    private BoolExpr getLabelsRange(){
+        RegisterRangeInstruction instruction = (RegisterRangeInstruction)this.instruction;
+        int regCount = instruction.getRegisterCount();
+        int startRegister = instruction.getStartRegister();
+        int endRegister   =   startRegister+regCount-1;
+
+        BoolExpr labels = fsengine.mkFalse();
+        for(int reg = startRegister; reg <= endRegister; reg++){
+            labels = fsengine.or(
+                    labels, fsengine.getVars().getH(reg)
+            );
+        }
+        return fsengine.or(labels);
+    }
+    
+    /*
+     * Return a BoolExpr which is true if at least one of the arguments of the invoked method is a local pointer
+     * This is for instruction with less than five registers
+     */
+    private BoolExpr localInArguments(){
+        FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
+        final int regCount = instruction.getRegisterCount();
+        switch (regCount) {
+            case 1:
+                return fsengine.or( fsengine.mkFalse(),
                                     fsengine.getVars().getL(instruction.getRegisterC()));
             case 2:
 
@@ -2632,7 +2690,11 @@ public class FSInstructionAnalysis{
         }
     }
 
-    private BoolExpr getLabelsRange(){
+    /*
+     * Return a BoolExpr which is true if at least one of the arguments of the invoked method is a local pointer
+     * This is for instruction with strictly more than five registers
+     */
+    private BoolExpr localInArgumentsRange(){
         RegisterRangeInstruction instruction = (RegisterRangeInstruction)this.instruction;
         int regCount = instruction.getRegisterCount();
         int startRegister = instruction.getStartRegister();
@@ -2678,11 +2740,6 @@ public class FSInstructionAnalysis{
      */
     private void invokeNotKnown(final Boolean range, final String invClass, final String invMethod){
         
-        
-        buildH();
-        buildB();
-        buildRule();
-        
         if (analysis.isSink(className,methodName,invClass.hashCode(), invMethod.hashCode())){
             if (range) {
                 addQueryRange(fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
@@ -2703,6 +2760,14 @@ public class FSInstructionAnalysis{
                     ? fsengine.mkTrue() : null;
         }
         
+        // Tells us whether one of the argument of the invoked function is a local pointer
+        BoolExpr argumentsLocal = null;
+        if (range){
+        	argumentsLocal = localInArgumentsRange();
+        }else{
+        	argumentsLocal = localInArguments();
+        }
+        
        
         // If we call a sink the join label will high, o.w. the label is the join of the label of arguments 
         
@@ -2714,140 +2779,267 @@ public class FSInstructionAnalysis{
        
         //  If an unknown method has a reference as an argument, let the top value and the label join be dereferenced
         
-        
-        int i = 1;
-        
-        for (final CharSequence type : parameterTypes) {
-            if (type.toString().contains(";") || type.toString().contains("]")) {
-                
-                //TODO: lifting is required
-                
-               
-                // place taint from a primitive to the ref
-                
-                h = fsengine.and(
-                        fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
-                        fsengine.hPred(fsvar.getCn(), 
-                                fsvar.getV(getRegisterNumber(range, i))
-                                ,fsvar.getF(), fsvar.getFpp(),
-                                fsvar.getLf(), fsvar.getBf())
-                        );
-                b = fsengine.hPred(fsvar.getCn(), 
-                        fsvar.getV(getRegisterNumber(range, i))
-                        ,fsvar.getF(), fsvar.getFpp(),
-                        joinLabel, fsvar.getBf());
-                buildRule();
-                
-                h = fsengine.and(
-                        fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
-                        fsengine.eq(fsengine.or(fsvar.getL(getRegisterNumber(range, i)), fsvar.getG(getRegisterNumber(range, i))), fsengine.mkTrue()),
-                        fsengine.taintPred(fsvar.getV(getRegisterNumber(range, i)), fsvar.getLf())
-                        );
-                b = fsengine.hPred(fsvar.getCn(), 
-                        fsvar.getV(getRegisterNumber(range, i))
-                        ,fsvar.getF(), fsvar.getFpp(),
-                        fsvar.getLf(), fsvar.getBf());
-                buildRule();
-                
-                h = fsengine.and(
-                        fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
-                        fsengine.eq(fsengine.or(fsvar.getL(getRegisterNumber(range, i)), fsvar.getG(getRegisterNumber(range, i))), fsengine.mkTrue()),
-                        fsengine.taintPred(fsvar.getV(getRegisterNumber(range, i)), fsvar.getLf())
-                        );
-                b = fsengine.hPred(fsengine.mkBitVector("anything".hashCode(), analysis.getSize()), 
-                        fsengine.mkBitVector("anything".hashCode(), analysis.getSize())
-                        ,fsvar.getF(), fsvar.getFpp(),
-                        fsvar.getLf(), fsvar.getBf());
-                buildRule();
 
-            }
-            i = i + 1;
+    	regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
+    	regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
+
+    	// If one of the arguments is a local pointer then we lift all the local heap
+    	buildH();
+    	h = fsengine.and(h,argumentsLocal);
+    	for (int allocationPoint : analysis.getAllocationPoints()){
+    		this.liftObject(h, allocationPoint);
+    	}
+    	
+        {
+        	int i = 1;
+
+        	for (final CharSequence type : parameterTypes) {
+        		if (type.toString().contains(";") || type.toString().contains("]")) {
+
+        			//TODO: as we discussed, one case is missing here
+
+        			// place taint from a primitive arguments to the ref
+        			buildH();
+        			h = fsengine.and(
+        					h,
+        					fsengine.or(fsvar.getL(getRegisterNumber(range, i)), fsvar.getG(getRegisterNumber(range, i)))
+        					);
+        			b = fsengine.hPred(fsvar.getCn(), 
+        					fsvar.getV(getRegisterNumber(range, i))
+        					,fsvar.getF(), fsvar.getFpp(),
+        					joinLabel, fsvar.getBf());
+        			buildRule();
+
+        			buildH();
+        			h = fsengine.and(
+        					h,
+        					fsengine.or(fsvar.getL(getRegisterNumber(range, i)), fsvar.getG(getRegisterNumber(range, i))),
+        					fsengine.taintPred(fsvar.getV(getRegisterNumber(range, i)), fsvar.getLf())
+        					);
+        			b = fsengine.hPred(fsvar.getCn(), 
+        					fsvar.getV(getRegisterNumber(range, i))
+        					,fsvar.getF(), fsvar.getFpp(),
+        					fsvar.getLf(), fsvar.getBf());
+        			buildRule();
+
+        			buildH();
+        			h = fsengine.and(
+        					h,
+        					fsengine.or(fsvar.getL(getRegisterNumber(range, i)), fsvar.getG(getRegisterNumber(range, i))),
+        					fsengine.taintPred(fsvar.getV(getRegisterNumber(range, i)), fsvar.getLf())
+        					);
+        			b = fsengine.hPred(fsengine.mkBitVector("anything".hashCode(), analysis.getSize()), 
+        					fsengine.mkBitVector("anything".hashCode(), analysis.getSize())
+        					,fsvar.getF(), fsvar.getFpp(),
+        					fsvar.getLf(), fsvar.getBf());
+        			buildRule();
+
+        		}
+        		i = i + 1;
+        	}
         }
-                
        
-        // Case 1: method does not return: no change to the labels
+        // Case 1: method does not return
         
         
         if (!callReturns){
-            //TODO: Should be correct, however one should be careful: while lifting we infer the next state with a lifted object, and this rule also computes the next state
+        	/*
+        	 *  If one of the arguments is a local pointer then we lift
+        	 */
             buildH();
-            buildB();
-            buildRule();
-        }
-        
-        
-         // Case 2: method returns primitive: result label is the join
-         
-        
-        if (callReturns && !returnsRef){
-            //TODO: Should be correct, however one should be careful: while lifting we infer the next state with a lifted object, and this rule also computes the next state
-            
-            buildH();
-            regUpV.put(numRegLoc, fsvar.getF());
-            regUpH.put(numRegLoc, joinLabel);
-            regUpL.put(numRegLoc, fsengine.mkFalse());
-            regUpG.put(numRegLoc, fsengine.mkFalse());   
-            buildB();
-            buildRule();
-        }
-        
-        
-         // Case 3: method returns reference: result label is the join, create an object on the heap
-         
-        
-        if (callReturns && returnsRef) {
-            //TODO: Here we should create an obect which should be global
-            instanceNum = analysis.getInstNum(c, m, codeAddress);            
-            
-            //Lift old local heap object to the global heap
-            buildH();
-            this.liftObject(h, instanceNum);
-
-            regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
-            regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
-            
-            //Lift the whole local heap if the old local heap object which was lifted contained a local heap pointer
-            buildH();
+        	h = fsengine.and(h,argumentsLocal);
             //lift the registers to global heap pointers
             for (int j = 0; j <= numRegLoc  ; j++){
                 regUpG.put(j,fsengine.or(fsvar.getG(j),fsvar.getL(j)));
                 regUpL.put(j,fsengine.mkFalse());
             }
-            //update the register receiving the pointer to the newly created object
-            regUpV.put(numRegLoc, fsengine.mkBitVector(instanceNum, analysis.getSize()));
-            regUpH.put(numRegLoc, joinLabel);
-            regUpL.put(numRegLoc, fsengine.mkTrue());
-            regUpG.put(numRegLoc, fsengine.mkFalse());            
-            //Reset the local heap
-            for (int j = 0; j < analysis.getLocalHeapSize();j++) {
-                regUpLHV.put(j,fsengine.mkBitVector(0, analysis.getSize()));
-                regUpLHH.put(j,fsengine.mkFalse());
-                regUpLHL.put(j,fsengine.mkFalse());
-                regUpLHG.put(j,fsengine.mkFalse());
-                regUpLHF.put(j,fsengine.mkTrue());
-            }
+        	//Reset the local heap
+        	for (int j = 0; j < analysis.getLocalHeapSize();j++) {
+        		regUpLHV.put(j,fsengine.mkBitVector(0, analysis.getSize()));
+        		regUpLHH.put(j,fsengine.mkFalse());
+        		regUpLHL.put(j,fsengine.mkFalse());
+        		regUpLHG.put(j,fsengine.mkFalse());
+        		regUpLHF.put(j,fsengine.mkTrue());
+        	}
             buildB();
-            int lhoffset = fsengine.getOffset(instanceNum);
-            int lhsize = fsengine.getSize(instanceNum);
-            for (int j = lhoffset; j < lhoffset + lhsize + 1; j++){
-                fsengine.addRule(fsengine.implies(fsengine.and(h,fsvar.getLHL(j)),b),null);
+            buildRule();
+            
+           	regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
+        	regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
+        
+        	/*
+        	 *  If no argument is a local pointer (no need to check that this is the case, since if it is not then this rule is subsumed by the one above)
+        	 */
+        	buildH();
+        	buildB();
+        	buildRule();
+        }
+        
+        
+         // Case 2: method returns
+         
+        BoolExpr returnIsGlobal = null;
+        if (returnsRef){
+        	returnIsGlobal = fsengine.mkTrue();
+        }else{
+        	returnIsGlobal = fsengine.mkFalse();
+        }
+        
+        if (callReturns){
+        	/*
+        	 *  If one of the arguments is a local pointer then we lift
+        	 */
+        	buildH();
+        	h = fsengine.and(h,argumentsLocal);
+            //lift the registers to global heap pointers
+            for (int j = 0; j <= numRegLoc  ; j++){
+                regUpG.put(j,fsengine.or(fsvar.getG(j),fsvar.getL(j)));
+                regUpL.put(j,fsengine.mkFalse());
             }
-                        
-            regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
-            regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
             
-            // Lift the whole local heap if the old local heap object which was lifted contained a local heap pointer
-            buildH();
-            for (int allocationPoint : analysis.getAllocationPoints()){
-                for (int j = lhoffset; j < lhoffset + lhsize + 1; j++){
-                    BoolExpr hh = fsengine.and(fsvar.getLHL(j),h);
-                    this.liftObject(hh, allocationPoint);
-                }
-            }
+            // We set the returned value
+        	regUpV.put(numRegLoc, fsvar.getF());
+        	regUpH.put(numRegLoc, joinLabel);
+        	regUpL.put(numRegLoc, fsengine.mkFalse());
+        	regUpG.put(numRegLoc, returnIsGlobal);
+
+        	//Reset the local heap
+        	for (int j = 0; j < analysis.getLocalHeapSize();j++) {
+        		regUpLHV.put(j,fsengine.mkBitVector(0, analysis.getSize()));
+        		regUpLHH.put(j,fsengine.mkFalse());
+        		regUpLHL.put(j,fsengine.mkFalse());
+        		regUpLHG.put(j,fsengine.mkFalse());
+        		regUpLHF.put(j,fsengine.mkTrue());
+        	}
+        	buildB();
+        	buildRule();
+
+        	regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
+        	regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
+
+        	/*
+        	 *  If no argument is a local pointer (no need to check that this is the case, since if it is not then this rule is subsumed by the one above)
+        	 */
+        	buildH();
+        	
+            // We set the returned value
+        	regUpV.put(numRegLoc, fsvar.getF());
+        	regUpH.put(numRegLoc, joinLabel);
+        	regUpL.put(numRegLoc, fsengine.mkFalse());
+        	regUpG.put(numRegLoc, returnIsGlobal);
+        	
+        	buildB();
+        	buildRule();
+
+	       	regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
+        	regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
+        	
+        	{
+        		int i = 1;
+        		for (final CharSequence type : parameterTypes) {
+        			if (type.toString().contains(";") || type.toString().contains("]")) {
+
+        				/*
+        				 *  If one of the arguments is a local pointer then we lift
+        				 */
+        				buildH();
+        				h = fsengine.and(
+        						h,
+        						argumentsLocal,
+        						fsengine.or(fsvar.getL(getRegisterNumber(range, i)), fsvar.getG(getRegisterNumber(range, i))),
+        						fsengine.taintPred(fsvar.getV(getRegisterNumber(range, i)), fsvar.getLf())
+        						);
+
+        				//lift the registers to global heap pointers
+        				for (int j = 0; j <= numRegLoc  ; j++){
+        					regUpG.put(j,fsengine.or(fsvar.getG(j),fsvar.getL(j)));
+        					regUpL.put(j,fsengine.mkFalse());
+        				}
+
+        				//Reset the local heap
+        				for (int j = 0; j < analysis.getLocalHeapSize();j++) {
+        					regUpLHV.put(j,fsengine.mkBitVector(0, analysis.getSize()));
+        					regUpLHH.put(j,fsengine.mkFalse());
+        					regUpLHL.put(j,fsengine.mkFalse());
+        					regUpLHG.put(j,fsengine.mkFalse());
+        					regUpLHF.put(j,fsengine.mkTrue());
+        				}
+
+        				// We set the returned value
+        				regUpV.put(numRegLoc, fsvar.getF());
+        				regUpH.put(numRegLoc, fsvar.getLf());
+        				regUpL.put(numRegLoc, fsengine.mkFalse());
+        				regUpG.put(numRegLoc, returnIsGlobal);
+
+        				buildB();
+        				buildRule();
+
+        				regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
+        				regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
+
+        				/*
+        				 *  If no argument is a local pointer (no need to check that this is the case, since if it is not then this rule is subsumed by the one above)
+        				 */
+        				buildH();
+        				h = fsengine.and(
+        						h,
+        						fsengine.or(fsvar.getL(getRegisterNumber(range, i)), fsvar.getG(getRegisterNumber(range, i))),
+        						fsengine.taintPred(fsvar.getV(getRegisterNumber(range, i)), fsvar.getLf())
+        						);
+
+        				// We set the returned value
+        				regUpV.put(numRegLoc, fsvar.getF());
+        				regUpH.put(numRegLoc, fsvar.getLf());
+        				regUpL.put(numRegLoc, fsengine.mkFalse());
+        				regUpG.put(numRegLoc, returnIsGlobal);
+
+        				buildB();
+        				buildRule();
+
+        				regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
+        				regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
+
+        			}
+        		}
+        		i++;
+        	}
+        }
+        
+        // If the method returns a pointer, then a corresponding heap fact should be created
+
+
+        if (callReturns && returnsRef) {
+        	// place taint from a primitive arguments to the ref
+        	buildH();
+        	b = fsengine.hPred(fsengine.mkBitVector("anything".hashCode(), analysis.getSize()), 
+					fsengine.mkBitVector("anything".hashCode(), analysis.getSize()),
+        			fsvar.getF(), fsvar.getFpp(),
+        			joinLabel, fsvar.getBf());
+        	buildRule();
+
+        	{
+        		int i = 1;
+        		for (final CharSequence type : parameterTypes) {
+        			if (type.toString().contains(";") || type.toString().contains("]")) {
+
+        				buildH();
+        				h = fsengine.and(
+        						h,
+        						fsengine.or(fsvar.getL(getRegisterNumber(range, i)), fsvar.getG(getRegisterNumber(range, i))),
+        						fsengine.taintPred(fsvar.getV(getRegisterNumber(range, i)), fsvar.getLf())
+        						);
+        				b = fsengine.hPred(fsengine.mkBitVector("anything".hashCode(), analysis.getSize()), 
+        						fsengine.mkBitVector("anything".hashCode(), analysis.getSize())
+        						,fsvar.getF(), fsvar.getFpp(),
+        						fsvar.getLf(), fsvar.getBf());
+        				buildRule();
+        			}
+        		}
+        	}
             
             
+        	//TODO: all static constructor, for all classes, should be called
             if (analysis.hasStaticConstructor(referenceIntIndex)){
-                //h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
                 int staticConstNum = "<clinit>()V".hashCode();
                 DalvikMethod dmc = analysis.getExactMethod(referenceIntIndex, staticConstNum);
 
@@ -2889,7 +3081,7 @@ public class FSInstructionAnalysis{
     }
     
     /*
-     * This method is used to performe virtual dispatch:
+     * This method is used to perform virtual dispatch:
      * the generated Horn clauses check that the callee is of the correct class before invoking
      */
     private void virtualDalvikInvoke(DalvikImplementation di, int referenceReg, Boolean range, final HashSet<DalvikInstance> instances){
