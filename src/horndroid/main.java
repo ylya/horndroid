@@ -51,7 +51,7 @@ public class main {
         options.addOption("f", false, "flow-sensitive heap");
         options.addOption("w", false, "sensitive array indexes");
         options.addOption("n", true, "bitvector size (default 64)");
-        options.addOption("s", true, "fetch stubs");
+        options.addOption("t", false, "fetch stubs");
     }
     public static void main(String[] args) {
         parseCommandLine(args);
@@ -249,7 +249,7 @@ public class main {
                     }
                 }
                 break;
-            case 's':
+            case 't':
                 hornDroidOptions.stubs = true;
                 break;
             case 'n':
@@ -295,6 +295,6 @@ public class main {
         System.out.println("-d print debugging information (argument: integer 1, 2 or 3)");
         System.out.println("-w sensitive array indexes");
         System.out.println("-n bitvector size (default 64)");
-        System.out.println("-s fetch stubs");
+        System.out.println("-t fetch stubs");
     }
 }
