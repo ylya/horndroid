@@ -186,7 +186,7 @@ public class FSInstructionAnalysis{
         numParLoc = dm.getNumArg();
 
         
-        if ((options.debug) && apkClassesMethods.contains(new StringPair(className, methodName))){
+        if (options.debug){
            buildH();
            for (int i = 0; i < this.numRegLoc; i++){
         	   //TODO: remove to put back h1 instead of h
@@ -423,6 +423,68 @@ public class FSInstructionAnalysis{
 
         case NEW_INSTANCE:
            
+            //special treatment for the "global by default objects"
+            if (globalByDefault(dispatch, referenceIntIndex)){
+                instanceNum = analysis.getInstNum(ci, mi, codeAddress);
+                buildH();
+                //update the register receiving the pointer to the newly created object
+                regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkBitVector(instanceNum, size));
+                regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkFalse());
+                regUpL.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkFalse());
+                regUpG.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkTrue());
+                buildB();
+                buildRule();
+                
+                regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
+                
+                final Map<Integer, Boolean> fields = analysis.getClassFields(referenceString, instanceNum);
+                if (fields != null)
+                    for (Map.Entry<Integer, Boolean> fieldN : fields.entrySet()){
+                        buildH();
+                        b = fsengine.hPred(fsengine.mkBitVector(referenceIntIndex, size),
+                                fsengine.mkBitVector(instanceNum, size),
+                                fsengine.mkBitVector(fieldN.getKey(), size),
+                                fsengine.mkBitVector(0, size),
+                                fsengine.mkFalse(),
+                                fsengine.mkBool(fieldN.getValue()));
+                        buildRule();
+                    } else {
+                        buildH();
+                        b = fsengine.hPred(fsengine.mkBitVector(referenceIntIndex, size),
+                                fsengine.mkBitVector(instanceNum, size),
+                                fsvar.getF(), fsengine.mkBitVector(0, size),
+                                fsengine.mkFalse(), fsvar.getBf());
+                        buildRule();
+                    }             
+                
+                if (analysis.hasStaticConstructor(referenceIntIndex)){
+                    //h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+                    int staticConstNum = "<clinit>()V".hashCode();
+                    DalvikMethod dmc = analysis.getExactMethod(referenceIntIndex, staticConstNum);
+
+                    for (int i = 0; i < dmc.getNumArg() + dmc.getNumReg() + 1; i++){
+                        regUpV.put(i, fsengine.mkBitVector(0, size));
+                        regUpLHH.put(i, fsengine.mkFalse());
+                        regUpL.put(i, fsengine.mkFalse());
+                        regUpG.put(i, fsengine.mkFalse());
+                    }
+                    
+                    for (int i = 0; i < analysis.getLocalHeapSize(); i++){                    
+                        regUpLHV.put(i, fsengine.mkBitVector(0, size));
+                        regUpLHH.put(i, fsengine.mkFalse());
+                        regUpLHL.put(i, fsengine.mkFalse());
+                        regUpLHG.put(i, fsengine.mkFalse());
+                        regUpLHF.put(i, fsengine.mkFalse());
+                    }
+                    
+                    b = fsengine.rPred(Integer.toString(referenceIntIndex), Integer.toString(staticConstNum), 0, regUpV, regUpH, regUpL, regUpG,regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF,
+                            dmc.getNumArg(), dmc.getNumReg());
+                    fsengine.addRule(b, null);
+                }
+                
+                break;
+            }
+            
             if (referenceIntIndex == "Landroid/content/Intent;".hashCode()){
                 buildH();
                 buildB();
@@ -2228,6 +2290,12 @@ public class FSInstructionAnalysis{
         }
     }
     
+    private boolean globalByDefault(final Dispatch dispatch, int c){
+        //TODO: add cases for Activity and Application
+        if (dispatch.isThread(c))
+            return true;
+        return false;
+    }
 
     private void addQueryRange(BoolExpr p, String className, String methodName, String pc, String sinkName, final boolean verboseOption){
         RegisterRangeInstruction instruction = (RegisterRangeInstruction)this.instruction;
@@ -2739,7 +2807,6 @@ public class FSInstructionAnalysis{
      * Advances pc with a top values for the return value (if exists)
      */
     private void invokeNotKnown(final Boolean range, final String invClass, final String invMethod){
-        
         if (analysis.isSink(className,methodName,invClass.hashCode(), invMethod.hashCode())){
             if (range) {
                 addQueryRange(fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),

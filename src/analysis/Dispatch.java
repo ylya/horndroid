@@ -105,7 +105,7 @@ public class Dispatch {
      * c extends java/lang/Thread
      * c extends Android/os/AsyncTask
      */
-    private boolean isThread(final int classInd){
+    protected boolean isThread(final int classInd){
         if (classInd == "Ljava/lang/Thread;".hashCode()
                 || classInd == "Landroid/os/AsyncTask;".hashCode()
                 || classInd == "Ljava/lang/Runnable;".hashCode()
