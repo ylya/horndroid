@@ -614,6 +614,70 @@ public class Dispatch {
         }
     }
     
+    
+    /*public DispatchResult expensiveImplementationSearch(final int c, final int m, final String className, final String methodName) {
+        boolean found = false;
+        final HashSet<DalvikInstance> instSet = new HashSet<DalvikInstance>();
+        final HashSet<DalvikImplementation> implSet = new HashSet<DalvikImplementation>();
+        if (!(classes instanceof LazyUnion)) {
+            for (final GeneralClass genCl : classes.values()) {
+                if (genCl instanceof DalvikClass) {
+                    final DalvikClass dalCl = (DalvikClass) genCl;
+                    if (dalCl.getSuperClass().getType().hashCode() == c) {
+                        final DispatchResult dr = virtualDispatch(dalCl
+                                .getType().hashCode(), m, className, methodName);
+                        if (dr != null) {
+                            putImplementations(c, m, dr.getImplementations());
+                            putInstances(c, m, dr.getInstances());
+                            implSet.addAll(dr.getImplementations());
+                            instSet.addAll(dr.getInstances());
+                            found = true;
+                        }
+                    }
+                }
+            }
+        } else {
+            for (final GeneralClass genCl : ((LazyUnion) classes).values1()) {
+                if (genCl instanceof DalvikClass) {
+                    final DalvikClass dalCl = (DalvikClass) genCl;
+                    if (dalCl.getSuperClass().getType().hashCode() == c) {
+                        final DispatchResult dr = virtualDispatch(dalCl
+                                .getType().hashCode(), m, className, methodName);
+                        if (dr != null) {
+                            putImplementations(c, m, dr.getImplementations());
+                            putInstances(c, m, dr.getInstances());
+                            implSet.addAll(dr.getImplementations());
+                            instSet.addAll(dr.getInstances());
+                            found = true;
+                        }
+                    }
+                }
+            }
+            for (final GeneralClass genCl : ((LazyUnion) classes).values2()) {
+                if (genCl instanceof DalvikClass) {
+                    final DalvikClass dalCl = (DalvikClass) genCl;
+                    if (dalCl.getSuperClass().getType().hashCode() == c) {
+                        final DispatchResult dr = virtualDispatch(dalCl
+                                .getType().hashCode(), m, className, methodName);
+                        if (dr != null) {
+                            putImplementations(c, m, dr.getImplementations());
+                            putInstances(c, m, dr.getInstances());
+                            implSet.addAll(dr.getImplementations());
+                            instSet.addAll(dr.getInstances());
+                            found = true;
+                        }
+                    }
+                }
+            }
+        }
+        if (found) {
+            return new DispatchResult(instSet, implSet);
+        } else {
+            putFailed(c, m, className, methodName);
+            return null;
+        }
+    }*/
+    
 //    //////////////////////////////
 //    
 //    /*

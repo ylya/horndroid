@@ -1127,6 +1127,55 @@ public class InstructionAnalysis {
         }
         break;
         case INVOKE_DIRECT:
+            //TODO: address the following
+            /* we do a resolution on thread init, not on thread start, as at thread start the class information is lost
+              (it is stored somewhere in the thread class by the operating system, we can also simulate that storing class name somewhere).
+              on the other hand, if one initializes the thread and never spawns it? rare
+              JavaThread2 for the reference
+            */
+            if ((referenceIntIndex == "<init>(Ljava/lang/Runnable;)V".hashCode()) && (referenceClassIndex == "Ljava/lang/Thread;".hashCode())){
+                dispatchResult = dispatch.dispatch("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode(), referenceStringClass, referenceString, CallType.INTERFACE);
+                if (dispatchResult != null){
+                    FiveRegisterInstruction instr2 = (FiveRegisterInstruction)this.instruction;
+                    for (final DalvikImplementation di : dispatchResult.getImplementations()){
+                        int numRegCall = di.getMethod().getNumReg();
+
+                        for (final DalvikInstance instance: dispatchResult.getInstances()){
+                            h = z3engine.and(
+                                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
+                                    z3engine.eq(
+                                            var.getV(instr2.getRegisterD()),
+                                            z3engine.mkBitVector(instance.hashCode(), size)
+                                    )
+                            );
+                            int numArgCall = di.getMethod().getNumArg();
+
+                            regUpdate.put(numRegCall - numArgCall + 0, var.getV(instr2.getRegisterD()));
+                            regUpdate.put(numRegCall + 1 + 0, var.getV(instr2.getRegisterD()));
+                            regUpdateL.put(numRegCall - numArgCall + 0, var.getL(instr2.getRegisterD()));
+                            regUpdateL.put(numRegCall + 1 + 0, var.getL(instr2.getRegisterD()));
+                            regUpdateB.put(numRegCall - numArgCall + 0, var.getB(instr2.getRegisterD()));
+                            regUpdateB.put(numRegCall + 1 + 0, var.getB(instr2.getRegisterD()));
+                            b = z3engine.rInvokePred(
+                                    Integer.toString(di.getDalvikClass().getType().hashCode()),
+                                    Integer.toString("run()V".hashCode()),
+                                    0, regUpdate, regUpdateL, regUpdateB, numArgCall, numRegCall, size
+                            );
+                            z3engine.addRule(z3engine.implies(h, b), null);
+
+                            regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
+                        }
+
+                }
+              }
+              else{
+                this.invokeNotKnown(false, referenceStringClass, referenceString);
+              }
+              break;
+            }     
+            
+            //////////////////////////////////
+            
             dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.DIRECT);
             if (dispatchResult != null){
                 this.invoke(dispatchResult, false, null);
