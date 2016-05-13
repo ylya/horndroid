@@ -11,8 +11,9 @@ import com.microsoft.z3.Z3Exception;
 public class FSFunction {
 
     // Function
-    private final FuncDecl h, hi, i, s, ta;
+    private final FuncDecl h, hi, i, s, ta, ra;
     private FuncDecl reachLH, cFilter;
+
 
     public FSFunction(Context ctx, int bvSize) throws Z3Exception {
         BitVecSort bv64 = ctx.mkBitVecSort(bvSize);
@@ -26,7 +27,7 @@ public class FSFunction {
         this.s = ctx.mkFuncDecl("S", new Sort[]{integer, integer, bv64, bool, bool}, bool);
         
         this.ta = ctx.mkFuncDecl("TA", new Sort[]{bv64, bool}, bool); //used for computing taint on the connected component on the heap
-        this.reachLH = null;
+        this.ra = ctx.mkFuncDecl("RA", new Sort[]{bv64, bv64}, bool); //used for computing the connected component of the heap element
     }
 
     public FuncDecl getH() {
@@ -59,5 +60,8 @@ public class FSFunction {
     }
     public void setCFilter(FuncDecl f){
     	this.cFilter = f;
+    }
+    public FuncDecl getReach(){
+        return ra;
     }
 }

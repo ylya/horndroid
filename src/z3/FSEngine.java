@@ -53,6 +53,7 @@ public class FSEngine extends Z3Clauses{
             this.declareRel(func.getS());
             
             this.declareRel(func.getTaint());
+            this.declareRel(func.getReach());
             // add main
             BoolExpr b1 = hPred(var.getCn(), var.getCn(), mContext.mkBV("parent".hashCode(), bvSize), var.getF(),
                     var.getLf(), var.getBf());
@@ -85,6 +86,30 @@ public class FSEngine extends Z3Clauses{
             BoolExpr bb2 = taintPred(var.getVfp(), var.getLfp());
             BoolExpr hh2_bb2 = mContext.mkImplies(hh2, bb2);
             this.addRule(hh2_bb2, null);
+            
+            
+            // adding rules for the connected component reach
+            // base
+            BoolExpr hh3 = mContext.mkAnd(
+                    hPred(var.getCn(), var.getVfp(),
+                            var.getF(),
+                            var.getVal(), var.getLf(), var.getBf()),
+                    this.eq(var.getBf(), mContext.mkTrue())
+                    );
+            BoolExpr bb3 = reachPred(var.getVfp(), var.getVal());
+            BoolExpr hh3_bb3 = mContext.mkImplies(hh3, bb3);
+            this.addRule(hh3_bb3, null);
+            // step
+            BoolExpr hh4 = mContext.mkAnd(
+                    hPred(var.getCn(), var.getVfp(),
+                            var.getF(),
+                            var.getVal(), var.getLf(), var.getBf()),
+                    this.eq(var.getBf(), mContext.mkTrue()),
+                    reachPred(var.getVal(), var.getRez())
+                    );
+            BoolExpr bb4 = reachPred(var.getVfp(), var.getRez());
+            BoolExpr hh4_bb4 = mContext.mkImplies(hh4, bb4);
+            this.addRule(hh4_bb4, null);
             
         } catch (Z3Exception e) {
             e.printStackTrace();
@@ -702,31 +727,12 @@ public class FSEngine extends Z3Clauses{
         }
     }
 
-    
-    /*private FuncDecl taintPredDef(String c, String m, int pc, int size) {
+    public BoolExpr reachPred(BitVecExpr value, BitVecExpr value2) {
         try {
-            // taintPredDef
-            BitVecSort bv64 = mContext.mkBitVecSort(bvSize);
-            BoolSort bool = mContext.mkBoolSort();
-
-            String funcName = "TA_" + c + '_' + m + '_' + Integer.toString(pc);
-            FuncDecl f = mContext.mkFuncDecl(funcName, new Sort[]{bv64, bool, bool}, bool);
-            this.declareRel(f);
-            return f;
+            return (BoolExpr) func.getReach().apply(value, value2);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("FSEngine Failed: rPredDef");
+            throw new RuntimeException("Z3Engine Failed: reachPred");
         }
     }
-    
-    public BoolExpr taintPred(final String c, final String m, final int pc, BitVecExpr value, BoolExpr global, BoolExpr label, int size) {
-        try {
-            FuncDecl taint = this.taintPredDef(c, m, pc, size);
-            BoolExpr rez = (BoolExpr) taint.apply(value, global, label);
-            return rez;
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: taintPred");
-        }
-    }*/
 }

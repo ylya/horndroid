@@ -2919,8 +2919,6 @@ public class FSInstructionAnalysis{
         	for (final CharSequence type : parameterTypes) {
         		if (type.toString().contains(";") || type.toString().contains("]")) {
 
-        			//TODO: as we discussed, one case is missing here
-
         			// place taint from a primitive arguments to the ref
         			buildH();
         			h = fsengine.and(
@@ -2956,6 +2954,20 @@ public class FSInstructionAnalysis{
         					,fsvar.getF(), fsvar.getFpp(),
         					fsvar.getLf(), fsvar.getBf());
         			buildRule();
+        			
+        			//reach case
+        			buildH();
+                    h = fsengine.and(
+                            h,
+                            fsengine.or(fsvar.getL(getRegisterNumber(range, i)), fsvar.getG(getRegisterNumber(range, i))),
+                            fsengine.taintPred(fsvar.getV(getRegisterNumber(range, i)), fsvar.getLf()),
+                            fsengine.reachPred(fsvar.getV(getRegisterNumber(range, i)), fsvar.getVfp())
+                            );
+                    b = fsengine.hPred(fsvar.getCn(), 
+                            fsvar.getVfp()
+                            ,fsvar.getF(), fsvar.getFpp(),
+                            fsvar.getLf(), fsvar.getBf());
+                    buildRule();
 
         		}
         		i = i + 1;
