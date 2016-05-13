@@ -1480,7 +1480,6 @@ public class FSInstructionAnalysis{
             */
             if ((referenceIntIndex == "<init>(Ljava/lang/Runnable;)V".hashCode()) && (referenceClassIndex == "Ljava/lang/Thread;".hashCode())){
                                 
-                //dispatchResult = dispatch.expensiveImplementationSearch("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode(), referenceStringClass, referenceString);
                 dispatchResult = dispatch.dispatch("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode(), referenceStringClass, referenceString, CallType.INTERFACE);
                 if (dispatchResult != null){
                     FiveRegisterInstruction instr2 = (FiveRegisterInstruction)this.instruction;
@@ -2604,6 +2603,7 @@ public class FSInstructionAnalysis{
     /*
      * Local Heap handling functions    
      */
+    //TODO: is this still needed?
     private void liftLHCObject(BoolExpr h, int allocationPoint){
         Map<Integer,Boolean> fields = analysis.getClassFields(analysis.getAllocationPointClass(allocationPoint), allocationPoint);
         int size = analysis.getSize();
@@ -2629,10 +2629,10 @@ public class FSInstructionAnalysis{
             fsengine.addRule(fsengine.implies(h, b), null);
         }
     }
-
-    // Lift the whole local heap if 'h' holds
-    // Besides apply the single register update 'u' after lifting
-    private void liftIfLocal(BoolExpr h,FSSingleRegUpdate u){
+    
+    // Lift the part of the local heap defined by 'filter'
+    // Besides apply the single register update 'u' after lifting, and the single local heap update 'lhu'
+    private void liftLocalHeap(BoolExpr h,FSSingleRegUpdate u,FSSingleLHUpdate lhu, Map<Integer,BoolExpr> filter){
     	int size = analysis.getSize();
     	// Lift the registers to global heap pointers
     	for (int i = 0; i <= numRegLoc  ; i++){
@@ -2664,23 +2664,40 @@ public class FSInstructionAnalysis{
     	}
     }
 
-    // For comparison instruction. Jump iff boolexpr is true
-    private void cmpInstruction(BoolExpr boolexpr,Analysis analysis){
-        int jump = codeAddress + ((OffsetInstruction)instruction).getCodeOffset();
-        h = fsengine.and(
-                fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
-                boolexpr
-                );
-        b = fsengine.rPred(classIndex, methodIndex, jump, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
-        buildRule();
+    // Lift the whole local heap if 'h' holds
+    // Besides apply the single register update 'u' after lifting
+    private void liftWholeHeap(BoolExpr h,FSSingleRegUpdate u){
+    	int size = analysis.getSize();
+    	// Lift the registers to global heap pointers
+    	for (int i = 0; i <= numRegLoc  ; i++){
+    		regUpG.put(i,fsengine.or(fsvar.getG(i),fsvar.getL(i)));
+    		regUpL.put(i,fsengine.mkFalse());
+    	}
+    	// Reset the local heap
+    	// Everybody is overwritten by 0 here
+    	for (int i = 0; i < analysis.getLocalHeapSize();i++) {
+    		regUpLHV.put(i,fsengine.mkBitVector(0, size));
+    		regUpLHH.put(i,fsengine.mkFalse());
+    		regUpLHL.put(i,fsengine.mkFalse());
+    		regUpLHG.put(i,fsengine.mkFalse());
+    		regUpLHF.put(i,fsengine.mkTrue());
+    	}
+    	// Update the registers with u if necessary
+    	if (u != null){
+    		u.apply(regUpV, regUpH, regUpL, regUpG);
+    	}
+    	buildB();
+    	fsengine.addRule(fsengine.implies(h, b), null);
 
-        h = fsengine.and(
-                h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
-                fsengine.not(boolexpr)
-                );
-        buildB();
-        buildRule();
+    	regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
+    	regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
+
+    	// Create the new global heap objects
+    	for (int allocationPoint : analysis.getAllocationPoints()){
+    		this.liftObject(h, allocationPoint);
+    	}
     }
+
 
     private void liftLi(){
         int size = analysis.getSize();
@@ -2717,6 +2734,24 @@ public class FSInstructionAnalysis{
         }
     }
     
+    // For comparison instruction. Jump iff boolexpr is true
+    private void cmpInstruction(BoolExpr boolexpr,Analysis analysis){
+        int jump = codeAddress + ((OffsetInstruction)instruction).getCodeOffset();
+        h = fsengine.and(
+                fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
+                boolexpr
+                );
+        b = fsengine.rPred(classIndex, methodIndex, jump, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+        buildRule();
+
+        h = fsengine.and(
+                h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
+                fsengine.not(boolexpr)
+                );
+        buildB();
+        buildRule();
+    }
+
     private BoolExpr getLabels(){
         FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
         final int regCount = instruction.getRegisterCount();

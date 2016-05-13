@@ -727,6 +727,72 @@ public class FSEngine extends Z3Clauses{
         }
     }
 
+    /*
+     * Declare the type of the LiftLH predicate. 
+     * LiftLH(h^*,k^*) means that the part of the local heap h^* defined by k^* should be lifted
+     * Positions description, by block of localHeapSize entries:
+     * h^* values
+     * h^* high or low label
+     * h^* local labels
+     * h^* global labels
+     * k^*
+     */
+    private FuncDecl liftLHDef() {
+    	if (!isInitialized()){
+    		throw new RuntimeException("Initialize the FSEngine before defining ReachLH predicate");
+    	}
+        try {
+            BitVecSort bv64 = mContext.mkBitVecSort(bvSize);
+            BoolSort bool = mContext.mkBoolSort();
+
+            String funcName = "LiftLH";
+            Sort[] domains = new Sort[5 * localHeapSize];
+            Arrays.fill(domains, 0, localHeapSize, bv64); 
+            Arrays.fill(domains, localHeapSize, 5 * localHeapSize, bool); 
+            FuncDecl f = mContext.mkFuncDecl(funcName, domains, mContext.mkBoolSort());
+            this.declareRel(f);
+            return f;
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: cFilterDef");
+        }
+    }
+    
+    public BoolExpr liftLHPred(final Map<Integer, BitVecExpr> lHValues,  final Map<Integer, BoolExpr> lHHigh, final Map<Integer, BoolExpr> lHLocal,  final Map<Integer, BoolExpr> lHGlobal, final Map<Integer, BoolExpr> lHFilter) {
+        try {
+            FuncDecl llh= func.getLiftLH();
+            
+            Expr[] e = new Expr[5 * this.localHeapSize];
+            for (int i = 0; i < this.localHeapSize; i++) {
+                e[i] = lHValues.get(i);
+                if (e[i] == null) {
+                    e[i] = var.getLHV(i);
+                } 
+                e[2*i] = lHHigh.get(i);
+                if (e[2*i] == null) {
+                    e[2*i] = var.getLHH(i);
+                }
+                e[3*i] = lHLocal.get(i);
+                if (e[3*i] == null) {
+                    e[3*i] = var.getLHL(i);
+                }
+                e[4*i] = lHGlobal.get(i);
+                if (e[4*i] == null) {
+                    e[4*i] = var.getLHG(i);
+                }
+                e[5*i] = lHFilter.get(i);
+                if (e[5*i] == null) {
+                    e[5*i] = var.getLHF(i);
+                }
+            }
+
+            return (BoolExpr) llh.apply(e);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: cFilterPred");
+        }
+    }
+
     public BoolExpr reachPred(BitVecExpr value, BitVecExpr value2) {
         try {
             return (BoolExpr) func.getReach().apply(value, value2);

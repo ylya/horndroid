@@ -295,6 +295,11 @@ public class Analysis {
         return result;
     }
     
+    /*
+     * Generates the Horn Clauses for the ReachLH(v_1,v_2,h^*) predicate, 
+     * which states that one local pointer v_2 is reachable from the local pointer v_1 in the local heap h^*
+     * (The predicate only needs value and local label information from the local heap)
+     */
     private void generateReachLHRules() {
     	Map<Integer, BitVecExpr> lHValues = new HashMap<Integer,BitVecExpr>(localHeapSize);
     	Map<Integer, BoolExpr> lHLocal = new HashMap<Integer,BoolExpr>(localHeapSize);
@@ -327,6 +332,47 @@ public class Analysis {
      * I believe this formalization to be simpler for Z3.
      */
     private void generatesCFilter() {
+    	Map<Integer, BitVecExpr> lHValues = new HashMap<Integer,BitVecExpr>(localHeapSize);
+    	Map<Integer, BoolExpr> lHLocal = new HashMap<Integer,BoolExpr>(localHeapSize);
+    	Map<Integer, BoolExpr> lHFilter = new HashMap<Integer,BoolExpr>(localHeapSize);
+
+    	// Base case
+    	for (int i = 0; i < localHeapSize; i++){
+    		lHFilter.put(i, fsengine.mkFalse());
+    	}
+    	fsengine.addRule(fsengine.cFilterPred(fsvar.getVal(), fsvar.getBf(), lHValues, lHLocal, lHFilter), null);
+    	lHFilter.clear();
+    	
+    	// Induction case: there is one rule for each object in the local heap
+    	BoolExpr h = fsengine.and(
+    			fsengine.reachLHPred(fsvar.getVal(), fsvar.getVfp(), lHValues, lHLocal),
+    			fsengine.cFilterPred(fsvar.getVal(), fsvar.getBf(), lHValues, lHLocal, lHFilter),
+    			fsvar.getBf()
+    			);
+    	for (int entry = 0; entry < localHeapNumberEntries; entry++){
+    		int instanceNum = allocationPointNumbersReverse.get(entry);
+    		int offset = allocationPointOffset.get(instanceNum);
+    		int entrySize = allocationPointSize.get(instanceNum);
+
+			BoolExpr hh = fsengine.and(
+					h,
+					fsengine.eq(fsvar.getVfp(), fsengine.mkBitVector(instanceNum, getSize()))
+					);
+
+    		for (int fieldNum = offset; fieldNum < offset + entrySize; fieldNum++){
+    			lHFilter.put(fieldNum, fsengine.mkTrue());
+    		}
+
+    		BoolExpr b = fsengine.cFilterPred(fsvar.getVal(), fsvar.getBf(), lHValues, lHLocal, lHFilter);
+			fsengine.addRule(fsengine.implies(hh, b), null);
+			lHFilter.clear();
+    	}	
+    }
+    
+    /*
+     * Generates the Horn Clauses for the LiftLH predicate.
+     */
+    private void generatesLiftLH() {
     	Map<Integer, BitVecExpr> lHValues = new HashMap<Integer,BitVecExpr>(localHeapSize);
     	Map<Integer, BoolExpr> lHLocal = new HashMap<Integer,BoolExpr>(localHeapSize);
     	Map<Integer, BoolExpr> lHFilter = new HashMap<Integer,BoolExpr>(localHeapSize);
