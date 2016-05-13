@@ -11,7 +11,7 @@ import com.microsoft.z3.Z3Exception;
 public class FSFunction {
 
     // Function
-    private final FuncDecl h, hi, i, s, ta;
+    private final FuncDecl h, hi, i, s, ta, ra;
 
     public FSFunction(Context ctx, int bvSize) throws Z3Exception {
 //        out.println("(declare-rel H (bv64 bv64 bv64 bv64 Bool Bool) interval_relation bound_relation)");
@@ -29,6 +29,7 @@ public class FSFunction {
         this.s = ctx.mkFuncDecl("S", new Sort[]{integer, integer, bv64, bool, bool}, bool);
         
         this.ta = ctx.mkFuncDecl("TA", new Sort[]{bv64, bool}, bool); //used for computing taint on the connected component on the heap
+        this.ra = ctx.mkFuncDecl("RA", new Sort[]{bv64, bv64}, bool); //used for computing the connected component of the heap element
     }
 
     public FuncDecl getH() {
@@ -49,5 +50,8 @@ public class FSFunction {
     
     public FuncDecl getTaint(){
         return ta;
+    }
+    public FuncDecl getReach(){ //or dye tryin'
+        return ra;
     }
 }
