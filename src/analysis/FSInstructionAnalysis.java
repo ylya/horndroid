@@ -185,7 +185,7 @@ public class FSInstructionAnalysis{
         numRegLoc = dm.getNumReg();
         numParLoc = dm.getNumArg();
 
-        
+
         if (options.debug){
            buildH();
            for (int i = 0; i < this.numRegLoc; i++){

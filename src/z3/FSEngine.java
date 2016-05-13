@@ -101,9 +101,15 @@ public class FSEngine extends Z3Clauses{
         this.allocationPointSize = allocationPointSize;
         this.var.initialize(localHeapSize);
         this.initialized = true;
+        
+        func.setReachLH(this.reachLHDef());
+        this.declareRel(func.getReachLH());
+        
+        func.setCFilter(this.cFilterDef());
+        this.declareRel(func.getCFilter());
     }
 
-    public Boolean isInitialized() {
+	public Boolean isInitialized() {
         return initialized;
     }
 
@@ -122,7 +128,6 @@ public class FSEngine extends Z3Clauses{
         return func;
     }
 
-    @SuppressWarnings("unused")
     public void addQuery(Z3Query query) {
         boolean sameAsCurrentQuery = QUERY_IS_COMPACT && (mCurrentQuery != null)
                 && mCurrentQuery.getClassName().equals(query.getClassName())
@@ -570,6 +575,133 @@ public class FSEngine extends Z3Clauses{
             throw new RuntimeException("Z3Engine Failed: taintPred");
         }
     }
+    
+    /*
+     * Declare the type of the ReachLH predicate. 
+     * ReachLH(v_1,v_2,h^*) means that starting from location v_1, one can reach location v_2 in the local heap h^*
+     */
+    private FuncDecl reachLHDef() {
+    	if (!isInitialized()){
+    		throw new RuntimeException("Initialize the FSEngine before defining ReachLH predicate");
+    	}
+        try {
+            BitVecSort bv64 = mContext.mkBitVecSort(bvSize);
+            BoolSort bool = mContext.mkBoolSort();
+
+            String funcName = "ReachLH";
+            Sort[] domains = new Sort[2 + 2 * localHeapSize];
+            // location v_1 (starting point)
+            Arrays.fill(domains, 0, 1, bv64); 
+            // location v_2 (reachable point)
+            Arrays.fill(domains, 1, 2, bv64);             
+            // local heap entries
+            Arrays.fill(domains, 2, 2 + localHeapSize, bv64); 
+            // local object labels
+            Arrays.fill(domains, 2 + localHeapSize, 2 + 2 * localHeapSize, bool); 
+            FuncDecl f = mContext.mkFuncDecl(funcName, domains, mContext.mkBoolSort());
+            this.declareRel(f);
+            return f;
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: reachLHDef");
+        }
+    }
+
+    
+    public BoolExpr reachLHPred(BitVecExpr vi, BitVecExpr vr, final Map<Integer, BitVecExpr> lHValues, final Map<Integer, BoolExpr> lHLocal) {
+        try {
+            FuncDecl rlh = func.getReachLH();
+            
+            Expr[] e = new Expr[2 + 2 * this.localHeapSize];
+            e[0] = vi;
+            e[1] = vr;
+            for (int loop = 0, i = 2, j = 2 + this.localHeapSize; loop < this.localHeapSize; loop++, i++, j++) {
+                e[i] = lHValues.get(loop);
+                if (e[i] == null) {
+                    e[i] = var.getLHV(loop);
+                } 
+                e[j] = lHLocal.get(loop);
+                if (e[j] == null) {
+                    e[j] = var.getLHL(loop);
+                }
+            }
+
+            return (BoolExpr) rlh.apply(e);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: reachLHPred");
+        }
+    }
+    
+
+    /*
+     * Declare the type of the CFilter predicate. 
+     * CFilter(v,h^*,k^*) means that starting from location v, one can reach in the local heap h^* all locations marked by a 1 in k^*.
+     * Positions description:
+     * 1: value of v
+     * 2: boolean indicating whether v is a local pointer
+     * 2+1 --> 2+localHeapSize: values in the local heap
+     * 2+localHeapSize + 1 --> 2 + 2 * localHeapSize: booleans storing local pointer information if the local heap
+     * 2+ 2 * localHeapSize + 1 --> 2 + 3 * localHeapSize: k^*
+     */
+    private FuncDecl cFilterDef() {
+    	if (!isInitialized()){
+    		throw new RuntimeException("Initialize the FSEngine before defining ReachLH predicate");
+    	}
+        try {
+            BitVecSort bv64 = mContext.mkBitVecSort(bvSize);
+            BoolSort bool = mContext.mkBoolSort();
+
+            String funcName = "CFilter";
+            Sort[] domains = new Sort[2 + 3 * localHeapSize];
+            // value of v
+            Arrays.fill(domains, 0, 1, bv64); 
+            // local label of v
+            Arrays.fill(domains, 1, 2, bool);             
+            // local heap entries
+            Arrays.fill(domains, 2, 2 + localHeapSize, bv64); 
+            // local heap local labels
+            Arrays.fill(domains, 2 + localHeapSize, 2 + 2 * localHeapSize, bool); 
+            // abstract filter labels
+            Arrays.fill(domains, 2 + 2 * localHeapSize, 2 + 3 * localHeapSize, bool); 
+            FuncDecl f = mContext.mkFuncDecl(funcName, domains, mContext.mkBoolSort());
+            this.declareRel(f);
+            return f;
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: cFilterDef");
+        }
+    }
+    
+    public BoolExpr cFilterPred(BitVecExpr v, BoolExpr b, final Map<Integer, BitVecExpr> lHValues, final Map<Integer, BoolExpr> lHLocal, final Map<Integer, BoolExpr> lHFilter) {
+        try {
+            FuncDecl rlh = func.getCFilter();
+            
+            Expr[] e = new Expr[2 + 3 * this.localHeapSize];
+            e[0] = v;
+            e[1] = b;
+            for (int loop = 0, i = 2, j = 2 + this.localHeapSize, k = 2 + 2 * this.localHeapSize; loop < this.localHeapSize; loop++, i++, j++, k++) {
+                e[i] = lHValues.get(loop);
+                if (e[i] == null) {
+                    e[i] = var.getLHV(loop);
+                } 
+                e[j] = lHLocal.get(loop);
+                if (e[j] == null) {
+                    e[j] = var.getLHL(loop);
+                }
+                e[k] = lHFilter.get(loop);
+                if (e[k] == null) {
+                    e[k] = var.getLHF(loop);
+                }
+            }
+
+            return (BoolExpr) rlh.apply(e);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: cFilterPred");
+        }
+    }
+
     
     /*private FuncDecl taintPredDef(String c, String m, int pc, int size) {
         try {

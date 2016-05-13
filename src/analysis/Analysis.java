@@ -295,6 +295,77 @@ public class Analysis {
         return result;
     }
     
+    private void generateReachLHRules() {
+    	Map<Integer, BitVecExpr> lHValues = new HashMap<Integer,BitVecExpr>(localHeapSize);
+    	Map<Integer, BoolExpr> lHLocal = new HashMap<Integer,BoolExpr>(localHeapSize);
+    	
+    	// Base case
+    	fsengine.addRule(fsengine.reachLHPred(fsvar.getVal(), fsvar.getVal(), lHValues, lHLocal), null);
+    	
+    	// Induction case: there is one rule for each field of each object in the local heap
+    	BoolExpr h = fsengine.reachLHPred(fsvar.getVal(), fsvar.getVfp(), lHValues, lHLocal);
+    	for (int entry = 0; entry < localHeapNumberEntries;entry++){
+    		int instanceNum = allocationPointNumbersReverse.get(entry);
+    		int offset = allocationPointOffset.get(instanceNum);
+    		int entrySize = allocationPointSize.get(instanceNum);
+    		for (int fieldNum = offset; fieldNum < offset + entrySize; fieldNum++){
+    			BoolExpr hh = fsengine.and(
+    					h,
+    					fsengine.eq(fsvar.getVfp(), fsengine.mkBitVector(instanceNum, getSize())),
+    					fsengine.eq(fsvar.getLHV(fieldNum), fsvar.getRez()),
+    					fsvar.getLHL(fieldNum)
+    					);
+    			BoolExpr b = fsengine.reachLHPred(fsvar.getVal(), fsvar.getRez(), lHValues, lHLocal);
+    			fsengine.addRule(fsengine.implies(hh, b), null);
+    		}
+    	}
+    }
+    
+    /*
+     * Generates the Horn Clauses used to compute connected components.
+     * This is done in a slightly different way than in the formal model (as of 12 May 2016). 
+     * I believe this formalization to be simpler for Z3.
+     */
+    private void generatesCFilter() {
+    	Map<Integer, BitVecExpr> lHValues = new HashMap<Integer,BitVecExpr>(localHeapSize);
+    	Map<Integer, BoolExpr> lHLocal = new HashMap<Integer,BoolExpr>(localHeapSize);
+    	Map<Integer, BoolExpr> lHFilter = new HashMap<Integer,BoolExpr>(localHeapSize);
+
+    	// Base case
+    	for (int i = 0; i < localHeapSize; i++){
+    		lHFilter.put(i, fsengine.mkFalse());
+    	}
+    	fsengine.addRule(fsengine.cFilterPred(fsvar.getVal(), fsvar.getBf(), lHValues, lHLocal, lHFilter), null);
+    	lHFilter.clear();
+    	
+    	// Induction case: there is one rule for each object in the local heap
+    	BoolExpr h = fsengine.and(
+    			fsengine.reachLHPred(fsvar.getVal(), fsvar.getVfp(), lHValues, lHLocal),
+    			fsengine.cFilterPred(fsvar.getVal(), fsvar.getBf(), lHValues, lHLocal, lHFilter),
+    			fsvar.getBf()
+    			);
+    	for (int entry = 0; entry < localHeapNumberEntries; entry++){
+    		int instanceNum = allocationPointNumbersReverse.get(entry);
+    		int offset = allocationPointOffset.get(instanceNum);
+    		int entrySize = allocationPointSize.get(instanceNum);
+
+			BoolExpr hh = fsengine.and(
+					h,
+					fsengine.eq(fsvar.getVfp(), fsengine.mkBitVector(instanceNum, getSize()))
+					);
+
+    		for (int fieldNum = offset; fieldNum < offset + entrySize; fieldNum++){
+    			lHFilter.put(fieldNum, fsengine.mkTrue());
+    		}
+
+    		BoolExpr b = fsengine.cFilterPred(fsvar.getVal(), fsvar.getBf(), lHValues, lHLocal, lHFilter);
+			fsengine.addRule(fsengine.implies(hh, b), null);
+			lHFilter.clear();
+    	}
+
+    	
+    }
+    
     private void initializeAllocationMapping(){
         Integer itNumber = 0;
         Integer offset = 0;
@@ -303,10 +374,11 @@ public class Analysis {
             final String referenceString = i.getType().getType();
             final Map<Integer, Boolean> fieldsMap = getClassFields(referenceString, instanceNum);
             TreeSet<Integer> fields = null;
-            if (fieldsMap != null)
+            if (fieldsMap != null){
                 fields = new TreeSet<Integer>(fieldsMap.keySet());
-            else
+            }else{
                 fields = new TreeSet<Integer>();
+            }
             allocationPointClass.put(instanceNum,referenceString);
             allocationPointClassDebug.put(instanceNum,this.getClassString(i.getC()));
             allocationPointMethod.put(instanceNum,this.getMethodString(i.getC(), i.getM()));
@@ -1064,6 +1136,15 @@ public class Analysis {
         
         // Initialize allocationPointOffset,allocationPointNumbers and allocationPointSize
         initializeAllocationMapping();
+
+        if (options.fsanalysis){
+            // Correctly set the corresponding fields in the FSEngine
+            fsengine.initialize(localHeapSize, allocationPointOffset, allocationPointSize);
+
+            // Generates ReachLH and CFilter rules for flow-sensitive analysis
+            generateReachLHRules();
+            generatesCFilter();
+        }
         
         addStaticFieldsValues();
         
@@ -1078,10 +1159,7 @@ public class Analysis {
         System.out.println("Number of instances : " + instances.size());
         //System.out.print("Number of processed instructions : " + numberOfHornCLauseInstructions);
         
-        // Correctly set the corresponding fields in the FSEngine
-        if (options.fsanalysis){
-            fsengine.initialize(localHeapSize, allocationPointOffset, allocationPointSize);
-        }
+
         
         
         for (final GeneralClass c: classes.values()){
@@ -1129,7 +1207,9 @@ public class Analysis {
     }
     
     
-    private boolean testEntryPoint(final GeneralClass c, final int methodIndex){
+
+    
+	private boolean testEntryPoint(final GeneralClass c, final int methodIndex){
         if (this.isEntryPoint(c.getType().hashCode(), methodIndex)){
             return true;
         }

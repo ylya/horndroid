@@ -12,12 +12,9 @@ public class FSFunction {
 
     // Function
     private final FuncDecl h, hi, i, s, ta;
+    private FuncDecl reachLH, cFilter;
 
     public FSFunction(Context ctx, int bvSize) throws Z3Exception {
-//        out.println("(declare-rel H (bv64 bv64 bv64 bv64 Bool Bool) interval_relation bound_relation)");
-//        out.println("(declare-rel HI (bv64 bv64 bv64 Bool Bool) interval_relation bound_relation)");
-//        out.println("(declare-rel I (bv64 bv64 bv64 Bool Bool) interval_relation bound_relation)");
-//        out.println("(declare-rel S (Int Int bv64 Bool Bool) interval_relation bound_relation)");
         BitVecSort bv64 = ctx.mkBitVecSort(bvSize);
         BoolSort bool = ctx.mkBoolSort();
         IntSort integer = ctx.mkIntSort();
@@ -29,6 +26,7 @@ public class FSFunction {
         this.s = ctx.mkFuncDecl("S", new Sort[]{integer, integer, bv64, bool, bool}, bool);
         
         this.ta = ctx.mkFuncDecl("TA", new Sort[]{bv64, bool}, bool); //used for computing taint on the connected component on the heap
+        this.reachLH = null;
     }
 
     public FuncDecl getH() {
@@ -49,5 +47,17 @@ public class FSFunction {
     
     public FuncDecl getTaint(){
         return ta;
+    }
+    public FuncDecl getReachLH(){
+    	return reachLH;
+    }
+    public void setReachLH(FuncDecl f){
+    	this.reachLH = f;
+    }
+    public FuncDecl getCFilter(){
+    	return cFilter;
+    }
+    public void setCFilter(FuncDecl f){
+    	this.cFilter = f;
     }
 }
