@@ -67,7 +67,7 @@ public class SourceSinkParser {
 	     Runtime runtime = Runtime.getRuntime();
 		 Process proc = runtime.exec(new String[]{"/bin/sh", "-c", "java -jar " + apktoolFolder + "apktool.jar d " + apkFileName + " -s -f -o " + outputDirectory + "/apktool"});
 
-        BufferedReader stdInput = new BufferedReader(new
+		 BufferedReader stdInput = new BufferedReader(new
 	     InputStreamReader(proc.getInputStream()));
 
 	     BufferedReader stdError = new BufferedReader(new 

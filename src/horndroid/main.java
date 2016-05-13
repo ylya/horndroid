@@ -97,16 +97,21 @@ public class main {
         if (!inputApkFile.exists()) { throw new RuntimeException("Cannot find file or directory \"" + inputApk + "\"");}
         startTime = System.nanoTime();
         System.out.print("Collecting apk files to process...");
-        if (inputApkFile.isDirectory()) {getApkFilesInDir(inputApkFile, filesToProcess);} 
-        else if (inputApkFile.isFile()) {filesToProcess.add(inputApkFile);}
+        if (inputApkFile.isDirectory()){
+        	getApkFilesInDir(inputApkFile, filesToProcess);
+        }else if (inputApkFile.isFile()){
+        	filesToProcess.add(inputApkFile);
+        }else{
+        	throw new RuntimeException("Neither a directory nor a normal file");
+        }
         endTime = System.nanoTime();
         System.out.println("done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
         //collect all apk files to process
 
         for (final File file: filesToProcess) {
             final String shortFilename = FilenameUtils.removeExtension(file.getName());
-            final String fullPath      = '/' + FilenameUtils.getPath(file.getPath());
-            final String inputApkFileName = '/' + FilenameUtils.getPath(file.getPath()) + file.getName();
+            final String fullPath      = FilenameUtils.getFullPath(file.getPath());
+            final String inputApkFileName = FilenameUtils.getFullPath(file.getPath()) + file.getName();
             hornDroidOptions.outputDirectory  = fullPath + shortFilename;
             final Z3Engine z3engine = new Z3Engine(hornDroidOptions);
             final FSEngine fsengine = new FSEngine(hornDroidOptions);
@@ -149,15 +154,15 @@ public class main {
             startTime = System.nanoTime();
             System.out.print("Parsing callbacks and disabled activities...");
             try {
-                SourceSinkParser.parseCallbacksFromXml(analysis, hornDroidOptions.outputDirectory, file.getAbsolutePath(), apktoolFolder);
+                SourceSinkParser.parseCallbacksFromXml(analysis, hornDroidOptions.outputDirectory, apkFile.getAbsolutePath(), apktoolFolder);
             } catch (IOException e) {
-                System.err.println("Error: Can't read xml! " + inputApkFileName);
+                System.err.println("Error: IOException : Can't read xml! " + inputApkFileName);
                 System.exit(1);
             } catch (SAXException e) {
-                System.err.println("Error: Can't read xml! " + inputApkFileName);
+                System.err.println("Error: SAXException : Can't read xml! " + inputApkFileName);
                 System.exit(1);
             } catch (ParserConfigurationException e) {
-                System.err.println("Error: Can't read xml! " + inputApkFileName);
+                System.err.println("Error: ParserConfigurationException : Can't read xml! " + inputApkFileName);
                 System.exit(1);
             }
             endTime = System.nanoTime();
