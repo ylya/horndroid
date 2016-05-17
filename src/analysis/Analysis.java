@@ -135,16 +135,6 @@ public class Analysis {
         this.overapprox.add("Landroid/support/v4/app/ListFragment;".hashCode());
         this.overapprox.add("Landroid/os/Handler;".hashCode());
         
-        /*
-        this.callbacks.add("onCreate"); 
-        this.callbacks.add("onDestroy");
-        this.callbacks.add("onStart");
-        this.callbacks.add("onPause");
-        this.callbacks.add("onStop");
-        this.callbacks.add("onRestart");
-        this.callbacks.add("onResume");
-        */
-        
         this.methodIsEntryPoint = new HashSet<CMPair>();
         this.staticConstructor = new HashSet<Integer>();
     }
@@ -371,45 +361,99 @@ public class Analysis {
     
     /*
      * Generates the Horn Clauses for the LiftLH predicate.
+     * We consider that an object in the local heap should be lifted iff its first field is label by true in the abstract filter
      */
     private void generatesLiftLH() {
     	Map<Integer, BitVecExpr> lHValues = new HashMap<Integer,BitVecExpr>(localHeapSize);
+    	Map<Integer, BoolExpr> lHHigh= new HashMap<Integer,BoolExpr>(localHeapSize);
     	Map<Integer, BoolExpr> lHLocal = new HashMap<Integer,BoolExpr>(localHeapSize);
+    	Map<Integer, BoolExpr> lHGlobal = new HashMap<Integer,BoolExpr>(localHeapSize);
     	Map<Integer, BoolExpr> lHFilter = new HashMap<Integer,BoolExpr>(localHeapSize);
 
-    	// Base case
-    	for (int i = 0; i < localHeapSize; i++){
-    		lHFilter.put(i, fsengine.mkFalse());
-    	}
-    	fsengine.addRule(fsengine.cFilterPred(fsvar.getVal(), fsvar.getBf(), lHValues, lHLocal, lHFilter), null);
-    	lHFilter.clear();
-    	
-    	// Induction case: there is one rule for each object in the local heap
-    	BoolExpr h = fsengine.and(
-    			fsengine.reachLHPred(fsvar.getVal(), fsvar.getVfp(), lHValues, lHLocal),
-    			fsengine.cFilterPred(fsvar.getVal(), fsvar.getBf(), lHValues, lHLocal, lHFilter),
-    			fsvar.getBf()
-    			);
+
+    	BoolExpr h = fsengine.liftLHPred(lHValues, lHHigh, lHLocal, lHGlobal, lHFilter);
     	for (int entry = 0; entry < localHeapNumberEntries; entry++){
     		int instanceNum = allocationPointNumbersReverse.get(entry);
     		int offset = allocationPointOffset.get(instanceNum);
-    		int entrySize = allocationPointSize.get(instanceNum);
 
 			BoolExpr hh = fsengine.and(
 					h,
-					fsengine.eq(fsvar.getVfp(), fsengine.mkBitVector(instanceNum, getSize()))
+					fsvar.getLHF(offset)
 					);
 
-    		for (int fieldNum = offset; fieldNum < offset + entrySize; fieldNum++){
-    			lHFilter.put(fieldNum, fsengine.mkTrue());
-    		}
+            Map<Integer,Boolean> fields = getClassFields(getAllocationPointClass(instanceNum), instanceNum);
+            int referenceIntIndex = getAllocationPointClass(instanceNum).hashCode();
+            if (fields != null){
+                int loopi = fsengine.getOffset(instanceNum);
+                for (Map.Entry<Integer, Boolean> fieldN : fields.entrySet()){
+                    BoolExpr b = fsengine.hPred(fsengine.mkBitVector(referenceIntIndex, getSize()),
+                            fsengine.mkBitVector(instanceNum, getSize()),
+                            fsengine.mkBitVector(fieldN.getKey(), getSize()),
+                            fsvar.getLHV(loopi),
+                            fsvar.getLHH(loopi),
+                            fsengine.or(fsvar.getLHL(loopi),fsvar.getLHG(loopi)));
+                    fsengine.addRule(fsengine.implies(hh, b), null);
+                    loopi++;
+                }   
+            }
+            else {
+                BoolExpr b = fsengine.hPred(fsengine.mkBitVector(referenceIntIndex, getSize()),
+                        fsengine.mkBitVector(instanceNum, getSize()),
+                        fsvar.getF(), fsengine.mkBitVector(0, getSize()),
+                        fsengine.mkFalse(), fsvar.getBf());
+                fsengine.addRule(fsengine.implies(hh, b), null);
+            }    		
+    	}    	
+    }
 
-    		BoolExpr b = fsengine.cFilterPred(fsvar.getVal(), fsvar.getBf(), lHValues, lHLocal, lHFilter);
-			fsengine.addRule(fsengine.implies(hh, b), null);
-			lHFilter.clear();
+    /*
+     * Generates the Horn Clauses for the vLiftL function.
+     * We consider that an object in the local heap should be lifted iff its first field is label by true in the abstract filter
+     */
+    private void generatesVLiftL() {
+    	Map<Integer, BoolExpr> lHFilter = new HashMap<Integer,BoolExpr>(localHeapSize);
+
+    	BoolExpr innerH = fsengine.mkTrue();
+    	for (int entry = 0; entry < localHeapNumberEntries; entry++){
+    		int instanceNum = allocationPointNumbersReverse.get(entry);
+    		int offset = allocationPointOffset.get(instanceNum);
+
+    		// innerH is a big or, with one 'literal' per allocation point
+    		innerH = fsengine.or(
+					innerH,
+					fsengine.and(
+							fsengine.not(fsvar.getLHF(offset)),
+							fsengine.eq(fsvar.getVal(),fsengine.mkBitVector(instanceNum, getSize()))
+							)
+					);
+    		BoolExpr h = fsengine.and(fsvar.getLf(),innerH);
+    		fsengine.addRule(fsengine.eq(h, fsengine.vLiftLPred(fsvar.getVal(), fsvar.getLf(), lHFilter)), null);
     	}
+    }
 
-    	
+    /*
+     * Generates the Horn Clauses for the vLiftG function.
+     * We consider that an object in the local heap should be lifted iff its first field is label by true in the abstract filter
+     */
+    private void generatesVLiftG() {
+    	Map<Integer, BoolExpr> lHFilter = new HashMap<Integer,BoolExpr>(localHeapSize);
+
+    	BoolExpr innerH = fsengine.mkTrue();
+    	for (int entry = 0; entry < localHeapNumberEntries; entry++){
+    		int instanceNum = allocationPointNumbersReverse.get(entry);
+    		int offset = allocationPointOffset.get(instanceNum);
+
+    		// innerH is a big or, with one 'literal' per allocation point
+    		innerH = fsengine.or(
+					innerH,
+					fsengine.and(
+							fsvar.getLHF(offset),
+							fsengine.eq(fsvar.getVal(),fsengine.mkBitVector(instanceNum, getSize()))
+							)
+					);
+    		BoolExpr h = fsengine.or(fsengine.and(fsvar.getLf(),innerH),fsvar.getGrez());
+    		fsengine.addRule(fsengine.eq(h, fsengine.vLiftGPred(fsvar.getVal(), fsvar.getLf(), fsvar.getGrez(), lHFilter)), null);
+    	}
     }
     
     private void initializeAllocationMapping(){
@@ -519,15 +563,7 @@ public class Analysis {
     public Integer getInstNum(final int c, final int m, final int pc){
         return DalvikInstance.hashCode(c, m, pc);
     }
-    
-   /* public Integer getInstNum(final int c, final int m, final int pc){
-        for (final DalvikInstance di: instances.getAll()){
-            if ((di.getC() == c) && (di.getM() == m) && (di.getPC() == pc)){
-                return di.hashCode();
-            }
-        }
-        return null;
-    }*/
+
     
     private void addToMain(final DalvikClass dc, final int methodIndex, final int numRegCall, final int regCount){
         final int classIndex = dc.getType().hashCode();
@@ -670,8 +706,6 @@ public class Analysis {
 
             int codeAddress = 0;
             for (final Instruction instruction: m.getInstructions()){
-                //numberOfHornCLauseInstructions = numberOfHornCLauseInstructions + 1;
-                //System.out.print("\rNumber of processed instructions : " + numberOfHornCLauseInstructions);
                 if (options.fsanalysis){
                     FSInstructionAnalysis ia = new FSInstructionAnalysis(this, instruction, dc, m, codeAddress);
                     ia.CreateHornClauses(options, apkClassesMethods);
@@ -827,37 +861,6 @@ public class Analysis {
         }
     }
     
-
-//    private void addClass(final GeneralClass cp, final Set<GeneralClass> addedInPool){
-//        if(!addedInPool.contains(cp) && cp != null){
-//            addedInPool.add(cp);
-//            
-//            classes.put(cp.getType().hashCode(),cp);
-//            if (cp instanceof DalvikClass){
-//                // Add the superclass of cp
-//                GeneralClass superClass = ((DalvikClass)cp).getSuperClass();
-//                if (! (superClass == null)){
-//                    if(apkClasses.containsKey(superClass.getType().hashCode())){
-//                        GeneralClass supClass = apkClasses.get(superClass.getType().hashCode());
-//                        addClass(supClass, addedInPool);
-//                    }else{                    
-//                        GeneralClass stub = stubs.getClasses().get(superClass.getType().hashCode());
-//                        if (stub != null){
-//                            ((DalvikClass) cp).putSuperClass(stub);
-//                            addClass(stub,addedInPool);
-//                        }else{
-//                            throw new RuntimeException("addClass " + cp.getType());
-//                        }
-//                    }
-//                }else{
-//                    if (!cp.getType().equals("Ljava/lang/Object;")){
-//                        System.out.println("Should be Ljava/lang/Object; " + cp.getType());
-//                    }
-//                }
-//            }
-//            
-//        }
-//    }
     
 
     private void addClassFromApk(final GeneralClass cp, final LinkedList<SimpleEntry<GeneralClass,String>> pool,
@@ -865,28 +868,12 @@ public class Analysis {
             if(!addedInPool.contains(cp) && cp != null){
                 addedInPool.add(cp);
 
-            //classes.put(cp.getType().hashCode(), cp);
             if (cp instanceof DalvikClass){
                 // Add all cp's methods to the pool and processCM set
                 for (DalvikMethod m : ((DalvikClass)cp).getMethods()){
                     pool.add(new SimpleEntry<GeneralClass,String>(cp,m.getName()));
                     processCM.add(new CMPair(cp.getType().hashCode(),m.getName().hashCode()));
                 }
-
-//                // Add the superclass of cp
-//                GeneralClass superClass = ((DalvikClass)cp).getSuperClass();
-//                if (superClass != null){
-//                    if(apkClasses.containsKey(superClass.getType().hashCode())){
-//                        GeneralClass supClass = apkClasses.get(superClass.getType().hashCode());
-//
-//                        addClass(supClass, addedInPool);
-//                    }else{                    
-//                        GeneralClass stub = stubs.getClasses().get(superClass.getType().hashCode());
-//
-//                        ((DalvikClass) cp).putSuperClass(stub);
-//                        addClass(stub,addedInPool);
-//                    }
-//                }
             }
         }
     }
@@ -997,17 +984,10 @@ public class Analysis {
             GeneralClass c = entry.getKey();
             String mString = entry.getValue();
             CallType callType = null;
-            //addClass(c,addedInPool);
 
             if (c instanceof DalvikClass){
                 final DalvikClass dc = (DalvikClass) c;
                 DalvikMethod m = dc.getMethod(mString.hashCode());
-   /*             if (m == null) {
-                    continue; // we fetch implementation that does not exist,
-                              // e.g., method is implemented in super class only
-                              // but we ask its child for the implementation
-                }
-*/       // We look for classes and method in the instructions of m
                 
                 int codeAddress = 0;
                 for (Instruction instruction : m.getInstructions()){
@@ -1187,15 +1167,16 @@ public class Analysis {
             // Correctly set the corresponding fields in the FSEngine
             fsengine.initialize(localHeapSize, allocationPointOffset, allocationPointSize);
 
-            // Generates ReachLH and CFilter rules for flow-sensitive analysis
+            // Generates heap handling rules for the flow-sensitive analysis
             generateReachLHRules();
             generatesCFilter();
+            generatesLiftLH();
+            generatesVLiftL();
+            generatesVLiftG();
         }
         
         addStaticFieldsValues();
         
-        // Populate refSources and refSinks with sources and sinks
-        //setSourceSink();
         printSourceSink();
         
         System.out.println("Ready to start generating Horn Clauses:");
@@ -1227,29 +1208,6 @@ public class Analysis {
                 processClass(dc, isDisabledActivity, isci, isLauncherActivity, isApplication, isOverapprox);
             }
         }
-        
-        /*for (final StringPair p: apkClassesMethods){
-            if (classes.containsKey(p.st1.hashCode())){
-                final GeneralClass c = classes.get(p.st1.hashCode());
-                if ((c instanceof DalvikClass)){
-                    final DalvikClass dc = (DalvikClass) c;
-
-                    final boolean isDisabledActivity = testDisabledActivity(dc);
-                    final boolean isLauncherActivity = testLauncherActivity(dc);
-                    final boolean isApplication = testApplication(dc);
-                    final boolean isOverapprox = testOverapprox(dc);
-                    boolean isCallbackImplementation = false;
-                    for (final GeneralClass interfaceC: dc.getInterfaces()){
-                        if (callbackImplementations.contains(interfaceC.getType().hashCode())){
-                            isCallbackImplementation = true;
-                        }
-                    }
-
-                    final boolean isci = isCallbackImplementation;
-                    processClass(dc, isDisabledActivity, isci, isLauncherActivity, isApplication, isOverapprox);
-                }
-            }
-        }*/
     }
     
     
@@ -1341,27 +1299,7 @@ public class Analysis {
         System.out.println("Number of sinks: " + refSinks.size());
     }
 
-//    /*
-//     * Populate the sets refSources and refSinks with sources and sinks
-//     * Should be called only once
-//     */
-//    //TODO: we take only the apk sources/sinks calls
-//    private void setSourceSink() {
-//        for (final StringPair sp : apkClassesMethods) {
-//            final String c = sp.st1;
-//            final String m = sp.st2;
-//            Boolean isSourceSink = isSourceSink(c,m);
-//            if (isSourceSink != null) {
-//                if (isSourceSink) {
-//                    refSources.add(new CMPair(c.hashCode(),m.hashCode()));
-//                } else {
-//                    refSinks.add(new CMPair(c.hashCode(),m.hashCode()));
-//                }
-//            }
-//        }
-//        System.out.println("Number of sources: " + refSources.size());
-//        System.out.println("Number of sinks: " + refSinks.size());
-//    }
+
     public boolean isFlowSens() {
         return options.fsanalysis;
     }

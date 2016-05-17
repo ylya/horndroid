@@ -2630,9 +2630,10 @@ public class FSInstructionAnalysis{
         }
     }
     
-    // Lift the part of the local heap defined by 'filter'
-    // Besides apply the single register update 'u' after lifting, and the single local heap update 'lhu'
-    private void liftLocalHeap(BoolExpr h,FSSingleRegUpdate u,FSSingleLHUpdate lhu, Map<Integer,BoolExpr> filter){
+    /* Lift the part of the local heap defined by 'filter'
+     * Besides apply the single register update 'u' after lifting, and the local heap update 'lhu'
+     */
+    private void liftLocalHeap(BoolExpr h,FSSingleRegUpdate u,LHUpdate lhu, Map<Integer,BoolExpr> filter){
     	int size = analysis.getSize();
     	// Lift the registers to global heap pointers
     	for (int i = 0; i <= numRegLoc  ; i++){
@@ -2664,8 +2665,9 @@ public class FSInstructionAnalysis{
     	}
     }
 
-    // Lift the whole local heap if 'h' holds
-    // Besides apply the single register update 'u' after lifting
+    /* Lift the whole local heap if 'h' holds
+     * Besides apply the single register update 'u' after lifting
+     */
     private void liftWholeHeap(BoolExpr h,FSSingleRegUpdate u){
     	int size = analysis.getSize();
     	// Lift the registers to global heap pointers
@@ -2699,6 +2701,7 @@ public class FSInstructionAnalysis{
     }
 
 
+    //Should be removed too
     private void liftLi(){
         int size = analysis.getSize();
         int vecsize = numRegLoc + 1;

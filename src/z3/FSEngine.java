@@ -127,11 +127,11 @@ public class FSEngine extends Z3Clauses{
         this.var.initialize(localHeapSize);
         this.initialized = true;
         
-        func.setReachLH(this.reachLHDef());
-        this.declareRel(func.getReachLH());
-        
+        func.setReachLH(this.reachLHDef());        
         func.setCFilter(this.cFilterDef());
-        this.declareRel(func.getCFilter());
+        func.setLiftLH((this.liftLHDef()));
+        func.setVLiftL(this.vLiftLDef());
+        func.setVLiftG(this.vLiftGDef());
     }
 
 	public Boolean isInitialized() {
@@ -792,7 +792,107 @@ public class FSEngine extends Z3Clauses{
             throw new RuntimeException("FSEngine Failed: cFilterPred");
         }
     }
+    
+    
+    /*
+     * Declare the signature of the vLiftL function
+     * vLiftL(v,vl,k^*) returns the local label of the register (or local heap) value v,vl after lifting with k^*
+     * More precisely, vLiftL(v,vl,k^*) is true iff v is a local pointer labeled by false in k^*
+     */
+    private FuncDecl vLiftLDef() {
+        try {
+            BitVecSort bv64 = mContext.mkBitVecSort(bvSize);
+            BoolSort bool = mContext.mkBoolSort();
 
+            String funcName = "vLiftL";
+            Sort[] domains = new Sort[2 +  localHeapSize];
+            // value
+            Arrays.fill(domains, 0, 1, bv64); 
+            // value local label
+            Arrays.fill(domains, 1, 2, bool); 
+            // filter
+            Arrays.fill(domains, 2, 2 + localHeapSize, bool);             
+            FuncDecl f = mContext.mkFuncDecl(funcName, domains, bool);
+            this.declareRel(f);
+            return f;
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: vLiftLDef");
+        }
+    }
+    
+    public BoolExpr vLiftLPred(BitVecExpr v, BoolExpr vl,  final Map<Integer, BoolExpr> lHFilter) {
+        try {
+            FuncDecl vll= func.getVLiftL();
+            
+            Expr[] e = new Expr[2 + this.localHeapSize];
+            e[0] = v;
+            e[1] = vl;            
+            for (int i = 0; i < this.localHeapSize; i++) {
+                e[2 + i] = lHFilter.get(i);
+                if (e[2 + i] == null) {
+                    e[2 + i] = var.getLHF(i);
+                }
+            }
+
+            return (BoolExpr) vll.apply(e);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: vLiftLPred");
+        }
+    }
+
+    /*
+     * Declare the signature of the vLiftG function
+     * vLiftL(v,vl,vg,k^*) returns the global label of the register (or local heap) value v,vl,vg after lifting with k^*
+     * More precisely, vLiftL(v,vl,k^*) is true iff v is a local pointer labeled by true in k^* or v is a global pointer
+     */
+    private FuncDecl vLiftGDef() {
+        try {
+            BitVecSort bv64 = mContext.mkBitVecSort(bvSize);
+            BoolSort bool = mContext.mkBoolSort();
+
+            String funcName = "vLiftG";
+            Sort[] domains = new Sort[3 +  localHeapSize];
+            // value
+            Arrays.fill(domains, 0, 1, bv64); 
+            // value local label
+            Arrays.fill(domains, 1, 2, bool); 
+            // value global label
+            Arrays.fill(domains, 2, 3, bool); 
+            // filter
+            Arrays.fill(domains, 3, 3 + localHeapSize, bool);             
+            FuncDecl f = mContext.mkFuncDecl(funcName, domains, bool);
+            this.declareRel(f);
+            return f;
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: vLiftGDef");
+        }
+    }
+
+    public BoolExpr vLiftGPred(BitVecExpr v, BoolExpr vl, BoolExpr vg, final Map<Integer, BoolExpr> lHFilter) {
+        try {
+            FuncDecl vll= func.getVLiftL();
+            
+            Expr[] e = new Expr[3 + this.localHeapSize];
+            e[0] = v;
+            e[1] = vl; 
+            e[2] = vg;
+            for (int i = 0; i < this.localHeapSize; i++) {
+                e[3 + i] = lHFilter.get(i);
+                if (e[3 + i] == null) {
+                    e[3 + i] = var.getLHF(i);
+                }
+            }
+
+            return (BoolExpr) vll.apply(e);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("FSEngine Failed: vLiftGPred");
+        }
+    }
+    
     public BoolExpr reachPred(BitVecExpr value, BitVecExpr value2) {
         try {
             return (BoolExpr) func.getReach().apply(value, value2);

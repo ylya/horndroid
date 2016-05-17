@@ -6,13 +6,13 @@ import java.util.Map.Entry;
 import com.microsoft.z3.BitVecExpr;
 import com.microsoft.z3.BoolExpr;
 
-public class FSSingleLHUpdate {
+public class LHUpdate {
     private Map<Integer,BitVecExpr> bv;
     private Map<Integer,BoolExpr> h;
     private Map<Integer,BoolExpr> l;
     private Map<Integer,BoolExpr> g;
     
-    public FSSingleLHUpdate(Map<Integer,BitVecExpr> bv, Map<Integer,BoolExpr> h, Map<Integer,BoolExpr> l, Map<Integer,BoolExpr> g){
+    public LHUpdate(Map<Integer,BitVecExpr> bv, Map<Integer,BoolExpr> h, Map<Integer,BoolExpr> l, Map<Integer,BoolExpr> g){
         this.bv = bv;
         this.h= h;
         this.l = l;
