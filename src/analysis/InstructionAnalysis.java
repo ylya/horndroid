@@ -910,17 +910,16 @@ public class InstructionAnalysis {
 
             regUpdateL.clear();
 
+            BitVecExpr fieldValue = (analysis.optionArrays()? var.getV(((ThreeRegisterInstruction) instruction).getRegisterC()): z3engine.mkBitVector(0, size));
             h = z3engine.and(
                     z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                     z3engine.hPred( var.getCn(), var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            z3engine.mkBitVector(0, size),
-                            z3engine.mkBitVector(0, size),
+                    		z3engine.mkBitVector(0, size),
+                            var.getVfp(),
                             var.getLf(), var.getBf())
                     );
             b = z3engine.hPred( var.getCn(), var.getV(((TwoRegisterInstruction)instruction).getRegisterB()),
-                    (analysis.optionArrays()
-                            ? var.getV(((ThreeRegisterInstruction) instruction).getRegisterC())
-                                    : z3engine.mkBitVector(0, size)),
+            		fieldValue,
                     var.getV(((OneRegisterInstruction)instruction).getRegisterA()),
                     var.getL(((OneRegisterInstruction)instruction).getRegisterA()),
                     var.getB(((OneRegisterInstruction)instruction).getRegisterA())

@@ -19,11 +19,12 @@ public class PackedSwitch {
 		}
 		return null;
 	}
-	public int getFirstKey(final int c, final int m, final int codeAddress) throws Exception{
+	public int getFirstKey(final int c, final int m, final int codeAddress){
 		if ((this.getC() == c) && (this.m == m) && (this.codeAddress == codeAddress)){
 			return firstKey;
+		}else{
+			throw new RuntimeException( "No first key found");
 		}
-		throw new Exception( "No first key found");
 	}
     public int getC() {
         return c;

@@ -698,6 +698,9 @@ public class FSEngine extends Z3Clauses{
         }
     }
     
+    /*
+     * Warning: default for 'lHFilter' is fsvar.getLHCF
+     */
     public BoolExpr cFilterPred(BitVecExpr v, BoolExpr b, final Map<Integer, BitVecExpr> lHValues, final Map<Integer, BoolExpr> lHLocal, final Map<Integer, BoolExpr> lHFilter) {
         try {
             FuncDecl rlh = func.getCFilter();
@@ -716,7 +719,7 @@ public class FSEngine extends Z3Clauses{
                 }
                 e[k] = lHFilter.get(loop);
                 if (e[k] == null) {
-                    e[k] = var.getLHF(loop);
+                    e[k] = var.getLHCF(loop);
                 }
             }
 

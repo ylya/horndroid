@@ -396,6 +396,9 @@ public class FSVariable {
         };
     }
 
+    /*
+     * This can be called with values greater than localHeapSize without overlapping.
+     */
     public BoolExpr getLHCF(int i) {
         try {
             return (BoolExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP +  5 * i + 4, bool);
