@@ -1385,6 +1385,9 @@ public class FSInstructionAnalysis{
 
         case INVOKE_SUPER:
         {
+            if (processIntent()){
+                break;
+            }
             dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.SUPER);
             int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
             if (dispatchResult != null){
@@ -1398,6 +1401,9 @@ public class FSInstructionAnalysis{
         
         case INVOKE_SUPER_RANGE:
         {
+            if (processIntent()){
+                break;
+            }
             dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.SUPER);
             int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
             if (dispatchResult != null){
@@ -1417,6 +1423,9 @@ public class FSInstructionAnalysis{
              */
         case INVOKE_VIRTUAL:
         {
+            if (processIntent()){
+                break;
+            }
             dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.VIRTUAL);
             int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
             if (dispatchResult != null){
@@ -1429,6 +1438,9 @@ public class FSInstructionAnalysis{
         break;
         case INVOKE_VIRTUAL_RANGE:
         {
+            if (processIntent()){
+                break;
+            }
             dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.VIRTUAL);
             int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
             if (dispatchResult != null){
@@ -1448,6 +1460,9 @@ public class FSInstructionAnalysis{
              */
         case INVOKE_INTERFACE:
         {
+            if (processIntent()){
+                break;
+            }
             dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.INTERFACE);
             int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
             if (dispatchResult != null){
@@ -1460,6 +1475,9 @@ public class FSInstructionAnalysis{
         break;
         case INVOKE_INTERFACE_RANGE:
         {
+            if (processIntent()){
+                break;
+            }
             dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.INTERFACE);
             int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
             if (dispatchResult != null){
@@ -1472,6 +1490,9 @@ public class FSInstructionAnalysis{
         break;
         case INVOKE_DIRECT:
         {
+            if (processIntent()){
+                break;
+            }
             //TODO: address the following
             /* we do a resolution on thread init, not on thread start, as at thread start the class information is lost
               (it is stored somewhere in the thread class by the operating system, we can also simulate that storing class name somewhere).
@@ -1539,6 +1560,9 @@ public class FSInstructionAnalysis{
         break;
         case INVOKE_DIRECT_RANGE:
         {
+            if (processIntent()){
+                break;
+            }
             dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.DIRECT);
             if (dispatchResult != null){
                 this.invoke(dispatchResult, true, null);
@@ -1550,6 +1574,9 @@ public class FSInstructionAnalysis{
         break;
         case INVOKE_STATIC:
         {
+            if (processIntent()){
+                break;
+            }
             dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.STATIC);
             if (dispatchResult != null){
                 this.invoke(dispatchResult, false, null);
@@ -1562,6 +1589,9 @@ public class FSInstructionAnalysis{
 
         case INVOKE_STATIC_RANGE:
         {
+            if (processIntent()){
+                break;
+            }
             dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.STATIC);
             if (dispatchResult != null){
                 this.invoke(dispatchResult, true, null);
@@ -2715,6 +2745,441 @@ public class FSInstructionAnalysis{
                     fsengine.and(fsvar.getL(i),hl)
                     );
         }
+    }
+    
+    private boolean processIntent(){
+        final int size = analysis.getSize();
+        int registerC, // r_d
+        registerE, // c'
+        registerD; // r_i
+        BitVecExpr typec = null;
+        if (referenceClassIndex == ("Landroid/content/Intent;".hashCode())
+                && (("<init>(Landroid/content/Context;Ljava/lang/Class;)V"
+                        .hashCode() == referenceIntIndex) || ("<init>(Ljava/lang/String;)V"
+                        .hashCode() == referenceIntIndex) || ("<init>()V".hashCode()) == referenceIntIndex)) {
+            
+            if (!("<init>()V".hashCode() == referenceIntIndex)){
+                /*
+                 * Create a new Intent (class is known, in Ljava/lang/Class;) aka
+                 * (newintent r_d c')_pp
+                 */
+                if (this.instruction instanceof FiveRegisterInstruction) {
+                    registerC = ((FiveRegisterInstruction) instruction)
+                            .getRegisterC();
+                    registerE = ((FiveRegisterInstruction) instruction)
+                            .getRegisterE();
+                } else {
+                    registerC = ((RegisterRangeInstruction) instruction)
+                            .getStartRegister();
+                    registerE = ((RegisterRangeInstruction) instruction)
+                            .getStartRegister() + 2;
+                }
+                // type c' is known
+                typec = fsvar.getV(registerE);
+            }
+            else{
+                /*
+                 * Create a new Intent (class is not known, unbounded variable f) aka (newintent r_d ?)_pp
+                 */
+                if(this.instruction instanceof FiveRegisterInstruction){
+                    registerC = ((FiveRegisterInstruction) instruction).getRegisterC();
+                } else {
+                    registerC = ((RegisterRangeInstruction) instruction).getStartRegister();
+                }
+                // type c' is not known
+                typec = fsvar.getF();
+            }
+            
+            final int instanceNum = analysis.getInstNum(c, m, codeAddress);
+            if (this.instruction instanceof FiveRegisterInstruction
+                    || this.instruction instanceof RegisterRangeInstruction) {
+
+         
+                /*
+                 * Put a new intent instance of the type c' on the heap
+                 */
+                buildH();
+                b = fsengine.hiPred(typec,
+                        fsengine.mkBitVector(instanceNum, size),
+                        fsengine.mkBitVector(0, size), fsengine.mkFalse(),
+                        fsengine.mkFalse());
+                fsengine.addRule(fsengine.implies(h, b), null);
+                /*
+                 * Put a refence to the intent into r_d
+                 */
+
+                buildH();
+                // update the register receiving the pointer to the newly
+                // created object
+                regUpV.put(registerC, fsengine.mkBitVector(instanceNum, size));
+                regUpH.put(registerC, fsengine.mkFalse());
+                regUpL.put(registerC, fsengine.mkFalse());
+                regUpG.put(registerC, fsengine.mkTrue());
+                buildB();
+                buildRule();
+
+                regUpV.clear();
+                regUpH.clear();
+                regUpL.clear();
+                regUpG.clear();
+
+                /*
+                 * Put default values for all fields of the intent
+                 */
+                final Map<Integer, Boolean> fields = analysis.getClassFields(
+                        "Landroid/content/Intent;", instanceNum);
+                if (fields != null)
+                    for (Map.Entry<Integer, Boolean> fieldN : fields.entrySet()) {
+                        buildH();
+                        b = fsengine.hPred(
+                                fsengine.mkBitVector(referenceIntIndex, size),
+                                fsengine.mkBitVector(instanceNum, size),
+                                fsengine.mkBitVector(fieldN.getKey(), size),
+                                fsengine.mkBitVector(0, size),
+                                fsengine.mkFalse(),
+                                fsengine.mkBool(fieldN.getValue()));
+                        buildRule();
+                    }
+                else {
+                    buildH();
+                    b = fsengine.hPred(
+                            fsengine.mkBitVector(referenceIntIndex, size),
+                            fsengine.mkBitVector(instanceNum, size),
+                            fsvar.getF(), fsengine.mkBitVector(0, size),
+                            fsengine.mkFalse(), fsvar.getBf());
+                    buildRule();
+                }
+
+                if (analysis.hasStaticConstructor(referenceClassIndex)) {
+                    // h = fsengine.rPred(classIndex, methodIndex, codeAddress,
+                    // regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH,
+                    // regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+                    int staticConstNum = "<clinit>()V".hashCode();
+                    DalvikMethod dmc = analysis.getExactMethod(
+                            referenceIntIndex, staticConstNum);
+
+                    for (int i = 0; i < dmc.getNumArg() + dmc.getNumReg() + 1; i++) {
+                        regUpV.put(i, fsengine.mkBitVector(0, size));
+                        regUpLHH.put(i, fsengine.mkFalse());
+                        regUpL.put(i, fsengine.mkFalse());
+                        regUpG.put(i, fsengine.mkFalse());
+                    }
+
+                    for (int i = 0; i < analysis.getLocalHeapSize(); i++) {
+                        regUpLHV.put(i, fsengine.mkBitVector(0, size));
+                        regUpLHH.put(i, fsengine.mkFalse());
+                        regUpLHL.put(i, fsengine.mkFalse());
+                        regUpLHG.put(i, fsengine.mkFalse());
+                        regUpLHF.put(i, fsengine.mkFalse());
+                    }
+
+                    b = fsengine.rPred(Integer.toString(referenceIntIndex),
+                            Integer.toString(staticConstNum), 0, regUpV,
+                            regUpH, regUpL, regUpG, regUpLHV, regUpLHH,
+                            regUpLHL, regUpLHG, regUpLHF, dmc.getNumArg(),
+                            dmc.getNumReg());
+                    fsengine.addRule(b, null);
+                }
+
+                return true;
+            }
+        }
+        /*
+         * Start an activity referenced in specified register aka
+         * (start-activity r_i)_pp
+         */
+        if (("startActivity(Landroid/content/Intent;)V".hashCode() == referenceIntIndex)
+                || referenceString.contains("startActivityForResult")) {
+            if (this.instruction instanceof FiveRegisterInstruction
+                    || this.instruction instanceof RegisterRangeInstruction) {
+
+                if (this.instruction instanceof FiveRegisterInstruction) {
+                    registerD = ((FiveRegisterInstruction) instruction)
+                            .getRegisterD();
+                } else {
+                    registerD = ((RegisterRangeInstruction) instruction)
+                            .getStartRegister() + 1;
+                }
+                /*
+                 * Take a refence from r_i (R) and if there is an intent on the
+                 * heap refeneced by it (HI) start an activity I
+                 */
+                buildH();
+                buildB();
+                buildRule();
+                BoolExpr h2 = fsengine.and(h, fsengine.hiPred(fsvar.getCn(),
+                        fsvar.getV(registerD), fsvar.getVal(), fsvar.getLf(),
+                        fsvar.getBf()));
+                b = fsengine.iPred(fsvar.getCn(),
+                        fsengine.mkBitVector(c, size), fsvar.getVal(),
+                        fsvar.getLf(), fsvar.getBf());
+                fsengine.addRule(fsengine.implies(h2, b), null);
+                /*
+                 * Act rule interpretation In the first rule instead of using I
+                 * predicate we use the same premice as was used for it's
+                 * inference //TODO: this is sound due to the logical cut, but
+                 * we better check
+                 */
+                /*
+                 * before cup, creates a rule for HI(in(c), _) inference
+                 */
+                BoolExpr h3 = fsengine.and(h, fsengine.hiPred(fsvar.getCn(),
+                        fsvar.getV(registerD), fsvar.getVal(), fsvar.getLf(),
+                        fsvar.getBf()));
+                // TODO: there are better ways of computing fresh in(c)
+                final BitVecExpr inC = fsengine.mkBitVector(
+                        (Utils.Dec(registerD) + Utils.Dec(c)).hashCode(), size); // in(c)
+                                                                                 // =
+                                                                                 // r_i
+                                                                                 // +
+                                                                                 // c
+                BoolExpr b3 = fsengine.hiPred(fsvar.getCn(), inC,
+                        fsvar.getVal(), fsvar.getLf(), fsvar.getBf());
+                fsengine.addRule(fsengine.implies(h3, b3), null);
+                /*
+                 * after cup, addd default values to the (parent) and (intent)
+                 * fields of the current intent as specified in the rule
+                 * (finished) field is ommitied due to the fact that it's values
+                 * is oveapproximated in the anlysis and treated alwaus as
+                 * {true, false}
+                 */
+                BoolExpr h4 = fsengine.and(h, fsengine.hiPred(fsvar.getCn(),
+                        fsvar.getV(registerD), fsvar.getVal(), fsvar.getLf(),
+                        fsvar.getBf()));
+                BoolExpr b4 = fsengine.hPred(fsvar.getCn(), fsvar.getCn(),
+                        fsengine.mkBitVector("parent".hashCode(), size),
+                        fsengine.mkBitVector(c, size), fsengine.mkFalse(),
+                        fsengine.mkTrue());
+                fsengine.addRule(fsengine.implies(h4, b4), null);
+
+                BoolExpr h5 = fsengine.and(h, fsengine.hiPred(fsvar.getCn(),
+                        fsvar.getV(registerD), fsvar.getVal(), fsvar.getLf(),
+                        fsvar.getBf()));
+                BoolExpr b5 = fsengine.hPred(fsvar.getCn(), fsvar.getCn(),
+                        fsengine.mkBitVector("intent".hashCode(), size), inC,
+                        fsengine.mkFalse(), fsengine.mkTrue());
+                fsengine.addRule(fsengine.implies(h5, b5), null);
+
+                return true;
+            }
+        }
+
+        /*
+         * Specify the exact class to be called (for an explicit intent)
+         */
+
+        if (referenceClassIndex == ("Landroid/content/Intent;".hashCode())
+                && ("setComponent(Landroid/content/ComponentName;)Landroid/content/Intent;"
+                        .hashCode()) == referenceIntIndex) {
+            if (this.instruction instanceof FiveRegisterInstruction
+                    || this.instruction instanceof RegisterRangeInstruction) {
+
+                if (this.instruction instanceof FiveRegisterInstruction) {
+                    registerC = ((FiveRegisterInstruction) instruction)
+                            .getRegisterC();
+                    registerD = ((FiveRegisterInstruction) instruction)
+                            .getRegisterD();
+                } else {
+                    registerC = ((RegisterRangeInstruction) instruction)
+                            .getStartRegister();
+                    registerD = ((RegisterRangeInstruction) instruction)
+                            .getStartRegister() + 1;
+                }
+                /*
+                 * HI predicate is the same as H but with a smaller arity as it
+                 * does not contain any field information (we are
+                 * field-incensitive for intents). When intent is created the
+                 * exact class might not be known, it is specified then by
+                 * calling setComponent method, it replaces the original class
+                 * ("cn") by the one spcified in the method call (registerD)
+                 */
+                buildH();
+                BoolExpr h2 = fsengine.and(h, fsengine
+                        .hiPred(fsvar.getCn(), fsvar.getV(registerC), fsvar.getVal(),
+                                fsvar.getLf(), fsvar.getBf()));
+                b = fsengine.hiPred(fsvar.getV(registerD), fsvar.getV(registerC),
+                       fsvar.getVal(), fsvar.getLf(), fsvar.getBf());
+
+                fsengine.addRule(fsengine.implies(h2, b), null);
+                /*
+                 * the result of the setComponent will be a new version of the
+                 * intent which is stored in the same registerC, where it was
+                 * before
+                 */
+                
+                regUpV.put(registerC, fsvar.getV(registerC));
+                regUpH.put(registerC, fsvar.getH(registerC));
+                regUpL.put(registerC, fsvar.getL(registerC));
+                regUpG.put(registerC, fsvar.getG(registerC));
+           
+                buildB();
+
+                buildRule();
+
+                return true;
+            }
+        }
+
+        /*
+         * Put informaton in the intent object with refence in r_i aka
+         * (put-extra r_i r_k k_j)_pp note: r_k is ignore, vield insensitivity
+         */
+        if (referenceString.contains((String) "putExtra")
+                && referenceClassIndex == ("Landroid/content/Intent;".hashCode())) {
+            if (this.instruction instanceof FiveRegisterInstruction) {
+                FiveRegisterInstruction instruction = (FiveRegisterInstruction) this.instruction;
+                buildH();
+                BoolExpr h2= fsengine.and(h, fsengine
+                        .hiPred(fsvar.getCn(),
+                                fsvar.getV(instruction.getRegisterC()), // r_i
+                                fsvar.getVal(), fsvar.getLf(), fsvar.getBf()));
+                b = fsengine.hiPred(
+                        fsvar.getCn(),
+                        fsvar.getV(instruction.getRegisterC()),
+                        fsvar.getV(instruction.getRegisterE()), // r_j
+                        fsvar.getH(instruction.getRegisterE()),
+                        fsengine.mkTrue());
+                fsengine.addRule(fsengine.implies(h2, b), null);
+                /*
+                 * Go to the next pc with the same register values, but raise
+                 * the label of r_i to the (l_i join l_j)
+                 */
+                buildH();
+                regUpH.put(instruction.getRegisterC(), fsengine.or(fsvar.getH(instruction.getRegisterC()),
+                        fsvar.getH(instruction.getRegisterE())));
+                buildB();
+                fsengine.addRule(fsengine.implies(h2, b), null);
+                return true;
+            }
+        }
+        /*
+         * getAction returns a string which shows what to do with a data
+         * recieved from the intent e.g., ACTION_VIEW
+         * content://contacts/people/1 -- Display information about the person
+         * whose identifier is "1". ACTION_DIAL content://contacts/people/1 --
+         * Display the phone dialer with the person filled in. as the reselut is
+         * always public (originates from the specification), we explicitly
+         * specify for it the low security label here
+         */
+        if (referenceClassIndex == ("Landroid/content/Intent;".hashCode())
+                && ("getAction()Ljava/lang/String;".hashCode()) == referenceIntIndex) {
+            buildH();
+            
+            regUpV.put(numRegLoc, fsvar.getVal());
+            regUpH.put(numRegLoc, fsengine.mkFalse());
+            regUpL.put(numRegLoc, fsengine.mkFalse());
+            regUpG.put(numRegLoc, fsengine.mkTrue());
+            buildB();
+            buildRule();
+            return true;
+        }
+        /*
+         * Get informaton from the intent object with refence in r_i aka
+         * (get-extra r_i r_k \tau)_pp some of get are sources
+         */
+        // TODO: Might be getters missing
+        if (referenceString.contains((String) "get")
+                && c == ("Landroid/content/Intent;".hashCode())) {
+            // ////////////////////////////////////////////////////
+            // TODO: delete this?
+            if (this.instruction instanceof FiveRegisterInstruction
+                    || this.instruction instanceof RegisterRangeInstruction) {
+                // ////////////////////////////////////////////////////
+                // registerC ~ r_i
+                if (this.instruction instanceof FiveRegisterInstruction) {
+                    registerC = ((FiveRegisterInstruction) instruction)
+                            .getRegisterC();
+                } else {
+                    registerC = ((RegisterRangeInstruction) instruction)
+                            .getStartRegister();
+                }
+
+                if (analysis.isSourceBis(c, m)) {
+                    // if getter is source - get the (top?) high value
+                    // TODO; Check why hig value is top and not extracted from
+                    // the heap, might be a mistake
+                    buildH();
+                    
+                    regUpV.put(registerC, fsvar.getVal());
+                    regUpH.put(registerC, fsengine.mkTrue());
+                    regUpL.put(registerC, fsengine.mkFalse());
+                    regUpG.put(registerC, fsengine.mkTrue());
+                    buildB();
+                    buildRule();
+                } else {
+                    // getter is not source - extract values from all fields of
+                    // the intent, r_k ignored, field-insensitivity
+                    buildH();
+                    BoolExpr h2 = fsengine.and(h,
+                            fsengine.hiPred(fsvar.getCn(), fsvar.getV(registerC),
+                                    fsvar.getVal(), fsvar.getLf(), fsvar.getBf()));
+                    
+                    regUpV.put(numRegLoc, fsvar.getVal());
+                    regUpH.put(numRegLoc, fsvar.getLf());
+                    regUpL.put(numRegLoc, fsengine.mkFalse());
+                    regUpG.put(numRegLoc, fsengine.mkTrue()); 
+
+                    buildB();
+                    buildRule();
+                }
+            }
+        }
+        /*
+         * Stores the registerE as the result of the current activity to the
+         * field (result) This value will be afteron extracted by Res rule
+         */
+        if (referenceIntIndex == "setResult(ILandroid/content/Intent;)V".hashCode()) {
+            if (this.instruction instanceof FiveRegisterInstruction
+                    || this.instruction instanceof RegisterRangeInstruction) {
+
+                // registerE ~ reference to resulting intent
+                if (this.instruction instanceof FiveRegisterInstruction) {
+                    registerE = ((FiveRegisterInstruction) instruction)
+                            .getRegisterE();
+                } else {
+                    registerE = ((RegisterRangeInstruction) instruction)
+                            .getStartRegister() + 2;
+                }
+
+                BoolExpr h2 = fsengine.and(h, fsengine
+                        .hiPred(fsvar.getCn(), fsvar.getV(registerE), fsvar.getVal(),
+                                fsvar.getLf(), fsvar.getBf()));
+                b = fsengine.hPred(fsengine.mkBitVector(c, size),
+                        fsengine.mkBitVector(c, size),
+                        fsengine.mkBitVector("result".hashCode(), size),
+                        fsvar.getV(registerE), fsvar.getH(registerE),
+                        fsengine.or(fsvar.getL(registerE), fsvar.getG(registerE)));
+                fsengine.addRule(fsengine.implies(h2, b), null);
+
+                // Progate the register values to the next pc
+                buildH();
+                buildB();
+                buildRule();
+                return true;
+            }
+        }
+        /*
+         * Return the intent that started this activity //TODO: Currently, we
+         * check that the current activity was started and return as a result
+         * (top) This should be sound, but it is not precise enough
+         */
+        if (referenceIntIndex == "getIntent()Landroid/content/Intent;".hashCode()) {
+            buildH();
+            BoolExpr h2 = fsengine.and(h, fsengine.hPred(
+                    fsengine.mkBitVector(c, size),
+                    fsengine.mkBitVector(c, size),
+                    fsengine.mkBitVector("intent".hashCode(), size),
+                    fsvar.getVal(), fsvar.getLf(), fsvar.getBf()));
+            regUpV.put(numRegLoc, fsvar.getVal());
+            regUpH.put(numRegLoc,  fsvar.getLf());
+            regUpL.put(numRegLoc, fsengine.mkFalse());
+            regUpG.put(numRegLoc, fsengine.mkTrue()); 
+            buildB();
+            fsengine.addRule(fsengine.implies(h2, b), null);
+            return true;
+        }
+
+        return false;
     }
     
     private BoolExpr getLabels(){
