@@ -246,8 +246,8 @@ public class FSInstructionAnalysis{
             break;//((short)0x0c, "move-result-object", ReferenceType.NONE, Format.Format11x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
 
 
-            //TODO: this is not correct
         case MOVE_EXCEPTION:
+            //TODO: this is not correct, cf abstraction for exception in the paper
             int previousCode = 0;
             for (final Instruction ins: dm.getInstructions()){
                 if ((previousCode + ins.getCodeUnits()) == codeAddress){
@@ -2436,6 +2436,10 @@ public class FSInstructionAnalysis{
         }
     }
  
+    /*
+     * Set the invoked method arguments and context only.
+     * Note: the method's registers which are not arguments are initialized to 0 in the rPredInvoked method
+     */
     private <T extends Expr> Map<Integer, T> updateRegister(final int numReg, final int numArg, final Class<T> type, final VariableInject var, final boolean range){
         Map<Integer, T> regUpdate = new HashMap<>();
         if (! range){
@@ -2485,11 +2489,12 @@ public class FSInstructionAnalysis{
         } else {
             RegisterRangeInstruction instruction = (RegisterRangeInstruction)this.instruction;
             int startRegister = instruction.getStartRegister();
-            int endRegister   =   startRegister+numReg-1;
+            int endRegister = startRegister+numArg;
             int count = 0;
-            for (int reg = startRegister; reg <= endRegister; reg++ ) {
-                regUpdate.put(reg, type.cast(var.get(count)));
-                regUpdate.put(numReg + 1 + count, type.cast(var.get(count)));
+            for (int reg = startRegister; reg < endRegister; reg++ ) {
+                regUpdate.put(numReg + 1 - numArg + count, type.cast(var.get(reg)));
+                regUpdate.put(numReg + 1 + count, type.cast(var.get(reg)));
+                
                 count ++;
             }
         }
@@ -2532,11 +2537,11 @@ public class FSInstructionAnalysis{
         else{
             RegisterRangeInstruction instruction = (RegisterRangeInstruction)this.instruction;
             int startRegister = instruction.getStartRegister();
-            int endRegister   =   startRegister+numReg-1;
+            int endRegister = startRegister+numArg;
             int count = 0;
-            for (int reg = startRegister; reg <= endRegister; reg++ )
+            for (int reg = startRegister; reg < endRegister; reg++ )
             {
-                regUpdate.put(count, type.cast(var.get(count)));
+                regUpdate.put(count, type.cast(var.get(reg)));
                 count ++;
             }
         }
@@ -2574,37 +2579,7 @@ public class FSInstructionAnalysis{
             fsengine.addRule(fsengine.implies(h, b), null);
         }
     }
-    
-    /*
-     * Local Heap handling functions    
-     */
-    //TODO: is this still needed?
-    private void liftLHCObject(BoolExpr h, int allocationPoint){
-        Map<Integer,Boolean> fields = analysis.getClassFields(analysis.getAllocationPointClass(allocationPoint), allocationPoint);
-        int size = analysis.getSize();
-        int referenceIntIndex = analysis.getAllocationPointClass(allocationPoint).hashCode();
-        if (fields != null){
-            int loopi = fsengine.getOffset(allocationPoint);
-            for (Map.Entry<Integer, Boolean> fieldN : fields.entrySet()){
-                b = fsengine.hPred(fsengine.mkBitVector(referenceIntIndex, size),
-                        fsengine.mkBitVector(allocationPoint, size),
-                        fsengine.mkBitVector(fieldN.getKey(), size),
-                        fsvar.getLHCV(loopi),
-                        fsvar.getLHCH(loopi),
-                        fsengine.or(fsvar.getLHCL(loopi),fsvar.getLHCG(loopi)));
-                fsengine.addRule(fsengine.implies(h, b), null);
-                loopi++;
-            }   
-        }
-        else {
-            b = fsengine.hPred(fsengine.mkBitVector(referenceIntIndex, size),
-                    fsengine.mkBitVector(allocationPoint, size),
-                    fsvar.getF(), fsengine.mkBitVector(0, size),
-                    fsengine.mkFalse(), fsvar.getBf());
-            fsengine.addRule(fsengine.implies(h, b), null);
-        }
-    }
-    
+
     /* Lift the part of the local heap defined by 'filter'
      * Besides apply the single register update 'u' after lifting, and the local heap update 'lhu'
      * Warning: 'filter' should be fully defined! No default values!
@@ -2662,81 +2637,8 @@ public class FSInstructionAnalysis{
     	regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
     }
 
-    /* Lift the whole local heap if 'h' holds
-     * Besides apply the single register update 'u' after lifting
-     */
-    private void liftWholeHeap(BoolExpr h,FSSingleRegUpdate u){
-    	int size = analysis.getSize();
-    	// Lift the registers to global heap pointers
-    	for (int i = 0; i <= numRegLoc  ; i++){
-    		regUpG.put(i,fsengine.or(fsvar.getG(i),fsvar.getL(i)));
-    		regUpL.put(i,fsengine.mkFalse());
-    	}
-    	// Reset the local heap
-    	// Everybody is overwritten by 0 here
-    	for (int i = 0; i < analysis.getLocalHeapSize();i++) {
-    		regUpLHV.put(i,fsengine.mkBitVector(0, size));
-    		regUpLHH.put(i,fsengine.mkFalse());
-    		regUpLHL.put(i,fsengine.mkFalse());
-    		regUpLHG.put(i,fsengine.mkFalse());
-    		regUpLHF.put(i,fsengine.mkTrue());
-    	}
-    	// Update the registers with u if necessary
-    	if (u != null){
-    		u.apply(regUpV, regUpH, regUpL, regUpG);
-    	}
-    	buildB();
-    	fsengine.addRule(fsengine.implies(h, b), null);
-
-    	regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
-    	regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
-
-    	// Create the new global heap objects
-    	for (int allocationPoint : analysis.getAllocationPoints()){
-    		this.liftObject(h, allocationPoint);
-    	}
-    }
-
-
     
-    //TODO: remove
-    /*
-    private void liftLi(){
-        int size = analysis.getSize();
-        int vecsize = numRegLoc + 1;
-        for (int i = 0; i < vecsize; i++){
-            BoolExpr hl = fsengine.mkFalse();
-            BoolExpr hg = fsengine.mkFalse();
-            for (int j = 0; j < analysis.getLocalHeapNumberEntries(); j++){
-                int instanceNum = analysis.getInstanceNumFromReverse(j);
-                hg = fsengine.or(
-                        hg,
-                        fsengine.and(
-                                fsvar.getLHCF(fsengine.getOffset(instanceNum)),
-                                fsengine.eq(fsvar.getV(i), fsengine.mkBitVector(instanceNum, size))
-                                )
-                        );
-                hl = fsengine.or(
-                        hl,
-                        fsengine.and(
-                                fsengine.not(fsvar.getLHCF(fsengine.getOffset(instanceNum))),
-                                fsengine.eq(fsvar.getV(i), fsengine.mkBitVector(instanceNum, size))
-                                )
-                        );
-            }
-            regUpG.put(i, 
-                    fsengine.or(
-                            fsvar.getG(i),
-                            fsengine.and(fsvar.getL(i),hg)
-                            )
-                    );
-            regUpL.put(i, 
-                    fsengine.and(fsvar.getL(i),hl)
-                    );
-        }
-    }
-    */
-    
+ 
     // For comparison instruction. Jump iff boolexpr is true
     private void cmpInstruction(BoolExpr boolexpr,Analysis analysis){
         int jump = codeAddress + ((OffsetInstruction)instruction).getCodeOffset();
@@ -3291,7 +3193,7 @@ public class FSInstructionAnalysis{
      * Invocation of a Dalvik Implementation with precondition 'precond'
      */
     private void directDalvikInvoke(BoolExpr precond, DalvikImplementation di, Boolean range){
-        directDalvikInvokeAux(precond, di, range, null, false);
+        directDalvikInvokeAux(precond, di, range, false);
     }
     
     /*
@@ -3299,7 +3201,7 @@ public class FSInstructionAnalysis{
      * If forceLifting is true then this lift the local heap upon invocation. Be careful though, the invoked method should 
      * be a thread and is not supposed to return (except in the case of dependent methods in thread stubs)
      */
-    private void directDalvikInvokeAux(BoolExpr precond, DalvikImplementation di, Boolean range, DalvikImplementation dependentInv, boolean forceLifting){
+    private void directDalvikInvokeAux(BoolExpr precond, DalvikImplementation di, Boolean range, boolean forceLifting){
         int size = analysis.getSize();
 
         Map<Integer, BitVecExpr> regUpLHCV = new HashMap<Integer, BitVecExpr>();
@@ -3307,10 +3209,6 @@ public class FSInstructionAnalysis{
         Map<Integer, BoolExpr> regUpLHCL = new HashMap<Integer, BoolExpr>();
         Map<Integer, BoolExpr> regUpLHCG = new HashMap<Integer, BoolExpr>();
         Map<Integer, BoolExpr> regUpLHCF = new HashMap<Integer, BoolExpr>();
-
-        if(dependentInv != null){
-            forceLifting = true;
-        }
         
         DalvikClass cInvoked = di.getDalvikClass();
         DalvikMethod mInvoked = di.getMethod();
@@ -3331,48 +3229,9 @@ public class FSInstructionAnalysis{
         }
         regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
 
+        // create the invocation rule
         buildH();
-        
-        if (dependentInv != null){
-            /*
-             * We get the Res predicate of the dependent invocation. 
-             * Observe that the call context of the dependent invocation is the same than the call context of the invoked method.
-             */
-            int numRegDependent = dependentInv.getMethod().getNumReg();
-            int numArgDependent = dependentInv.getMethod().getNumArg();
-
-            String classDependentStringName = Integer.toString(dependentInv.getDalvikClass().getType().hashCode());
-            String methodDependentStringName = Integer.toString(dependentInv.getMethod().getName().hashCode());
-
-            regUpV = updateResult(numRegDependent, numArgDependent,BitVecExpr.class, fsvar.getInjectV(fsvar), range);
-            regUpH = updateResult(numRegDependent, numArgDependent,BoolExpr.class, fsvar.getInjectH(fsvar), range);
-            regUpL = updateResult(numRegDependent, numArgDependent,BoolExpr.class, fsvar.getInjectL(fsvar), range);
-            regUpG = updateResult(numRegDependent, numArgDependent,BoolExpr.class, fsvar.getInjectG(fsvar), range);
-            // getRez, getLRez and getBRez contain the result of the dependent call
-            regUpV.put(numArgDependent, fsvar.getRez());
-            regUpH.put(numArgDependent, fsvar.getHrez());
-            regUpL.put(numArgDependent, fsvar.getLrez());
-            regUpG.put(numArgDependent, fsvar.getGrez());
-
-            this.initializeLHC(regUpLHCV, regUpLHCH, regUpLHCL, regUpLHCG, regUpLHCF);
-
-            BoolExpr depExpr = fsengine.and(
-                    fsengine.resPred(classDependentStringName, methodDependentStringName,
-                            regUpV, regUpH, regUpL, regUpG, regUpLHCV, regUpLHCH, regUpLHCL, regUpLHCG, regUpLHCF, numArgDependent)
-                    );
-            
-            regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
-            regUpLHCF.clear();
-            
-            h = fsengine.and(h,precond,depExpr);
-            
-            // We conservatively lift the local heap of the dependent method
-            for (int allocationPoint : analysis.getAllocationPoints()){
-                this.liftLHCObject(h, allocationPoint);
-            }
-        }else{
-            h = fsengine.and(h,precond);
-        }
+        h = fsengine.and(h,precond);
         
         if (forceLifting){
             //We lift the local heap
@@ -3385,16 +3244,6 @@ public class FSInstructionAnalysis{
         regUpH = updateRegister(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectH(fsvar), range);
         regUpL = updateRegister(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectL(fsvar), range);
         regUpG = updateRegister(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectG(fsvar), range);
-
-        if (dependentInv != null){
-            //We use the result of the dependent call as the first argument of the invoked method
-            regUpV.put(numRegCall - numArgCall, fsvar.getRez());
-            regUpH.put(numRegCall - numArgCall, fsvar.getHrez());
-            // We have lifted the dependent's local heap so the returned value should be lifted too
-            regUpL.put(numRegCall - numArgCall, fsengine.mkFalse());
-            regUpG.put(numRegCall - numArgCall, fsengine.or(fsvar.getGrez(),fsvar.getLrez()));
-        }
-
         
         for (int i = 0; i < analysis.getLocalHeapSize(); i++){
             if (forceLifting){
@@ -3402,85 +3251,66 @@ public class FSInstructionAnalysis{
                 regUpLHH.put(i, fsengine.mkFalse());
                 regUpLHL.put(i, fsengine.mkFalse());
                 regUpLHG.put(i, fsengine.mkFalse());
-                /*
-                 * Observe that this invocation should never return to the caller.
-                 * Therefore we can set the filter to true or false, it does not matter for the method invoked.
-                 * But we set it to true to reuse the filter array to generate the next rule (stupid overly complicated trick)
-                 */
                 regUpLHF.put(i, fsengine.mkTrue());
-            }else{
-                regUpLHF.put(i, fsengine.mkFalse());
             }
+            regUpLHF.put(i, fsengine.mkFalse());
         }
 
         b = fsengine.rPredInvok(classInvokedStringName, methodInvokedStringName, 0,
                 regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numArgCall, numRegCall, size);
         buildRule();
-        
-        if(forceLifting){
-            //This case is tricky, careful about side-effects and values that are already set (clear() called in a strange way)
-            
-            regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
-            for (int i = 0; i < numRegLoc + 1; i++){
-                regUpL.put(i, fsengine.mkFalse());
-                regUpG.put(i, fsengine.or(fsvar.getL(i),fsvar.getG(i)));
-            }
-            buildB();
-            
-            regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
-            regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
-            buildH();
-            h = fsengine.and(h,precond);
-            buildRule();
-        }else{
-            regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
-            regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
 
-            BoolExpr subh = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+        regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
+        regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
 
-            regUpV = updateResult(numRegCall, numArgCall,BitVecExpr.class, fsvar.getInjectV(fsvar), range);
-            regUpH = updateResult(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectH(fsvar), range);
-            regUpL = updateResult(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectL(fsvar), range);
-            regUpG = updateResult(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectG(fsvar), range);
-            regUpV.put(numArgCall, fsvar.getRez());
-            regUpH.put(numArgCall, fsvar.getHrez());
-            regUpL.put(numArgCall, fsvar.getLrez());
-            regUpG.put(numArgCall, fsvar.getGrez());
+        buildH();
 
-            this.initializeLHC(regUpLHCV, regUpLHCH, regUpLHCL, regUpLHCG, regUpLHCF);
+        // Create the propagating rule
+        regUpV = updateResult(numRegCall, numArgCall,BitVecExpr.class, fsvar.getInjectV(fsvar), range);
+        regUpH = updateResult(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectH(fsvar), range);
+        regUpL = updateResult(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectL(fsvar), range);
+        regUpG = updateResult(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectG(fsvar), range);
+        regUpV.put(numArgCall, fsvar.getRez());
+        regUpH.put(numArgCall, fsvar.getHrez());
+        regUpL.put(numArgCall, fsvar.getLrez());
+        regUpG.put(numArgCall, fsvar.getGrez());
 
-            h = fsengine.and(
-                    precond,
-                    subh,
-                    fsengine.resPred(classInvokedStringName, methodInvokedStringName,
-                            regUpV, regUpH, regUpL, regUpG, regUpLHCV, regUpLHCH, regUpLHCL, regUpLHCG, regUpLHCF, numArgCall)
-                    );
+        this.initializeLHC(regUpLHCV, regUpLHCH, regUpLHCL, regUpLHCG, regUpLHCF);
 
-            regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
+        h = fsengine.and(
+        		precond,
+        		h,
+        		fsengine.resPred(classInvokedStringName, methodInvokedStringName,
+        				regUpV, regUpH, regUpL, regUpG, regUpLHCV, regUpLHCH, regUpLHCL, regUpLHCG, regUpLHCF, numArgCall)
+        		);
 
-            BoolExpr returnLabel = analysis.isSource(className,methodName,cInvoked.getType().hashCode(), mInvoked.getName().hashCode()) ? fsengine.mkTrue() : fsvar.getHrez();
+        regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
 
-            this.liftLi();
+        BoolExpr returnLabel = analysis.isSource(className,methodName,cInvoked.getType().hashCode(), mInvoked.getName().hashCode()) ? fsengine.mkTrue() : fsvar.getHrez();
 
-            if (callReturns) {
-                regUpV.put(numRegLoc, fsvar.getRez());
-                regUpH.put(numRegLoc, returnLabel);
-                regUpL.put(numRegLoc, fsvar.getLrez());
-                regUpG.put(numRegLoc, fsvar.getGrez());
-            }
-
-            for (int i = 0; i < analysis.getLocalHeapSize(); i++){
-                regUpLHCF.put(i, fsengine.or(fsvar.getLHF(i), fsvar.getLHCF(i)));
-            }
-
-            b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHCV, regUpLHCH, regUpLHCL, regUpLHCG, regUpLHCF, numParLoc, numRegLoc);
-
-            buildRule();
-
-
-            regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
-            regUpLHCF.clear();
+        // Lift the registers according to 'filter'
+        for (int i = 0; i <= numRegLoc  ; i++){
+        	regUpG.put(i,fsengine.vLiftGPred(fsvar.getV(i), fsvar.getL(i), fsvar.getG(i), regUpLHCF));
+        	regUpL.put(i,fsengine.vLiftLPred(fsvar.getV(i), fsvar.getL(i), regUpLHCF));
         }
+
+        if (callReturns) {
+        	regUpV.put(numRegLoc, fsvar.getRez());
+        	regUpH.put(numRegLoc, returnLabel);
+        	regUpL.put(numRegLoc, fsvar.getLrez());
+        	regUpG.put(numRegLoc, fsvar.getGrez());
+        }
+
+        for (int i = 0; i < analysis.getLocalHeapSize(); i++){
+        	regUpLHCF.put(i, fsengine.or(fsvar.getLHF(i), fsvar.getLHCF(i)));
+        }
+
+        b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHCV, regUpLHCH, regUpLHCL, regUpLHCG, regUpLHCF, numParLoc, numRegLoc);
+
+        buildRule();
+
+
+        regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
     }
     
     private void buildH(){

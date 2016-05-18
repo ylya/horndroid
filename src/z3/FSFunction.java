@@ -78,7 +78,8 @@ public class FSFunction {
     }
     public void setVLiftG(FuncDecl f){
     	this.vLiftG = f;
-    }    public FuncDecl getReach(){
+    }
+    public FuncDecl getReach(){
         return ra;
     }
 }

@@ -757,7 +757,7 @@ public class FSEngine extends Z3Clauses{
             return f;
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("FSEngine Failed: cFilterDef");
+            throw new RuntimeException("FSEngine Failed: liftLHDef");
         }
     }
     
@@ -771,28 +771,28 @@ public class FSEngine extends Z3Clauses{
                 if (e[i] == null) {
                     e[i] = var.getLHV(i);
                 } 
-                e[2*i] = lHHigh.get(i);
-                if (e[2*i] == null) {
-                    e[2*i] = var.getLHH(i);
+                e[localHeapSize + i] = lHHigh.get(i);
+                if (e[localHeapSize + i] == null) {
+                    e[localHeapSize + i] = var.getLHH(i);
                 }
-                e[3*i] = lHLocal.get(i);
-                if (e[3*i] == null) {
-                    e[3*i] = var.getLHL(i);
+                e[2 * localHeapSize + i] = lHLocal.get(i);
+                if (e[2 * localHeapSize + i] == null) {
+                    e[2 * localHeapSize + i] = var.getLHL(i);
                 }
-                e[4*i] = lHGlobal.get(i);
-                if (e[4*i] == null) {
-                    e[4*i] = var.getLHG(i);
+                e[3 * localHeapSize + i] = lHGlobal.get(i);
+                if (e[3 * localHeapSize + i] == null) {
+                    e[3 * localHeapSize + i] = var.getLHG(i);
                 }
-                e[5*i] = lHFilter.get(i);
-                if (e[5*i] == null) {
-                    e[5*i] = var.getLHF(i);
+                e[4 * localHeapSize + i] = lHFilter.get(i);
+                if (e[4 * localHeapSize + i] == null) {
+                    e[4 * localHeapSize + i] = var.getLHF(i);
                 }
             }
 
             return (BoolExpr) llh.apply(e);
         } catch (Z3Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("FSEngine Failed: cFilterPred");
+            throw new RuntimeException("FSEngine Failed: liftLHPred");
         }
     }
     
@@ -876,9 +876,9 @@ public class FSEngine extends Z3Clauses{
 
     public BoolExpr vLiftGPred(BitVecExpr v, BoolExpr vl, BoolExpr vg, final Map<Integer, BoolExpr> lHFilter) {
         try {
-            FuncDecl vll= func.getVLiftL();
+            FuncDecl vll= func.getVLiftG();
             
-            Expr[] e = new Expr[3 + this.localHeapSize];
+            Expr[] e = new Expr[3 + localHeapSize];
             e[0] = v;
             e[1] = vl; 
             e[2] = vg;
