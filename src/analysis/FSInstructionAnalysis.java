@@ -161,12 +161,11 @@ public class FSInstructionAnalysis{
 
         if (options.debug){
            buildH();
-           for (int i = 0; i < this.numRegLoc; i++){
-        	   //TODO: remove to put back h1 instead of h
+           for (int i = 0; i <= this.numRegLoc; i++){
                BoolExpr h1 = fsengine.and(fsvar.getH(i),h);
                BoolExpr h2 = fsengine.and(fsvar.getL(i),h);
                BoolExpr h3 = fsengine.and(fsvar.getG(i),h);
-               Z3Query q1 = new Z3Query(h,i,QUERY_TYPE.HIGH,className,methodName,Integer.toString(codeAddress));
+               Z3Query q1 = new Z3Query(h1,i,QUERY_TYPE.HIGH,className,methodName,Integer.toString(codeAddress));
                Z3Query q2 = new Z3Query(h2,i,QUERY_TYPE.LOCAL,className,methodName,Integer.toString(codeAddress));
                Z3Query q3 = new Z3Query(h3,i,QUERY_TYPE.GLOBAL,className,methodName,Integer.toString(codeAddress));
                fsengine.addQueryDebug(q1);
@@ -186,11 +185,10 @@ public class FSInstructionAnalysis{
                 int apc = analysis.getAllocationPointPC(instanceNumber);
                 
                 for (int j = 0; j <= lhsize; j++){
-             	   //TODO: remove to put back h1 instead of h
                     BoolExpr h1 = fsengine.and(fsvar.getLHH(lhoffset + j),h);
                     BoolExpr h2 = fsengine.and(fsvar.getLHL(lhoffset + j),h);
                     BoolExpr h3 = fsengine.and(fsvar.getLHG(lhoffset + j),h);
-                    Z3Query q1 = new Z3Query(h,ac,am,apc,j,instanceNumber,QUERY_TYPE.HIGH,className,methodName,Integer.toString(codeAddress));
+                    Z3Query q1 = new Z3Query(h1,ac,am,apc,j,instanceNumber,QUERY_TYPE.HIGH,className,methodName,Integer.toString(codeAddress));
                     Z3Query q2 = new Z3Query(h2,ac,am,apc,j,instanceNumber,QUERY_TYPE.LOCAL,className,methodName,Integer.toString(codeAddress));
                     Z3Query q3 = new Z3Query(h3,ac,am,apc,j,instanceNumber,QUERY_TYPE.GLOBAL,className,methodName,Integer.toString(codeAddress));
                     fsengine.addQueryDebug(q1);
@@ -465,7 +463,7 @@ public class FSInstructionAnalysis{
         		HashMap<Integer,BoolExpr> newL = new HashMap<Integer, BoolExpr>();
         		HashMap<Integer,BoolExpr> newG = new HashMap<Integer, BoolExpr>();
 
-        		for (int i = lhoffset; i < lhoffset + lhsize + 1; i++){
+        		for (int i = lhoffset; i <= lhoffset + lhsize; i++){
         			newV.put(i, fsengine.mkBitVector(0, size));
         			newH.put(i, fsengine.mkFalse());
         			newL.put(i, fsengine.mkFalse());
@@ -2326,6 +2324,50 @@ public class FSInstructionAnalysis{
             return true;
         return false;
     }
+    
+    /*
+     * Generates the expression for vLiftL.
+     * We consider that an object in the local heap should be lifted iff its first field is label by true in the abstract filter
+     */
+    private BoolExpr vLiftLExpr(BitVecExpr v, BoolExpr vl, Map<Integer,BoolExpr> lHFilter) {
+    	BoolExpr innerH = fsengine.mkTrue();
+    	for (int entry = 0; entry < analysis.getLocalHeapNumberEntries(); entry++){
+    		int instanceNum = analysis.getAllocationPointNumbersReverse(entry);
+    		int offset = fsengine.getOffset(instanceNum);
+
+    		// innerH is a big or, with one 'literal' per allocation point
+    		innerH = fsengine.or(
+					innerH,
+					fsengine.and(
+							fsengine.not(lHFilter.get(offset)),
+							fsengine.eq(v,fsengine.mkBitVector(instanceNum, analysis.getSize()))
+							)
+					);
+    	}
+    	return fsengine.and(vl,innerH);
+    }
+
+    /*
+     * Generates the expression for vLiftG.
+     * We consider that an object in the local heap should be lifted iff its first field is label by true in the abstract filter
+     */
+    private BoolExpr vLiftGExpr(BitVecExpr v, BoolExpr vl, BoolExpr vg, Map<Integer,BoolExpr> lHFilter) {
+    	BoolExpr innerH = fsengine.mkTrue();
+    	for (int entry = 0; entry < analysis.getLocalHeapNumberEntries(); entry++){
+    		int instanceNum = analysis.getAllocationPointNumbersReverse(entry);
+    		int offset = fsengine.getOffset(instanceNum);
+
+    		// innerH is a big or, with one 'literal' per allocation point
+    		innerH = fsengine.or(
+					innerH,
+					fsengine.and(
+							lHFilter.get(offset),
+							fsengine.eq(v,fsengine.mkBitVector(instanceNum, analysis.getSize()))
+							)
+					);
+    	}
+    	return fsengine.or(fsengine.and(vl,innerH),vg);
+    }
 
     private void addQueryRange(BoolExpr p, String className, String methodName, String pc, String sinkName, final boolean verboseOption){
         RegisterRangeInstruction instruction = (RegisterRangeInstruction)this.instruction;
@@ -2605,8 +2647,8 @@ public class FSInstructionAnalysis{
     	// Part 2 : creates the new states
     	// Lift the registers according to 'filter'
     	for (int i = 0; i <= numRegLoc  ; i++){
-    		regUpG.put(i,fsengine.vLiftGPred(fsvar.getV(i), fsvar.getL(i), fsvar.getG(i), filter));
-    		regUpL.put(i,fsengine.vLiftLPred(fsvar.getV(i), fsvar.getL(i), filter));
+    		regUpG.put(i,vLiftGExpr(fsvar.getV(i), fsvar.getL(i), fsvar.getG(i), filter));
+    		regUpL.put(i,vLiftLExpr(fsvar.getV(i), fsvar.getL(i), filter));
     	}
     	// Lift the local heap according to 'filter'
     	// Everybody is overwritten by 0 here
@@ -2618,8 +2660,8 @@ public class FSInstructionAnalysis{
     		
     		regUpLHV.put(i,(BitVecExpr)fsengine.ite(kspp, fsengine.mkBitVector(0, size), fsvar.getLHV(i)));
     		regUpLHH.put(i,(BoolExpr)fsengine.ite(kspp, fsengine.mkFalse(), fsvar.getLHH(i)));
-    		regUpLHL.put(i,(BoolExpr)fsengine.ite(kspp, fsengine.mkFalse(), fsengine.vLiftLPred(fsvar.getLHV(i), fsvar.getLHL(i), filter)));
-    		regUpLHG.put(i,(BoolExpr)fsengine.ite(kspp, fsengine.mkFalse(), fsengine.vLiftGPred(fsvar.getLHV(i), fsvar.getLHL(i), fsvar.getLHG(i), filter)));
+    		regUpLHL.put(i,(BoolExpr)fsengine.ite(kspp, fsengine.mkFalse(), vLiftLExpr(fsvar.getLHV(i), fsvar.getLHL(i), filter)));
+    		regUpLHG.put(i,(BoolExpr)fsengine.ite(kspp, fsengine.mkFalse(), vLiftGExpr(fsvar.getLHV(i), fsvar.getLHL(i), fsvar.getLHG(i), filter)));
     		regUpLHF.put(i,fsengine.or(fsvar.getLHF(i),kspp));
     	}
     	// Update the registers with u if necessary
@@ -2662,31 +2704,26 @@ public class FSInstructionAnalysis{
         final int regCount = instruction.getRegisterCount();
         switch (regCount) {
             case 1:
-                return fsengine.or( fsengine.mkFalse(),
-                                    fsengine.getVars().getH(instruction.getRegisterC()));
+                return fsengine.getVars().getH(instruction.getRegisterC());
             case 2:
 
-                return fsengine.or( fsengine.mkFalse(),
-                                    fsengine.getVars().getH(instruction.getRegisterC()),
+                return fsengine.or(fsengine.getVars().getH(instruction.getRegisterC()),
                                     fsengine.getVars().getH(instruction.getRegisterD()));
             case 3:
 
-                return fsengine.or( fsengine.mkFalse(),
-                                    fsengine.getVars().getH(instruction.getRegisterC()),
+                return fsengine.or(fsengine.getVars().getH(instruction.getRegisterC()),
                                     fsengine.getVars().getH(instruction.getRegisterD()),
                                     fsengine.getVars().getH(instruction.getRegisterE()));
             case 4:
 
-                return fsengine.or( fsengine.mkFalse(),
-                                    fsengine.getVars().getH(instruction.getRegisterC()),
+                return fsengine.or(fsengine.getVars().getH(instruction.getRegisterC()),
                                     fsengine.getVars().getH(instruction.getRegisterD()),
                                     fsengine.getVars().getH(instruction.getRegisterE()),
                                     fsengine.getVars().getH(instruction.getRegisterF()));
 
             case 5:
 
-                return fsengine.or( fsengine.mkFalse(),
-                                    fsengine.getVars().getH(instruction.getRegisterC()),
+                return fsengine.or(fsengine.getVars().getH(instruction.getRegisterC()),
                                     fsengine.getVars().getH(instruction.getRegisterD()),
                                     fsengine.getVars().getH(instruction.getRegisterE()),
                                     fsengine.getVars().getH(instruction.getRegisterF()),
@@ -2708,7 +2745,7 @@ public class FSInstructionAnalysis{
                     labels, fsengine.getVars().getH(reg)
             );
         }
-        return fsengine.or(labels);
+        return labels;
     }
     
     /*
@@ -2720,31 +2757,22 @@ public class FSInstructionAnalysis{
         final int regCount = instruction.getRegisterCount();
         switch (regCount) {
             case 1:
-                return fsengine.or( fsengine.mkFalse(),
-                                    fsengine.getVars().getL(instruction.getRegisterC()));
+                return fsengine.getVars().getL(instruction.getRegisterC());
             case 2:
-
-                return fsengine.or( fsengine.mkFalse(),
-                                    fsengine.getVars().getL(instruction.getRegisterC()),
+                return fsengine.or(fsengine.getVars().getL(instruction.getRegisterC()),
                                     fsengine.getVars().getL(instruction.getRegisterD()));
             case 3:
-
-                return fsengine.or( fsengine.mkFalse(),
-                                    fsengine.getVars().getL(instruction.getRegisterC()),
+                return fsengine.or(fsengine.getVars().getL(instruction.getRegisterC()),
                                     fsengine.getVars().getL(instruction.getRegisterD()),
                                     fsengine.getVars().getL(instruction.getRegisterE()));
             case 4:
-
-                return fsengine.or( fsengine.mkFalse(),
-                                    fsengine.getVars().getL(instruction.getRegisterC()),
+                return fsengine.or(fsengine.getVars().getL(instruction.getRegisterC()),
                                     fsengine.getVars().getL(instruction.getRegisterD()),
                                     fsengine.getVars().getL(instruction.getRegisterE()),
                                     fsengine.getVars().getL(instruction.getRegisterF()));
 
             case 5:
-
-                return fsengine.or( fsengine.mkFalse(),
-                                    fsengine.getVars().getL(instruction.getRegisterC()),
+                return fsengine.or(fsengine.getVars().getL(instruction.getRegisterC()),
                                     fsengine.getVars().getL(instruction.getRegisterD()),
                                     fsengine.getVars().getL(instruction.getRegisterE()),
                                     fsengine.getVars().getL(instruction.getRegisterF()),
@@ -2770,7 +2798,7 @@ public class FSInstructionAnalysis{
                     labels, fsengine.getVars().getL(reg)
             );
         }
-        return fsengine.or(labels);
+        return labels;
     }
     
     private Integer getRegisterNumber(final boolean range, final int regInt){
@@ -3290,8 +3318,8 @@ public class FSInstructionAnalysis{
 
         // Lift the registers according to 'filter'
         for (int i = 0; i <= numRegLoc  ; i++){
-        	regUpG.put(i,fsengine.vLiftGPred(fsvar.getV(i), fsvar.getL(i), fsvar.getG(i), regUpLHCF));
-        	regUpL.put(i,fsengine.vLiftLPred(fsvar.getV(i), fsvar.getL(i), regUpLHCF));
+        	regUpG.put(i,vLiftGExpr(fsvar.getV(i), fsvar.getL(i), fsvar.getG(i), regUpLHCF));
+        	regUpL.put(i,vLiftLExpr(fsvar.getV(i), fsvar.getL(i), regUpLHCF));
         }
 
         if (callReturns) {

@@ -303,7 +303,7 @@ public class Analysis {
     		int instanceNum = allocationPointNumbersReverse.get(entry);
     		int offset = allocationPointOffset.get(instanceNum);
     		int entrySize = allocationPointSize.get(instanceNum);
-    		for (int fieldNum = offset; fieldNum < offset + entrySize; fieldNum++){
+    		for (int fieldNum = offset; fieldNum <= offset + entrySize; fieldNum++){
     			BoolExpr hh = fsengine.and(
     					h,
     					fsengine.eq(fsvar.getVfp(), fsengine.mkBitVector(instanceNum, getSize())),
@@ -349,7 +349,7 @@ public class Analysis {
 					fsengine.eq(fsvar.getVfp(), fsengine.mkBitVector(instanceNum, getSize()))
 					);
 
-    		for (int fieldNum = offset; fieldNum < offset + entrySize; fieldNum++){
+    		for (int fieldNum = offset; fieldNum <= offset + entrySize; fieldNum++){
     			lHFilter.put(fieldNum, fsengine.mkTrue());
     		}
 
@@ -406,55 +406,6 @@ public class Analysis {
     	}    	
     }
 
-    /*
-     * Generates the Horn Clauses for the vLiftL function.
-     * We consider that an object in the local heap should be lifted iff its first field is label by true in the abstract filter
-     */
-    private void generatesVLiftL() {
-    	Map<Integer, BoolExpr> lHFilter = new HashMap<Integer,BoolExpr>(localHeapSize);
-
-    	BoolExpr innerH = fsengine.mkTrue();
-    	for (int entry = 0; entry < localHeapNumberEntries; entry++){
-    		int instanceNum = allocationPointNumbersReverse.get(entry);
-    		int offset = allocationPointOffset.get(instanceNum);
-
-    		// innerH is a big or, with one 'literal' per allocation point
-    		innerH = fsengine.or(
-					innerH,
-					fsengine.and(
-							fsengine.not(fsvar.getLHF(offset)),
-							fsengine.eq(fsvar.getVal(),fsengine.mkBitVector(instanceNum, getSize()))
-							)
-					);
-    	}
-    	BoolExpr h = fsengine.and(fsvar.getLf(),innerH);
-    	fsengine.addRule(fsengine.eq(h, fsengine.vLiftLPred(fsvar.getVal(), fsvar.getLf(), lHFilter)), null);
-    }
-
-    /*
-     * Generates the Horn Clauses for the vLiftG function.
-     * We consider that an object in the local heap should be lifted iff its first field is label by true in the abstract filter
-     */
-    private void generatesVLiftG() {
-    	Map<Integer, BoolExpr> lHFilter = new HashMap<Integer,BoolExpr>(localHeapSize);
-
-    	BoolExpr innerH = fsengine.mkTrue();
-    	for (int entry = 0; entry < localHeapNumberEntries; entry++){
-    		int instanceNum = allocationPointNumbersReverse.get(entry);
-    		int offset = allocationPointOffset.get(instanceNum);
-
-    		// innerH is a big or, with one 'literal' per allocation point
-    		innerH = fsengine.or(
-					innerH,
-					fsengine.and(
-							fsvar.getLHF(offset),
-							fsengine.eq(fsvar.getVal(),fsengine.mkBitVector(instanceNum, getSize()))
-							)
-					);
-    	}
-    	BoolExpr h = fsengine.or(fsengine.and(fsvar.getLf(),innerH),fsvar.getGrez());
-    	fsengine.addRule(fsengine.eq(h, fsengine.vLiftGPred(fsvar.getVal(), fsvar.getLf(), fsvar.getGrez(), lHFilter)), null);
-    }
     
     private void initializeAllocationMapping(){
         Integer itNumber = 0;
@@ -1171,8 +1122,6 @@ public class Analysis {
             generateReachLHRules();
             generatesCFilter();
             generatesLiftLH();
-            generatesVLiftL();
-            generatesVLiftG();
         }
         
         addStaticFieldsValues();
@@ -1306,5 +1255,8 @@ public class Analysis {
     public int getDebugNumber() {
         return options.debugInt;
     }
+	public int getAllocationPointNumbersReverse(int entry) {
+		return allocationPointNumbersReverse.get(entry);
+	}
 
 }

@@ -12,7 +12,7 @@ public class FSFunction {
 
     // Function
     private final FuncDecl h, hi, i, s, ta, ra;
-    private FuncDecl reachLH, cFilter, liftLH, vLiftL, vLiftG;
+    private FuncDecl reachLH, cFilter, liftLH;
 
 
     public FSFunction(Context ctx, int bvSize) throws Z3Exception {
@@ -66,18 +66,6 @@ public class FSFunction {
     }
     public void setLiftLH(FuncDecl f){
     	this.liftLH = f;
-    }
-    public FuncDecl getVLiftL(){
-    	return vLiftL;
-    }
-    public void setVLiftL(FuncDecl f){
-    	this.vLiftL = f;
-    }
-    public FuncDecl getVLiftG(){
-    	return vLiftG;
-    }
-    public void setVLiftG(FuncDecl f){
-    	this.vLiftG = f;
     }
     public FuncDecl getReach(){
         return ra;

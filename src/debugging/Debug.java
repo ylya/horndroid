@@ -138,7 +138,7 @@ public class Debug {
                         }
                         writer.println("\\\\ \\hline");
 
-                        for (int i = 0; i < length - 1;i++){
+                        for (int i = 0; i < length ;i++){
                             tripleline(writer,minfo.regInfo[i],"" + i);
                             writer.print("\n");
                         }
