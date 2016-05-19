@@ -426,9 +426,9 @@ public class Analysis {
 							fsengine.eq(fsvar.getVal(),fsengine.mkBitVector(instanceNum, getSize()))
 							)
 					);
-    		BoolExpr h = fsengine.and(fsvar.getLf(),innerH);
-    		fsengine.addRule(fsengine.eq(h, fsengine.vLiftLPred(fsvar.getVal(), fsvar.getLf(), lHFilter)), null);
     	}
+    	BoolExpr h = fsengine.and(fsvar.getLf(),innerH);
+    	fsengine.addRule(fsengine.eq(h, fsengine.vLiftLPred(fsvar.getVal(), fsvar.getLf(), lHFilter)), null);
     }
 
     /*
@@ -451,9 +451,9 @@ public class Analysis {
 							fsengine.eq(fsvar.getVal(),fsengine.mkBitVector(instanceNum, getSize()))
 							)
 					);
-    		BoolExpr h = fsengine.or(fsengine.and(fsvar.getLf(),innerH),fsvar.getGrez());
-    		fsengine.addRule(fsengine.eq(h, fsengine.vLiftGPred(fsvar.getVal(), fsvar.getLf(), fsvar.getGrez(), lHFilter)), null);
     	}
+    	BoolExpr h = fsengine.or(fsengine.and(fsvar.getLf(),innerH),fsvar.getGrez());
+    	fsengine.addRule(fsengine.eq(h, fsengine.vLiftGPred(fsvar.getVal(), fsvar.getLf(), fsvar.getGrez(), lHFilter)), null);
     }
     
     private void initializeAllocationMapping(){
