@@ -47,6 +47,7 @@ import util.Utils.CallType;
 import z3.FSEngine;
 import z3.FSVariable;
 import z3.Z3Engine;
+import z3.Z3Query;
 import z3.Z3Variable;
 
 public class Analysis {
@@ -554,6 +555,7 @@ public class Analysis {
                     isCallback = true;
                 }
             }
+            
             final boolean isEntryPoint = testEntryPoint(dc, m.getName().hashCode());
             if (isCallbackImplementation){
                 addToMain(dc, m.getName().hashCode(), m.getNumReg(), m.getNumArg());
@@ -585,8 +587,8 @@ public class Analysis {
                         regUpLHF.put(i, fsengine.mkFalse());
                     }
                     
-                    BoolExpr b1 = fsengine.iPred(fsvar.getCn(),
-                            fsengine.mkBitVector(dc.getType().hashCode(), options.bitvectorSize),
+                    BoolExpr b1 = fsengine.iPred(fsengine.mkBitVector(dc.getType().hashCode(), options.bitvectorSize),
+                            fsvar.getVfp(),
                             fsvar.getVal(), fsvar.getLf(), fsvar.getBf());
                     
                     BoolExpr b2 = fsengine.rPred(Integer.toString(dc.getType().hashCode()), Integer.toString(m.getName().hashCode()), 0, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, regCount, numRegCall);
@@ -780,67 +782,18 @@ public class Analysis {
             }
         }
     }
-    
-
-//    private void addClass(final GeneralClass cp, final Set<GeneralClass> addedInPool){
-//        if(!addedInPool.contains(cp) && cp != null){
-//            addedInPool.add(cp);
-//            
-//            classes.put(cp.getType().hashCode(),cp);
-//            if (cp instanceof DalvikClass){
-//                // Add the superclass of cp
-//                GeneralClass superClass = ((DalvikClass)cp).getSuperClass();
-//                if (! (superClass == null)){
-//                    if(apkClasses.containsKey(superClass.getType().hashCode())){
-//                        GeneralClass supClass = apkClasses.get(superClass.getType().hashCode());
-//                        addClass(supClass, addedInPool);
-//                    }else{                    
-//                        GeneralClass stub = stubs.getClasses().get(superClass.getType().hashCode());
-//                        if (stub != null){
-//                            ((DalvikClass) cp).putSuperClass(stub);
-//                            addClass(stub,addedInPool);
-//                        }else{
-//                            throw new RuntimeException("addClass " + cp.getType());
-//                        }
-//                    }
-//                }else{
-//                    if (!cp.getType().equals("Ljava/lang/Object;")){
-//                        System.out.println("Should be Ljava/lang/Object; " + cp.getType());
-//                    }
-//                }
-//            }
-//            
-//        }
-//    }
-    
 
     private void addClassFromApk(final GeneralClass cp, final LinkedList<SimpleEntry<GeneralClass,String>> pool,
             final Set<GeneralClass> addedInPool, final Set<CMPair> processCM){
             if(!addedInPool.contains(cp) && cp != null){
                 addedInPool.add(cp);
 
-            //classes.put(cp.getType().hashCode(), cp);
             if (cp instanceof DalvikClass){
                 // Add all cp's methods to the pool and processCM set
                 for (DalvikMethod m : ((DalvikClass)cp).getMethods()){
                     pool.add(new SimpleEntry<GeneralClass,String>(cp,m.getName()));
                     processCM.add(new CMPair(cp.getType().hashCode(),m.getName().hashCode()));
                 }
-
-//                // Add the superclass of cp
-//                GeneralClass superClass = ((DalvikClass)cp).getSuperClass();
-//                if (superClass != null){
-//                    if(apkClasses.containsKey(superClass.getType().hashCode())){
-//                        GeneralClass supClass = apkClasses.get(superClass.getType().hashCode());
-//
-//                        addClass(supClass, addedInPool);
-//                    }else{                    
-//                        GeneralClass stub = stubs.getClasses().get(superClass.getType().hashCode());
-//
-//                        ((DalvikClass) cp).putSuperClass(stub);
-//                        addClass(stub,addedInPool);
-//                    }
-//                }
             }
         }
     }
@@ -944,6 +897,7 @@ public class Analysis {
         for (final GeneralClass c: classes.values()){
             addClassFromApk(c, pool, addedInPool, processCM);
         }
+        
 
         // We treat the pool until it is empty
         while(!pool.isEmpty()){
@@ -962,6 +916,9 @@ public class Analysis {
                               // but we ask its child for the implementation
                 }
 */       // We look for classes and method in the instructions of m
+                
+                
+              
                 
                 int codeAddress = 0;
                 for (Instruction instruction : m.getInstructions()){
@@ -1181,29 +1138,6 @@ public class Analysis {
                 processClass(dc, isDisabledActivity, isci, isLauncherActivity, isApplication, isOverapprox);
             }
         }
-        
-        /*for (final StringPair p: apkClassesMethods){
-            if (classes.containsKey(p.st1.hashCode())){
-                final GeneralClass c = classes.get(p.st1.hashCode());
-                if ((c instanceof DalvikClass)){
-                    final DalvikClass dc = (DalvikClass) c;
-
-                    final boolean isDisabledActivity = testDisabledActivity(dc);
-                    final boolean isLauncherActivity = testLauncherActivity(dc);
-                    final boolean isApplication = testApplication(dc);
-                    final boolean isOverapprox = testOverapprox(dc);
-                    boolean isCallbackImplementation = false;
-                    for (final GeneralClass interfaceC: dc.getInterfaces()){
-                        if (callbackImplementations.contains(interfaceC.getType().hashCode())){
-                            isCallbackImplementation = true;
-                        }
-                    }
-
-                    final boolean isci = isCallbackImplementation;
-                    processClass(dc, isDisabledActivity, isci, isLauncherActivity, isApplication, isOverapprox);
-                }
-            }
-        }*/
     }
     
     
@@ -1260,7 +1194,6 @@ public class Analysis {
     //TODO:
     public boolean isSource(String className, String methodName, final int c, final int m){
         return (refSources.contains(new CMPair(c,m)));
-                //&& (apkClassesMethods.contains(new StringPair(className,methodName))));
     }
     
     //TODO: used only in processIntent in standard analysis, should probably be removed
@@ -1275,7 +1208,6 @@ public class Analysis {
     //TODO:
     public boolean isSink(String className, String methodName, final int c, final int m){
         return (refSinks.contains(new CMPair(c,m)));
-                //&& (apkClassesMethods.contains(new StringPair(className,methodName))));
     }
 
     public void putEntryPoint(int c, int m){
@@ -1295,27 +1227,6 @@ public class Analysis {
         System.out.println("Number of sinks: " + refSinks.size());
     }
 
-//    /*
-//     * Populate the sets refSources and refSinks with sources and sinks
-//     * Should be called only once
-//     */
-//    //TODO: we take only the apk sources/sinks calls
-//    private void setSourceSink() {
-//        for (final StringPair sp : apkClassesMethods) {
-//            final String c = sp.st1;
-//            final String m = sp.st2;
-//            Boolean isSourceSink = isSourceSink(c,m);
-//            if (isSourceSink != null) {
-//                if (isSourceSink) {
-//                    refSources.add(new CMPair(c.hashCode(),m.hashCode()));
-//                } else {
-//                    refSinks.add(new CMPair(c.hashCode(),m.hashCode()));
-//                }
-//            }
-//        }
-//        System.out.println("Number of sources: " + refSources.size());
-//        System.out.println("Number of sinks: " + refSinks.size());
-//    }
     public boolean isFlowSens() {
         return options.fsanalysis;
     }

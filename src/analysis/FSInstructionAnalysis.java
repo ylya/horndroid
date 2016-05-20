@@ -1518,8 +1518,6 @@ public class FSInstructionAnalysis{
                                     )
                             );
                             
-                            fsengine.addQuery(new Z3Query(hs, "my query", true, className, methodName, "my query", "my query"));
-                            
                             int numArgCall = di.getMethod().getNumArg();
  
                             regUpV.put(numRegCall - numArgCall + 0, fsvar.getV(instr2.getRegisterD()));
@@ -2911,9 +2909,10 @@ public class FSInstructionAnalysis{
                         fsvar.getV(registerD), fsvar.getVal(), fsvar.getLf(),
                         fsvar.getBf()));
                 b = fsengine.iPred(fsvar.getCn(),
-                        fsengine.mkBitVector(c, size), fsvar.getVal(),
+                        fsengine.mkBitVector(referenceClassIndex, size), fsvar.getVal(),
                         fsvar.getLf(), fsvar.getBf());
                 fsengine.addRule(fsengine.implies(h2, b), null);
+                                
                 /*
                  * Act rule interpretation In the first rule instead of using I
                  * predicate we use the same premice as was used for it's
