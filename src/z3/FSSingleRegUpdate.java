@@ -13,6 +13,7 @@ public class FSSingleRegUpdate {
     private BoolExpr g;
     
     public FSSingleRegUpdate(int regNumber, BitVecExpr bv, BoolExpr h, BoolExpr l, BoolExpr g){
+    	this.regNumber= regNumber;
         this.bv = bv;
         this.h= h;
         this.l = l;

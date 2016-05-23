@@ -47,7 +47,6 @@ import util.Utils.CallType;
 import z3.FSEngine;
 import z3.FSVariable;
 import z3.Z3Engine;
-import z3.Z3Query;
 import z3.Z3Variable;
 
 public class Analysis {
@@ -472,8 +471,8 @@ public class Analysis {
         TreeMap<Integer, Boolean> result = new TreeMap <Integer, Boolean>();
         boolean found = false;
         boolean prim;
-        if (classes.containsKey(className)){
-            GeneralClass c = classes.get(className);
+        if (classes.containsKey(className.hashCode())){
+            GeneralClass c = classes.get(className.hashCode());
             if (c instanceof DalvikClass && c != null){
                 final DalvikClass dc = (DalvikClass) c;
                 found = true;
@@ -530,8 +529,16 @@ public class Analysis {
             Map<Integer, BoolExpr> regUpLHG = new HashMap<>();
             Map<Integer, BoolExpr> regUpLHF = new HashMap<>();
 
+            // Register that are not arguments are initialized with 0
+            for (int i = 0; i< numRegCall - regCount; i++){
+                regUpV.put(i, fsengine.mkBitVector(0, getSize()));
+                regUpH.put(i, fsengine.mkFalse());
+            	regUpL.put(i, fsengine.mkFalse());
+            	regUpG.put(i, fsengine.mkFalse());
+            }
             for (int i = 0; i<= numRegCall + regCount; i++){
                 regUpH.put(i, fsengine.mkFalse());
+                regUpL.put(i, fsengine.mkFalse());
             }
             
             for (int i = 0; i < this.getLocalHeapSize(); i++){
@@ -548,6 +555,12 @@ public class Analysis {
             Map<Integer, BitVecExpr> regUpdate = new HashMap<>();
             Map<Integer, BoolExpr> regUpdateL = new HashMap<>();
             Map<Integer, BoolExpr> regUpdateB = new HashMap<>();
+            // Register that are not arguments are initialized with 0
+            for (int i = 0; i< numRegCall - regCount; i++){
+                regUpdate.put(i, z3engine.mkBitVector(0, getSize()));
+                regUpdateL.put(i, z3engine.mkFalse());
+            	regUpdateB.put(i, z3engine.mkFalse());
+            }
             for (int i = 0; i<= numRegCall + regCount; i++){
                 regUpdateL.put(i, z3engine.mkFalse());
             }
@@ -608,7 +621,15 @@ public class Analysis {
                     Map<Integer, BoolExpr> regUpLHG = new HashMap<>();
                     Map<Integer, BoolExpr> regUpLHF = new HashMap<>();
 
+                    // Register that are not arguments are initialized with 0
+                    for (int i = 0; i< numRegCall - regCount; i++){
+                        regUpV.put(i, fsengine.mkBitVector(0, getSize()));
+                        regUpH.put(i, fsengine.mkFalse());
+                    	regUpL.put(i, fsengine.mkFalse());
+                    	regUpG.put(i, fsengine.mkFalse());
+                    }
                     for (int i = 0; i<= numRegCall + regCount; i++){
+                    	regUpL.put(i, fsengine.mkFalse());
                         regUpH.put(i, fsengine.mkFalse());
                     }
                     
@@ -631,8 +652,13 @@ public class Analysis {
                     Map<Integer, BitVecExpr> regUpdate = new HashMap<>();
                     Map<Integer, BoolExpr> regUpdateL = new HashMap<>();
                     Map<Integer, BoolExpr> regUpdateB = new HashMap<>();
-                    int i;
-                    for (i = 0; i<= numRegCall + regCount; i++){
+                    // Register that are not arguments are initialized with 0
+                    for (int i = 0; i< numRegCall - regCount; i++){
+                        regUpdate.put(i, z3engine.mkBitVector(0, getSize()));
+                        regUpdateL.put(i, z3engine.mkFalse());
+                    	regUpdateB.put(i, z3engine.mkFalse());
+                    }
+                    for (int i = 0; i<= numRegCall + regCount; i++){
                         regUpdateL.put(i, z3engine.mkFalse());
                     }
 

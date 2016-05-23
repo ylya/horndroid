@@ -137,16 +137,17 @@ public class FSInstructionAnalysis{
             if (reference instanceof FieldReference) {
                 referenceStringClass = ((FieldReference) reference).getDefiningClass();
                 referenceClassIndex = referenceStringClass.hashCode();
+            } else if (reference instanceof MethodReference){
+            	referenceStringClass = ((MethodReference) reference).getDefiningClass();
+            	referenceClassIndex = referenceStringClass.hashCode();
+            	returnType = ((MethodReference) reference).getReturnType();
+            	if (returnType.equals((String) "V")){
+            		callReturns = false;
+            	}else{
+            		callReturns = true;
+            	}
+            	parameterTypes = ((MethodReference) reference).getParameterTypes();
             }
-            else
-                if (reference instanceof MethodReference){
-                    referenceStringClass = ((MethodReference) reference).getDefiningClass();
-                    referenceClassIndex = referenceStringClass.hashCode();
-                    returnType = ((MethodReference) reference).getReturnType();
-                    if (returnType.equals((String) "V")) callReturns = false;
-                    else callReturns = true;
-                    parameterTypes = ((MethodReference) reference).getParameterTypes();
-                }
             referenceIntIndex = referenceString.hashCode();
         }
         methodName = dm.getName();
@@ -192,8 +193,12 @@ public class FSInstructionAnalysis{
                     Z3Query q2 = new Z3Query(h2,ac,am,apc,j,instanceNumber,QUERY_TYPE.LOCAL,className,methodName,Integer.toString(codeAddress));
                     Z3Query q3 = new Z3Query(h3,ac,am,apc,j,instanceNumber,QUERY_TYPE.GLOBAL,className,methodName,Integer.toString(codeAddress));
                     fsengine.addQueryDebug(q1);
-                    fsengine.addQueryDebug(q2);
-                    fsengine.addQueryDebug(q3);
+                    if (analysis.getDebugNumber() >= 2){
+                        fsengine.addQueryDebug(q2);
+                    }
+                    if (analysis.getDebugNumber() >= 3){
+                        fsengine.addQueryDebug(q3);
+                    }
                 }
             }
         }
@@ -265,6 +270,11 @@ public class FSInstructionAnalysis{
         case RETURN_VOID:
             buildH();
             {
+            	// We arbitrarily set the return register to 0,false,false,false
+                regUpV.put(numParLoc, fsengine.mkBitVector(0, analysis.getSize()));
+                regUpH.put(numParLoc, fsengine.mkFalse());
+                regUpL.put(numParLoc, fsengine.mkFalse());
+                regUpG.put(numParLoc, fsengine.mkFalse());
             	int count = 0;
             	for (int i = numRegLoc + 1; i <= numRegLoc + numParLoc; i++){
             		regUpV.put(count, fsvar.getV(i));
@@ -1193,25 +1203,26 @@ public class FSInstructionAnalysis{
             //object is on the local heap: update the local heap
             for (int allocationPoint : analysis.getAllocationPoints()){
                 //we do not generate rules if class of the object allocated at 'allocationPoint' has no entry for the field allocated by the dalvik instruction
-                if (analysis.getClassFields(analysis.getAllocationPointClass(allocationPoint),allocationPoint) != null)
-                if (analysis.getClassFields(analysis.getAllocationPointClass(allocationPoint),allocationPoint).containsKey(referenceIntIndex)){
-                    buildH();
-                	h = fsengine.and(
-                			h,
-                			fsvar.getL(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            fsengine.eq(regB(),fsengine.mkBitVector(allocationPoint,size))
-                            );
-                    int fieldPosition = fsengine.getOffset(allocationPoint) + analysis.getFieldOffset(allocationPoint, referenceIntIndex);
-                    regUpLHV.put(fieldPosition, regA());
-                    regUpLHH.put(fieldPosition, fsvar.getH(((OneRegisterInstruction)instruction).getRegisterA()));
-                    regUpLHL.put(fieldPosition, fsvar.getL(((OneRegisterInstruction)instruction).getRegisterA()));
-                    regUpLHG.put(fieldPosition, fsvar.getG(((OneRegisterInstruction)instruction).getRegisterA()));
-                    buildB();
-                    buildRule();
-                    
-                    regUpV.clear();regUpH.clear();regUpL.clear();regUpG.clear();
-                    regUpLHV.clear();regUpLHH.clear();regUpLHL.clear();regUpLHG.clear();
-                }
+            	if (analysis.getClassFields(analysis.getAllocationPointClass(allocationPoint),allocationPoint) != null){        			
+            		if (analysis.getClassFields(analysis.getAllocationPointClass(allocationPoint),allocationPoint).containsKey(referenceIntIndex)){
+            			buildH();
+            			h = fsengine.and(
+            					h,
+            					fsvar.getL(((TwoRegisterInstruction)instruction).getRegisterB()),
+            					fsengine.eq(regB(),fsengine.mkBitVector(allocationPoint,size))
+            					);
+            			int fieldPosition = fsengine.getOffset(allocationPoint) + analysis.getFieldOffset(allocationPoint, referenceIntIndex);
+            			regUpLHV.put(fieldPosition, regA());
+            			regUpLHH.put(fieldPosition, fsvar.getH(((OneRegisterInstruction)instruction).getRegisterA()));
+            			regUpLHL.put(fieldPosition, fsvar.getL(((OneRegisterInstruction)instruction).getRegisterA()));
+            			regUpLHG.put(fieldPosition, fsvar.getG(((OneRegisterInstruction)instruction).getRegisterA()));
+            			buildB();
+            			buildRule();
+
+            			regUpV.clear();regUpH.clear();regUpL.clear();regUpG.clear();
+            			regUpLHV.clear();regUpLHH.clear();regUpLHL.clear();regUpLHG.clear();
+            		}
+            	}
             }
         }
         break;//((short)0x5f, "iput-short", ReferenceType.FIELD, Format.Format22c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
@@ -1298,68 +1309,64 @@ public class FSInstructionAnalysis{
 
         case INVOKE_SUPER:
         {
-            if (processIntent()){
-                break;
-            }
-            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.SUPER);
-            int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
-            if (dispatchResult != null){
-                this.invoke(dispatchResult, false, referenceReg);
-            }
-            else{
-                this.invokeNotKnown(false, referenceStringClass, referenceString);
-            }
+        	if (!processIntent()){
+        		dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.SUPER);
+        		int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
+        		if (dispatchResult != null){
+        			this.invoke(dispatchResult, false, referenceReg);
+        		}
+        		else{
+        			this.invokeNotKnown(false, referenceStringClass, referenceString);
+        		}
+        	}
         }
         break;
-        
+
         case INVOKE_SUPER_RANGE:
         {
-            if (processIntent()){
-                break;
-            }
-            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.SUPER);
-            int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
-            if (dispatchResult != null){
-                this.invoke(dispatchResult, true, referenceReg);
-            }
-            else{
-                this.invokeNotKnown(true, referenceStringClass, referenceString);
-            }
+        	if (!processIntent()){
+        		dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.SUPER);
+        		int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
+        		if (dispatchResult != null){
+        			this.invoke(dispatchResult, true, referenceReg);
+        		}
+        		else{
+        			this.invokeNotKnown(true, referenceStringClass, referenceString);
+        		}
+        	}
         }
         break;
-        
+
         case INVOKE_VIRTUAL:
         {
-            if (processIntent()){
-                break;
-            }
-            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.VIRTUAL);
-            int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
-            if (dispatchResult != null){
-                this.invoke(dispatchResult, false, referenceReg);
-            }
-            else{
-                this.invokeNotKnown(false, referenceStringClass, referenceString);
-            }
+        	if (!processIntent()){
+        		dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.VIRTUAL);
+        		int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
+        		if (dispatchResult != null){
+        			this.invoke(dispatchResult, false, referenceReg);
+        		}
+        		else{
+        			this.invokeNotKnown(false, referenceStringClass, referenceString);
+        		}
+        	}
         }
         break;
-        
+
         case INVOKE_VIRTUAL_RANGE:
         {
-            if (processIntent()){
-                break;
-            }
-            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.VIRTUAL);
-            int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
-            if (dispatchResult != null){
-                this.invoke(dispatchResult, true, referenceReg);
-            }
-            else{
-                this.invokeNotKnown(true, referenceStringClass, referenceString);
-            }
+        	if (!processIntent()){
+        		dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.VIRTUAL);
+        		int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
+        		if (dispatchResult != null){
+        			this.invoke(dispatchResult, true, referenceReg);
+        		}
+        		else{
+        			this.invokeNotKnown(true, referenceStringClass, referenceString);
+        		}
+        	}
         }
         break;
-        
+
         /*
          * Should be handled like invoke_virtual:
          * "invoke-interface is used to invoke an interface method, that is, 
@@ -1369,143 +1376,135 @@ public class FSInstructionAnalysis{
          */
         case INVOKE_INTERFACE:
         {
-            if (processIntent()){
-                break;
-            }
-            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.INTERFACE);
-            int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
-            if (dispatchResult != null){
-                this.invoke(dispatchResult, false, referenceReg);
-            }
-            else{
-                this.invokeNotKnown(false, referenceStringClass, referenceString);
-            }
+        	if (!processIntent()){
+        		dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.INTERFACE);
+        		int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
+        		if (dispatchResult != null){
+        			this.invoke(dispatchResult, false, referenceReg);
+        		}
+        		else{
+        			this.invokeNotKnown(false, referenceStringClass, referenceString);
+        		}
+        	}
         }
         break;
-        
+
         case INVOKE_INTERFACE_RANGE:
         {
-            if (processIntent()){
-                break;
-            }
-            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.INTERFACE);
-            int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
-            if (dispatchResult != null){
-                this.invoke(dispatchResult, true, referenceReg);
-            }
-            else{
-                this.invokeNotKnown(true, referenceStringClass, referenceString);
-            }
+        	if (!processIntent()){
+        		dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.INTERFACE);
+        		int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
+        		if (dispatchResult != null){
+        			this.invoke(dispatchResult, true, referenceReg);
+        		}
+        		else{
+        			this.invokeNotKnown(true, referenceStringClass, referenceString);
+        		}
+        	}
         }
         break;
         
         case INVOKE_DIRECT:
         {
-            if (processIntent()){
-                break;
-            }
-            //TODO: address the following
-            /* we do a resolution on thread init, not on thread start, as at thread start the class information is lost
+            if (!processIntent()){
+            	//TODO: address the following
+            	/* we do a resolution on thread init, not on thread start, as at thread start the class information is lost
               (it is stored somewhere in the thread class by the operating system, we can also simulate that storing class name somewhere).
               on the other hand, if one initializes the thread and never spawns it? rare
               JavaThread2 for the reference
-            */
-            if ((referenceIntIndex == "<init>(Ljava/lang/Runnable;)V".hashCode()) && (referenceClassIndex == "Ljava/lang/Thread;".hashCode())){
-            	//TODO: this case is done by hand, this should not be. Lifting probably not done properly
-                dispatchResult = dispatch.dispatch("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode(), referenceStringClass, referenceString, CallType.INTERFACE);
-                if (dispatchResult != null){
-                    FiveRegisterInstruction instr2 = (FiveRegisterInstruction)this.instruction;
-                    for (final DalvikImplementation di : dispatchResult.getImplementations()){
-                        int numRegCall = di.getMethod().getNumReg();
+            	 */
+            	if ((referenceIntIndex == "<init>(Ljava/lang/Runnable;)V".hashCode()) && (referenceClassIndex == "Ljava/lang/Thread;".hashCode())){
+            		//TODO: this case is done by hand, this should not be. Lifting probably not done properly
+            		dispatchResult = dispatch.dispatch("Ljava/lang/Runnable;".hashCode(), "run()V".hashCode(), referenceStringClass, referenceString, CallType.INTERFACE);
+            		if (dispatchResult != null){
+            			FiveRegisterInstruction instr2 = (FiveRegisterInstruction)this.instruction;
+            			for (final DalvikImplementation di : dispatchResult.getImplementations()){
+            				int numRegCall = di.getMethod().getNumReg();
 
-                        for (final DalvikInstance instance: dispatchResult.getInstances()){
-                            buildH();
-                            BoolExpr hs = fsengine.and(
-                                    h,
-                                    fsengine.eq(
-                                            fsvar.getV(instr2.getRegisterD()),
-                                            fsengine.mkBitVector(instance.hashCode(), analysis.getSize())
-                                    )
-                            );
-                            
-                            int numArgCall = di.getMethod().getNumArg();
- 
-                            regUpV.put(numRegCall - numArgCall + 0, fsvar.getV(instr2.getRegisterD()));
-                            regUpV.put(numRegCall + 1 + 0, fsvar.getV(instr2.getRegisterD()));
-                            regUpH.put(numRegCall - numArgCall + 0, fsvar.getH(instr2.getRegisterD()));
-                            regUpH.put(numRegCall + 1 + 0, fsvar.getH(instr2.getRegisterD()));
-                            regUpL.put(numRegCall - numArgCall + 0, fsvar.getL(instr2.getRegisterD()));
-                            regUpL.put(numRegCall + 1 + 0, fsvar.getL(instr2.getRegisterD()));
-                            regUpG.put(numRegCall - numArgCall + 0, fsvar.getG(instr2.getRegisterD()));
-                            regUpG.put(numRegCall + 1 + 0, fsvar.getG(instr2.getRegisterD()));
-                            
-                            b = fsengine.rPredInvok(Integer.toString(di.getDalvikClass().getType().hashCode()), Integer.toString("run()V".hashCode()), 0,
-                                    regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numArgCall, numRegCall, size);
-                            fsengine.addRule(fsengine.implies(hs, b), null);
+            				for (final DalvikInstance instance: dispatchResult.getInstances()){
+            					buildH();
+            					BoolExpr hs = fsengine.and(
+            							h,
+            							fsengine.eq(
+            									fsvar.getV(instr2.getRegisterD()),
+            									fsengine.mkBitVector(instance.hashCode(), analysis.getSize())
+            									)
+            							);
 
-                            regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear(); 
-                        }
+            					int numArgCall = di.getMethod().getNumArg();
 
-                }
-              }
-              else{
-                this.invokeNotKnown(false, referenceStringClass, referenceString);
-              }
-              break;
-            }            
-            
-            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.DIRECT);
-            if (dispatchResult != null){
-                this.invoke(dispatchResult, false, null);
-            }
-            else{
-                this.invokeNotKnown(false, referenceStringClass, referenceString);
+            					regUpV.put(numRegCall - numArgCall + 0, fsvar.getV(instr2.getRegisterD()));
+            					regUpV.put(numRegCall + 1 + 0, fsvar.getV(instr2.getRegisterD()));
+            					regUpH.put(numRegCall - numArgCall + 0, fsvar.getH(instr2.getRegisterD()));
+            					regUpH.put(numRegCall + 1 + 0, fsvar.getH(instr2.getRegisterD()));
+            					regUpL.put(numRegCall - numArgCall + 0, fsvar.getL(instr2.getRegisterD()));
+            					regUpL.put(numRegCall + 1 + 0, fsvar.getL(instr2.getRegisterD()));
+            					regUpG.put(numRegCall - numArgCall + 0, fsvar.getG(instr2.getRegisterD()));
+            					regUpG.put(numRegCall + 1 + 0, fsvar.getG(instr2.getRegisterD()));
+
+            					b = fsengine.rPredInvok(Integer.toString(di.getDalvikClass().getType().hashCode()), Integer.toString("run()V".hashCode()), 0,
+            							regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numArgCall, numRegCall, size);
+            					fsengine.addRule(fsengine.implies(hs, b), null);
+
+            					regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear(); 
+            				}
+
+            			}
+            		}else{
+            			this.invokeNotKnown(false, referenceStringClass, referenceString);
+            		}
+            	}else{
+
+            		dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.DIRECT);
+            		if (dispatchResult != null){
+            			this.invoke(dispatchResult, false, null);
+            		}else{
+            			this.invokeNotKnown(false, referenceStringClass, referenceString);
+            		}
+            	}
             }
         }
         break;
         
         case INVOKE_DIRECT_RANGE:
         {
-            if (processIntent()){
-                break;
-            }
-            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.DIRECT);
-            if (dispatchResult != null){
-                this.invoke(dispatchResult, true, null);
-            }
-            else{
-                this.invokeNotKnown(true, referenceStringClass, referenceString);
-            }
+        	if (!processIntent()){
+        		dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.DIRECT);
+        		if (dispatchResult != null){
+        			this.invoke(dispatchResult, true, null);
+        		}
+        		else{
+        			this.invokeNotKnown(true, referenceStringClass, referenceString);
+        		}
+        	}
         }
         break;
         
         case INVOKE_STATIC:
         {
-            if (processIntent()){
-                break;
-            }
-            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.STATIC);
-            if (dispatchResult != null){
-                this.invoke(dispatchResult, false, null);
-            }
-            else{
-                this.invokeNotKnown(false, referenceStringClass, referenceString);
+            if (!processIntent()){
+            	dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.STATIC);
+            	if (dispatchResult != null){
+            		this.invoke(dispatchResult, false, null);
+            	}
+            	else{
+            		this.invokeNotKnown(false, referenceStringClass, referenceString);
+            	}
             }
         }
         break;
 
         case INVOKE_STATIC_RANGE:
         {
-            if (processIntent()){
-                break;
-            }
-            dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.STATIC);
-            if (dispatchResult != null){
-                this.invoke(dispatchResult, true, null);
-            }
-            else{
-                this.invokeNotKnown(true, referenceStringClass, referenceString);
-            }
+        	if (!processIntent()){
+        		dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.STATIC);
+        		if (dispatchResult != null){
+        			this.invoke(dispatchResult, true, null);
+        		}
+        		else{
+        			this.invokeNotKnown(true, referenceStringClass, referenceString);
+        		}
+        	}
         }
         break;
         
@@ -2348,9 +2347,11 @@ public class FSInstructionAnalysis{
     
     private boolean globalByDefault(final Dispatch dispatch, int c){
         //TODO: add cases for Activity and Application
-        if (dispatch.isThread(c))
+        if (dispatch.isThread(c)){
             return true;
-        return false;
+        }else{
+        	return false;
+        }
     }
     
     /*
@@ -2358,7 +2359,7 @@ public class FSInstructionAnalysis{
      * We consider that an object in the local heap should be lifted iff its first field is label by true in the abstract filter
      */
     private BoolExpr vLiftLExpr(BitVecExpr v, BoolExpr vl, Map<Integer,BoolExpr> lHFilter) {
-    	BoolExpr innerH = fsengine.mkTrue();
+    	BoolExpr innerH = fsengine.mkFalse();
     	for (int entry = 0; entry < analysis.getLocalHeapNumberEntries(); entry++){
     		int instanceNum = analysis.getAllocationPointNumbersReverse(entry);
     		int offset = fsengine.getOffset(instanceNum);
@@ -2380,7 +2381,7 @@ public class FSInstructionAnalysis{
      * We consider that an object in the local heap should be lifted iff its first field is label by true in the abstract filter
      */
     private BoolExpr vLiftGExpr(BitVecExpr v, BoolExpr vl, BoolExpr vg, Map<Integer,BoolExpr> lHFilter) {
-    	BoolExpr innerH = fsengine.mkTrue();
+    	BoolExpr innerH = fsengine.mkFalse();
     	for (int entry = 0; entry < analysis.getLocalHeapNumberEntries(); entry++){
     		int instanceNum = analysis.getAllocationPointNumbersReverse(entry);
     		int offset = fsengine.getOffset(instanceNum);
@@ -2728,12 +2729,33 @@ public class FSInstructionAnalysis{
     }
 
 
+    /*
+     * TODO: rename this into computeStub or something like that 
+     */
     private boolean processIntent(){
         final int size = analysis.getSize();
         int registerC, // r_d
         registerE, // c'
         registerD; // r_i
         BitVecExpr typec = null;
+        
+        /*
+         * For Object and Activity <init>, we do nothing
+         */
+        if (referenceClassIndex == ("Ljava/lang/Object;".hashCode()) && ("<init>()V".hashCode() == referenceIntIndex)){
+        	buildH();
+        	buildB();
+        	buildRule();
+        	return true;
+        }
+        if ((referenceClassIndex == ("Landroid/app/Activity;".hashCode())) && 
+        		(("<init>()V".hashCode() == referenceIntIndex))){
+        	buildH();
+        	buildB();
+        	buildRule();
+        	return true;
+        }
+
         if (referenceClassIndex == ("Landroid/content/Intent;".hashCode())
                 && (("<init>(Landroid/content/Context;Ljava/lang/Class;)V"
                         .hashCode() == referenceIntIndex) || ("<init>(Ljava/lang/String;)V"
@@ -2748,29 +2770,28 @@ public class FSInstructionAnalysis{
                     registerC = ((FiveRegisterInstruction) instruction)
                             .getRegisterC();
                     registerE = ((FiveRegisterInstruction) instruction)
-                            .getRegisterE();
+                    		.getRegisterE();
                 } else {
-                    registerC = ((RegisterRangeInstruction) instruction)
-                            .getStartRegister();
-                    registerE = ((RegisterRangeInstruction) instruction)
-                            .getStartRegister() + 2;
+                	registerC = ((RegisterRangeInstruction) instruction)
+                			.getStartRegister();
+                	registerE = ((RegisterRangeInstruction) instruction)
+                			.getStartRegister() + 2;
                 }
                 // type c' is known
                 typec = fsvar.getV(registerE);
+            }else{
+            	/*
+            	 * Create a new Intent (class is not known, unbounded variable f) aka (newintent r_d ?)_pp
+            	 */
+            	if(this.instruction instanceof FiveRegisterInstruction){
+            		registerC = ((FiveRegisterInstruction) instruction).getRegisterC();
+            	} else {
+            		registerC = ((RegisterRangeInstruction) instruction).getStartRegister();
+            	}
+            	// type c' is not known
+            	typec = fsvar.getF();
             }
-            else{
-                /*
-                 * Create a new Intent (class is not known, unbounded variable f) aka (newintent r_d ?)_pp
-                 */
-                if(this.instruction instanceof FiveRegisterInstruction){
-                    registerC = ((FiveRegisterInstruction) instruction).getRegisterC();
-                } else {
-                    registerC = ((RegisterRangeInstruction) instruction).getStartRegister();
-                }
-                // type c' is not known
-                typec = fsvar.getF();
-            }
-            
+
             final int instanceNum = analysis.getInstNum(c, m, codeAddress);
             if (this.instruction instanceof FiveRegisterInstruction
                     || this.instruction instanceof RegisterRangeInstruction) {
@@ -2786,7 +2807,7 @@ public class FSInstructionAnalysis{
                         fsengine.mkFalse());
                 fsengine.addRule(fsengine.implies(h, b), null);
                 /*
-                 * Put a refence to the intent into r_d
+                 * Put a reference to the intent into r_d
                  */
 
                 buildH();
@@ -2820,16 +2841,15 @@ public class FSInstructionAnalysis{
                                 fsengine.mkFalse(),
                                 fsengine.mkBool(fieldN.getValue()));
                         buildRule();
+                    }else {
+                    	buildH();
+                    	b = fsengine.hPred(
+                    			fsengine.mkBitVector(referenceIntIndex, size),
+                    			fsengine.mkBitVector(instanceNum, size),
+                    			fsvar.getF(), fsengine.mkBitVector(0, size),
+                    			fsengine.mkFalse(), fsvar.getBf());
+                    	buildRule();
                     }
-                else {
-                    buildH();
-                    b = fsengine.hPred(
-                            fsengine.mkBitVector(referenceIntIndex, size),
-                            fsengine.mkBitVector(instanceNum, size),
-                            fsvar.getF(), fsengine.mkBitVector(0, size),
-                            fsengine.mkFalse(), fsvar.getBf());
-                    buildRule();
-                }
 
                 if (analysis.hasStaticConstructor(referenceClassIndex)) {
                     // h = fsengine.rPred(classIndex, methodIndex, codeAddress,
@@ -2882,8 +2902,8 @@ public class FSInstructionAnalysis{
                             .getStartRegister() + 1;
                 }
                 /*
-                 * Take a refence from r_i (R) and if there is an intent on the
-                 * heap refeneced by it (HI) start an activity I
+                 * Take a reference from r_i (R) and if there is an intent on the
+                 * heap referenced by it (HI) start an activity I
                  */
                 buildH();
                 buildB();
@@ -2898,7 +2918,7 @@ public class FSInstructionAnalysis{
                                 
                 /*
                  * Act rule interpretation In the first rule instead of using I
-                 * predicate we use the same premice as was used for it's
+                 * predicate we use the same premise as was used for it's
                  * inference //TODO: this is sound due to the logical cut, but
                  * we better check
                  */
@@ -2919,10 +2939,10 @@ public class FSInstructionAnalysis{
                         fsvar.getVal(), fsvar.getLf(), fsvar.getBf());
                 fsengine.addRule(fsengine.implies(h3, b3), null);
                 /*
-                 * after cup, addd default values to the (parent) and (intent)
+                 * after cup, add default values to the (parent) and (intent)
                  * fields of the current intent as specified in the rule
-                 * (finished) field is ommitied due to the fact that it's values
-                 * is oveapproximated in the anlysis and treated alwaus as
+                 * (finished) field is omitted due to the fact that it's values
+                 * is over-approximated in the analysis and treated always as
                  * {true, false}
                  */
                 BoolExpr h4 = fsengine.and(h, fsengine.hiPred(fsvar.getCn(),
@@ -2970,10 +2990,10 @@ public class FSInstructionAnalysis{
                 /*
                  * HI predicate is the same as H but with a smaller arity as it
                  * does not contain any field information (we are
-                 * field-incensitive for intents). When intent is created the
+                 * field-insensitive for intents). When intent is created the
                  * exact class might not be known, it is specified then by
                  * calling setComponent method, it replaces the original class
-                 * ("cn") by the one spcified in the method call (registerD)
+                 * ("cn") by the one specified in the method call (registerD)
                  */
                 buildH();
                 BoolExpr h2 = fsengine.and(h, fsengine
@@ -3003,8 +3023,8 @@ public class FSInstructionAnalysis{
         }
 
         /*
-         * Put informaton in the intent object with refence in r_i aka
-         * (put-extra r_i r_k k_j)_pp note: r_k is ignore, vield insensitivity
+         * Put information in the intent object with reference in r_i aka
+         * (put-extra r_i r_k k_j)_pp note: r_k is ignore, field insensitivity
          */
         if (referenceString.contains((String) "putExtra")
                 && referenceClassIndex == ("Landroid/content/Intent;".hashCode())) {
@@ -3036,10 +3056,10 @@ public class FSInstructionAnalysis{
         }
         /*
          * getAction returns a string which shows what to do with a data
-         * recieved from the intent e.g., ACTION_VIEW
+         * received from the intent e.g., ACTION_VIEW
          * content://contacts/people/1 -- Display information about the person
          * whose identifier is "1". ACTION_DIAL content://contacts/people/1 --
-         * Display the phone dialer with the person filled in. as the reselut is
+         * Display the phone dialer with the person filled in. as the result is
          * always public (originates from the specification), we explicitly
          * specify for it the low security label here
          */
@@ -3056,7 +3076,7 @@ public class FSInstructionAnalysis{
             return true;
         }
         /*
-         * Get informaton from the intent object with refence in r_i aka
+         * Get information from the intent object with reference in r_i aka
          * (get-extra r_i r_k \tau)_pp some of get are sources
          */
         // TODO: Might be getters missing
@@ -3078,7 +3098,7 @@ public class FSInstructionAnalysis{
 
                 if (analysis.isSourceBis(c, m)) {
                     // if getter is source - get the (top?) high value
-                    // TODO; Check why hig value is top and not extracted from
+                    // TODO; Check why high value is top and not extracted from
                     // the heap, might be a mistake
                     buildH();
                     
@@ -3104,6 +3124,7 @@ public class FSInstructionAnalysis{
                     buildB();
                     buildRule();
                 }
+                return true;
             }
         }
         /*
@@ -3133,7 +3154,7 @@ public class FSInstructionAnalysis{
                         fsengine.or(fsvar.getL(registerE), fsvar.getG(registerE)));
                 fsengine.addRule(fsengine.implies(h2, b), null);
 
-                // Progate the register values to the next pc
+                // Propagate the register values to the next pc
                 buildH();
                 buildB();
                 buildRule();
@@ -3767,7 +3788,6 @@ public class FSInstructionAnalysis{
         regUpH.put(numArgCall, fsvar.getHrez());
         regUpL.put(numArgCall, fsvar.getLrez());
         regUpG.put(numArgCall, fsvar.getGrez());
-
         this.initializeLHC(regUpLHCV, regUpLHCH, regUpLHCL, regUpLHCG, regUpLHCF);
 
         h = fsengine.and(
