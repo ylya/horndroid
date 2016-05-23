@@ -47,6 +47,7 @@ import util.Utils.CallType;
 import z3.FSEngine;
 import z3.FSVariable;
 import z3.Z3Engine;
+import z3.Z3Query;
 import z3.Z3Variable;
 
 public class Analysis {
@@ -587,6 +588,7 @@ public class Analysis {
                     isCallback = true;
                 }
             }
+            
             final boolean isEntryPoint = testEntryPoint(dc, m.getName().hashCode());
             if (isCallbackImplementation){
                 addToMain(dc, m.getName().hashCode(), m.getNumReg(), m.getNumArg());
@@ -618,8 +620,8 @@ public class Analysis {
                         regUpLHF.put(i, fsengine.mkFalse());
                     }
                     
-                    BoolExpr b1 = fsengine.iPred(fsvar.getCn(),
-                            fsengine.mkBitVector(dc.getType().hashCode(), options.bitvectorSize),
+                    BoolExpr b1 = fsengine.iPred(fsengine.mkBitVector(dc.getType().hashCode(), options.bitvectorSize),
+                            fsvar.getVfp(),
                             fsvar.getVal(), fsvar.getLf(), fsvar.getBf());
                     
                     BoolExpr b2 = fsengine.rPred(Integer.toString(dc.getType().hashCode()), Integer.toString(m.getName().hashCode()), 0, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, regCount, numRegCall);
@@ -811,8 +813,6 @@ public class Analysis {
             }
         }
     }
-    
-    
 
     private void addClassFromApk(final GeneralClass cp, final LinkedList<SimpleEntry<GeneralClass,String>> pool,
             final Set<GeneralClass> addedInPool, final Set<CMPair> processCM){
@@ -928,6 +928,7 @@ public class Analysis {
         for (final GeneralClass c: classes.values()){
             addClassFromApk(c, pool, addedInPool, processCM);
         }
+        
 
         // We treat the pool until it is empty
         while(!pool.isEmpty()){
@@ -939,6 +940,9 @@ public class Analysis {
             if (c instanceof DalvikClass){
                 final DalvikClass dc = (DalvikClass) c;
                 DalvikMethod m = dc.getMethod(mString.hashCode());
+                
+                
+              
                 
                 int codeAddress = 0;
                 for (Instruction instruction : m.getInstructions()){
@@ -1213,7 +1217,6 @@ public class Analysis {
     //TODO:
     public boolean isSource(String className, String methodName, final int c, final int m){
         return (refSources.contains(new CMPair(c,m)));
-                //&& (apkClassesMethods.contains(new StringPair(className,methodName))));
     }
     
     //TODO: used only in processIntent in standard analysis, should probably be removed
@@ -1228,7 +1231,6 @@ public class Analysis {
     //TODO:
     public boolean isSink(String className, String methodName, final int c, final int m){
         return (refSinks.contains(new CMPair(c,m)));
-                //&& (apkClassesMethods.contains(new StringPair(className,methodName))));
     }
 
     public void putEntryPoint(int c, int m){
@@ -1247,7 +1249,6 @@ public class Analysis {
         System.out.println("Number of sources: " + refSources.size());
         System.out.println("Number of sinks: " + refSinks.size());
     }
-
 
     public boolean isFlowSens() {
         return options.fsanalysis;
