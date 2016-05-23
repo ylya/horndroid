@@ -3092,7 +3092,7 @@ public class FSInstructionAnalysis{
                     // getter is not source - extract values from all fields of
                     // the intent, r_k ignored, field-insensitivity
                     buildH();
-                    BoolExpr h2 = fsengine.and(h,
+                    h = fsengine.and(h,
                             fsengine.hiPred(fsvar.getCn(), fsvar.getV(registerC),
                                     fsvar.getVal(), fsvar.getLf(), fsvar.getBf()));
                     
