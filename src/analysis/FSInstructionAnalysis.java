@@ -914,7 +914,7 @@ public class FSInstructionAnalysis{
                     fsvar.getV(((OneRegisterInstruction) instruction).getRegisterA()),
                     fsvar.getV(((TwoRegisterInstruction) instruction).getRegisterB())
                     );
-            this.cmpInstruction(boolexpr, analysis);
+            this.cmpInstruction(boolexpr);
             break;//((short)0x32, "if-eq", ReferenceType.NONE, Format.Format22t, Opcode.CAN_CONTINUE),
 
 
@@ -923,7 +923,7 @@ public class FSInstructionAnalysis{
                     fsvar.getV(((OneRegisterInstruction) instruction).getRegisterA()),
                     fsvar.getV(((TwoRegisterInstruction) instruction).getRegisterB())
                     ));
-            this.cmpInstruction(boolexpr, analysis);
+            this.cmpInstruction(boolexpr);
             break;//((short)0x32, "if-eq", ReferenceType.NONE, Format.Format22t, Opcode.CAN_CONTINUE),
             
         case IF_LT:
@@ -931,7 +931,7 @@ public class FSInstructionAnalysis{
                     fsvar.getV(((OneRegisterInstruction) instruction).getRegisterA()),
                     fsvar.getV(((TwoRegisterInstruction) instruction).getRegisterB())
                     );
-            this.cmpInstruction(boolexpr, analysis);
+            this.cmpInstruction(boolexpr);
             break;//((short)0x34, "if-lt", ReferenceType.NONE, Format.Format22t, Opcode.CAN_CONTINUE),
 
 
@@ -940,7 +940,7 @@ public class FSInstructionAnalysis{
                     fsvar.getV(((OneRegisterInstruction) instruction).getRegisterA()),
                     fsvar.getV(((TwoRegisterInstruction) instruction).getRegisterB())
                     );
-            this.cmpInstruction(boolexpr, analysis);
+            this.cmpInstruction(boolexpr);
             break;//((short)0x35, "if-ge", ReferenceType.NONE, Format.Format22t, Opcode.CAN_CONTINUE),
 
 
@@ -949,7 +949,7 @@ public class FSInstructionAnalysis{
                     fsvar.getV(((OneRegisterInstruction) instruction).getRegisterA()),
                     fsvar.getV(((TwoRegisterInstruction) instruction).getRegisterB())
                     );
-            this.cmpInstruction(boolexpr, analysis);
+            this.cmpInstruction(boolexpr);
              break;//((short)0x36, "if-gt", ReferenceType.NONE, Format.Format22t, Opcode.CAN_CONTINUE),
 
 
@@ -958,7 +958,7 @@ public class FSInstructionAnalysis{
                     fsvar.getV(((OneRegisterInstruction) instruction).getRegisterA()),
                     fsvar.getV(((TwoRegisterInstruction) instruction).getRegisterB())
                     );
-            this.cmpInstruction(boolexpr, analysis);
+            this.cmpInstruction(boolexpr);
             break;//((short)0x37, "if-le", ReferenceType.NONE, Format.Format22t, Opcode.CAN_CONTINUE),
 
 
@@ -967,7 +967,7 @@ public class FSInstructionAnalysis{
                     fsvar.getV(((OneRegisterInstruction) instruction).getRegisterA()),
                     fsengine.mkBitVector(0, size)
                     );
-            this.cmpInstruction(boolexpr, analysis);
+            this.cmpInstruction(boolexpr);
             break;//((short)0x38, "if-eqz", ReferenceType.NONE, Format.Format21t, Opcode.CAN_CONTINUE),
 
 
@@ -976,7 +976,7 @@ public class FSInstructionAnalysis{
                     fsvar.getV(((OneRegisterInstruction) instruction).getRegisterA()),
                     fsengine.mkBitVector(0, size)
                     ));
-            this.cmpInstruction(boolexpr, analysis);
+            this.cmpInstruction(boolexpr);
             break;//((short)0x39, "if-nez", ReferenceType.NONE, Format.Format21t, Opcode.CAN_CONTINUE),
 
 
@@ -985,7 +985,7 @@ public class FSInstructionAnalysis{
                     fsvar.getV(((OneRegisterInstruction) instruction).getRegisterA()),
                     fsengine.mkBitVector(0, size)
                     );
-            this.cmpInstruction(boolexpr, analysis);
+            this.cmpInstruction(boolexpr);
             break;//((short)0x3a, "if-ltz", ReferenceType.NONE, Format.Format21t, Opcode.CAN_CONTINUE),
 
 
@@ -994,7 +994,7 @@ public class FSInstructionAnalysis{
                     fsvar.getV(((OneRegisterInstruction) instruction).getRegisterA()),
                     fsengine.mkBitVector(0, size)
                     );
-            this.cmpInstruction(boolexpr, analysis);
+            this.cmpInstruction(boolexpr);
             break;//((short)0x3b, "if-gez", ReferenceType.NONE, Format.Format21t, Opcode.CAN_CONTINUE),
 
 
@@ -1003,7 +1003,7 @@ public class FSInstructionAnalysis{
                     fsvar.getV(((OneRegisterInstruction) instruction).getRegisterA()),
                     fsengine.mkBitVector(0, size)
                     );
-            this.cmpInstruction(boolexpr, analysis);
+            this.cmpInstruction(boolexpr);
             break;//((short)0x3c, "if-gtz", ReferenceType.NONE, Format.Format21t, Opcode.CAN_CONTINUE),
 
 
@@ -1012,7 +1012,7 @@ public class FSInstructionAnalysis{
                     fsvar.getV(((OneRegisterInstruction) instruction).getRegisterA()),
                     fsengine.mkBitVector(0, size)
                     );
-            this.cmpInstruction(boolexpr, analysis);
+            this.cmpInstruction(boolexpr);
             break;//((short)0x3d, "if-lez", ReferenceType.NONE, Format.Format21t, Opcode.CAN_CONTINUE),
 
 
@@ -2711,7 +2711,7 @@ public class FSInstructionAnalysis{
     
  
     // For comparison instruction. Jump iff boolexpr is true
-    private void cmpInstruction(BoolExpr boolexpr,Analysis analysis){
+    private void cmpInstruction(BoolExpr boolexpr){
         int jump = codeAddress + ((OffsetInstruction)instruction).getCodeOffset();
         h = fsengine.and(
                 fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
