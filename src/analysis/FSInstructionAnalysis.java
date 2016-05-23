@@ -224,10 +224,10 @@ public class FSInstructionAnalysis{
         case MOVE_OBJECT_FROM16://((short)0x08, "move-object/from16", ReferenceType.NONE, Format.Format22x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case MOVE_OBJECT_16:
             buildH();
-            regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(), fsvar.getV(((TwoRegisterInstruction) instruction).getRegisterB()));
-            regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(), fsvar.getH(((TwoRegisterInstruction) instruction).getRegisterB()));
-            regUpL.put(((OneRegisterInstruction) instruction).getRegisterA(), fsvar.getL(((TwoRegisterInstruction) instruction).getRegisterB()));
-            regUpG.put(((OneRegisterInstruction) instruction).getRegisterA(), fsvar.getG(((TwoRegisterInstruction) instruction).getRegisterB()));
+            regUpV.put(registerA(), fsvar.getV(registerB()));
+            regUpH.put(registerA(), fsvar.getH(registerB()));
+            regUpL.put(registerA(), fsvar.getL(registerB()));
+            regUpG.put(registerA(), fsvar.getG(registerB()));
             buildB();
             buildRule();
           
@@ -238,10 +238,10 @@ public class FSInstructionAnalysis{
         case MOVE_RESULT_WIDE://((short)0x0b, "move-result-wide", ReferenceType.NONE, Format.Format11x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
         case MOVE_RESULT_OBJECT:
             buildH();
-            regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(), fsvar.getV(numRegLoc));
-            regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(), fsvar.getH(numRegLoc));
-            regUpL.put(((OneRegisterInstruction) instruction).getRegisterA(), fsvar.getL(numRegLoc));
-            regUpG.put(((OneRegisterInstruction) instruction).getRegisterA(), fsvar.getG(numRegLoc));
+            regUpV.put(registerA(), fsvar.getV(numRegLoc));
+            regUpH.put(registerA(), fsvar.getH(numRegLoc));
+            regUpL.put(registerA(), fsvar.getL(numRegLoc));
+            regUpG.put(registerA(), fsvar.getG(numRegLoc));
             buildB();
             buildRule();
            
@@ -294,10 +294,10 @@ public class FSInstructionAnalysis{
         case RETURN_WIDE://((short)0x10, "return-wide", ReferenceType.NONE, Format.Format11x),
         case RETURN_OBJECT:
             buildH();
-            regUpV.put(numParLoc, fsvar.getV(((OneRegisterInstruction) instruction).getRegisterA()));
-            regUpH.put(numParLoc, fsvar.getH(((OneRegisterInstruction) instruction).getRegisterA()));
-            regUpL.put(numParLoc, fsvar.getL(((OneRegisterInstruction) instruction).getRegisterA()));
-            regUpG.put(numParLoc, fsvar.getG(((OneRegisterInstruction) instruction).getRegisterA()));
+            regUpV.put(numParLoc, fsvar.getV(registerA()));
+            regUpH.put(numParLoc, fsvar.getH(registerA()));
+            regUpL.put(numParLoc, fsvar.getL(registerA()));
+            regUpG.put(numParLoc, fsvar.getG(registerA()));
             {
             	int count = 0;
             	for (int i = numRegLoc + 1; i <= numRegLoc + numParLoc; i++){
@@ -322,10 +322,10 @@ public class FSInstructionAnalysis{
         case CONST_WIDE://((short)0x18, "const-wide", ReferenceType.NONE, Format.Format51l, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
         case CONST_WIDE_HIGH16:
             buildH();
-            regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size));
-            regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkFalse());
-            regUpL.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkFalse());
-            regUpG.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkFalse());
+            regUpV.put(registerA(), fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size));
+            regUpH.put(registerA(), fsengine.mkFalse());
+            regUpL.put(registerA(), fsengine.mkFalse());
+            regUpG.put(registerA(), fsengine.mkFalse());
             buildB();
             buildRule();
             break;//((short)0x19, "const-wide/high16", ReferenceType.NONE, Format.Format21lh, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
@@ -335,10 +335,10 @@ public class FSInstructionAnalysis{
         case CONST_STRING_JUMBO:
         case CONST_CLASS://((short)0x1c, "const-class", ReferenceType.TYPE, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             buildH();
-            regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkBitVector(referenceIntIndex, size));
-            regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkFalse());
-            regUpL.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkFalse());
-            regUpG.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkFalse());
+            regUpV.put(registerA(), fsengine.mkBitVector(referenceIntIndex, size));
+            regUpH.put(registerA(), fsengine.mkFalse());
+            regUpL.put(registerA(), fsengine.mkFalse());
+            regUpG.put(registerA(), fsengine.mkFalse());
             buildB();
             buildRule();
             break;//((short)0x1b, "const-string/jumbo", ReferenceType.STRING, Format.Format31c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
@@ -348,11 +348,11 @@ public class FSInstructionAnalysis{
             h = fsengine.and(
                     fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
                     fsengine.eq(
-                            fsvar.getG(((OneRegisterInstruction)instruction).getRegisterA()),
+                            fsvar.getG(registerA()),
                             fsengine.mkTrue()
                             ),
                     fsengine.bvugt(
-                            regA(),
+                            fsvar.getV(registerA()),
                             fsengine.mkBitVector(0, size)
                             )
                     );
@@ -362,11 +362,11 @@ public class FSInstructionAnalysis{
             h = fsengine.and(
                     fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
                     fsengine.eq(
-                            fsvar.getL(((OneRegisterInstruction)instruction).getRegisterA()),
+                            fsvar.getL(registerA()),
                             fsengine.mkTrue()
                             ),
                     fsengine.bvugt(
-                            regA(),
+                            fsvar.getV(registerA()),
                             fsengine.mkBitVector(0, size)
                             )
                     );
@@ -376,20 +376,20 @@ public class FSInstructionAnalysis{
 
         case INSTANCE_OF:
             buildH();
-            regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkBitVector(0, size));
-            regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkFalse());
-            regUpL.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkFalse());
-            regUpG.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkFalse());
+            regUpV.put(registerA(), fsengine.mkBitVector(0, size));
+            regUpH.put(registerA(), fsengine.mkFalse());
+            regUpL.put(registerA(), fsengine.mkFalse());
+            regUpG.put(registerA(), fsengine.mkFalse());
             buildB();
             buildRule();
 
             regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
 
             buildH();
-            regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkBitVector(1, size));
-            regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkFalse());
-            regUpL.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkFalse());
-            regUpG.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkFalse());
+            regUpV.put(registerA(), fsengine.mkBitVector(1, size));
+            regUpH.put(registerA(), fsengine.mkFalse());
+            regUpL.put(registerA(), fsengine.mkFalse());
+            regUpG.put(registerA(), fsengine.mkFalse());
             buildB();
             buildRule();            
             break;//((short)0x20, "instance-of", ReferenceType.TYPE, Format.Format22c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
@@ -397,10 +397,10 @@ public class FSInstructionAnalysis{
 
         case ARRAY_LENGTH:
             buildH();
-            regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(), fsvar.getF());
-            regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(), fsvar.getLf());
-            regUpL.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkFalse());
-            regUpG.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkFalse());
+            regUpV.put(registerA(), fsvar.getF());
+            regUpH.put(registerA(), fsvar.getLf());
+            regUpL.put(registerA(), fsengine.mkFalse());
+            regUpG.put(registerA(), fsengine.mkFalse());
             buildB();
             buildRule();
             break;//((short)0x21, "array-length", ReferenceType.NONE, Format.Format12x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
@@ -413,10 +413,10 @@ public class FSInstructionAnalysis{
         		instanceNum = analysis.getInstNum(ci, mi, codeAddress);
         		buildH();
         		//update the register receiving the pointer to the newly created object
-        		regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkBitVector(instanceNum, size));
-        		regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkFalse());
-        		regUpL.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkFalse());
-        		regUpG.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkTrue());
+        		regUpV.put(registerA(), fsengine.mkBitVector(instanceNum, size));
+        		regUpH.put(registerA(), fsengine.mkFalse());
+        		regUpL.put(registerA(), fsengine.mkFalse());
+        		regUpG.put(registerA(), fsengine.mkTrue());
         		buildB();
         		buildRule();
 
@@ -458,7 +458,7 @@ public class FSInstructionAnalysis{
 
         		//update the register receiving the pointer to the newly created object
         		FSSingleRegUpdate u = new FSSingleRegUpdate(
-        				((OneRegisterInstruction)instruction).getRegisterA(),
+        				registerA(),
         				fsengine.mkBitVector(instanceNum, size),
         				 fsengine.mkFalse(),
         				 fsengine.mkTrue(),
@@ -519,10 +519,10 @@ public class FSInstructionAnalysis{
         case NEW_ARRAY:
         	instanceNum = analysis.getInstNum(ci, mi, codeAddress);
         	buildH();
-        	regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkBitVector(instanceNum, size));
-        	regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkFalse());
-        	regUpL.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkFalse());
-        	regUpG.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkTrue());
+        	regUpV.put(registerA(), fsengine.mkBitVector(instanceNum, size));
+        	regUpH.put(registerA(), fsengine.mkFalse());
+        	regUpL.put(registerA(), fsengine.mkFalse());
+        	regUpG.put(registerA(), fsengine.mkTrue());
         	buildB();
         	buildRule();
 
@@ -537,7 +537,7 @@ public class FSInstructionAnalysis{
                                 ),
                         fsengine.bvult(
                                 fsvar.getF(),
-                                regB()
+                                fsvar.getV(registerB())
                                 )
                         );
                 b = fsengine.hPred(
@@ -767,11 +767,11 @@ public class FSInstructionAnalysis{
                         buildH();
                         h = fsengine.and(
                         		h,
-                        		fsengine.hPred(fsvar.getCn(), regA(),
+                        		fsengine.hPred(fsvar.getCn(), fsvar.getV(registerA()),
                         				fsengine.mkBitVector(0, size), fsengine.mkBitVector(0, size),
                         				fsvar.getLf(), fsvar.getBf())
                         		);
-                        b = fsengine.hPred(fsvar.getCn(), regA(),
+                        b = fsengine.hPred(fsvar.getCn(), fsvar.getV(registerA()),
                         		fieldValue,
                         		fsengine.mkBitVector(element.intValue(), size),
                         		fsengine.mkFalse(),
@@ -812,7 +812,7 @@ public class FSInstructionAnalysis{
         				h = fsengine.and(
         						fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
         						fsengine.eq(
-        								fsvar.getV(((OneRegisterInstruction) instruction).getRegisterA()),
+        								fsvar.getV(registerA()),
         								fsengine.mkBitVector(ps.getFirstKey(c, m, payloadAddress) + t, size)
         								)
         						);
@@ -822,7 +822,7 @@ public class FSInstructionAnalysis{
         				negationString = fsengine.and(
         						negationString,
         						fsengine.eq(
-        								regA(),
+        								fsvar.getV(registerA()),
         								fsengine.mkBitVector(ps.getFirstKey(c, m, payloadAddress) + t, size)
         								)
         						);
@@ -850,7 +850,7 @@ public class FSInstructionAnalysis{
                         h = fsengine.and(
                                 fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
                                 fsengine.eq(
-                                        regA(),
+                                        fsvar.getV(registerA()),
                                         fsengine.mkBitVector(target.getKey(), size)
                                         )
                                 );
@@ -860,7 +860,7 @@ public class FSInstructionAnalysis{
                         negationString = fsengine.and(
                                 negationString,
                                 fsengine.eq(
-                                        regA(),
+                                        fsvar.getV(registerA()),
                                         fsengine.mkBitVector(target.getKey(), size)
                                         )
                                 );
@@ -883,26 +883,26 @@ public class FSInstructionAnalysis{
         case CMPG_DOUBLE://((short)0x30, "cmpg-double", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case CMP_LONG:
             buildH();
-            regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(),
+            regUpV.put(registerA(),
                     (BitVecExpr) fsengine.ite(
                             fsengine.eq(        //if
-                                    regB(),
-                                    regC()
+                                    fsvar.getV(registerB()),
+                                    fsvar.getV(registerC())
                                     ),
                             fsengine.mkBitVector(0, size), //then
                             fsengine.ite( //else
                                     fsengine.bvugt(//sub-if
-                                            regB(),
-                                            fsvar.getV(((ThreeRegisterInstruction) instruction).getRegisterC())
+                                            fsvar.getV(registerB()),
+                                            fsvar.getV(registerC())
                                             ),
                                     fsengine.mkBitVector(1, size), //sub-then
                                     fsengine.mkBitVector(-1, size) //sub-else
                                     )
                             )
                     );
-            regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(),
-                    fsengine.or(fsvar.getH(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            fsvar.getH(((ThreeRegisterInstruction) instruction).getRegisterC())));
+            regUpH.put(registerA(),
+                    fsengine.or(fsvar.getH(registerB()),
+                            fsvar.getH(registerC())));
             buildB();
             buildRule();
 
@@ -911,8 +911,8 @@ public class FSInstructionAnalysis{
 
         case IF_EQ:
             BoolExpr boolexpr = fsengine.eq(
-                    fsvar.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                    fsvar.getV(((TwoRegisterInstruction) instruction).getRegisterB())
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB())
                     );
             this.cmpInstruction(boolexpr);
             break;//((short)0x32, "if-eq", ReferenceType.NONE, Format.Format22t, Opcode.CAN_CONTINUE),
@@ -920,16 +920,16 @@ public class FSInstructionAnalysis{
 
         case IF_NE:
             boolexpr = fsengine.not(fsengine.eq(
-                    fsvar.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                    fsvar.getV(((TwoRegisterInstruction) instruction).getRegisterB())
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB())
                     ));
             this.cmpInstruction(boolexpr);
             break;//((short)0x32, "if-eq", ReferenceType.NONE, Format.Format22t, Opcode.CAN_CONTINUE),
             
         case IF_LT:
             boolexpr = fsengine.bvult(
-                    fsvar.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                    fsvar.getV(((TwoRegisterInstruction) instruction).getRegisterB())
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB())
                     );
             this.cmpInstruction(boolexpr);
             break;//((short)0x34, "if-lt", ReferenceType.NONE, Format.Format22t, Opcode.CAN_CONTINUE),
@@ -937,8 +937,8 @@ public class FSInstructionAnalysis{
 
         case IF_GE:
             boolexpr = fsengine.bvuge(
-                    fsvar.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                    fsvar.getV(((TwoRegisterInstruction) instruction).getRegisterB())
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB())
                     );
             this.cmpInstruction(boolexpr);
             break;//((short)0x35, "if-ge", ReferenceType.NONE, Format.Format22t, Opcode.CAN_CONTINUE),
@@ -946,8 +946,8 @@ public class FSInstructionAnalysis{
 
         case IF_GT:
             boolexpr = fsengine.bvugt(
-                    fsvar.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                    fsvar.getV(((TwoRegisterInstruction) instruction).getRegisterB())
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB())
                     );
             this.cmpInstruction(boolexpr);
              break;//((short)0x36, "if-gt", ReferenceType.NONE, Format.Format22t, Opcode.CAN_CONTINUE),
@@ -955,8 +955,8 @@ public class FSInstructionAnalysis{
 
         case IF_LE:
             boolexpr = fsengine.bvule(
-                    fsvar.getV(((OneRegisterInstruction) instruction).getRegisterA()),
-                    fsvar.getV(((TwoRegisterInstruction) instruction).getRegisterB())
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB())
                     );
             this.cmpInstruction(boolexpr);
             break;//((short)0x37, "if-le", ReferenceType.NONE, Format.Format22t, Opcode.CAN_CONTINUE),
@@ -964,7 +964,7 @@ public class FSInstructionAnalysis{
 
         case IF_EQZ:
             boolexpr = fsengine.eq(
-                    fsvar.getV(((OneRegisterInstruction) instruction).getRegisterA()),
+                    fsvar.getV(registerA()),
                     fsengine.mkBitVector(0, size)
                     );
             this.cmpInstruction(boolexpr);
@@ -973,7 +973,7 @@ public class FSInstructionAnalysis{
 
         case IF_NEZ:
             boolexpr = fsengine.not(fsengine.eq(
-                    fsvar.getV(((OneRegisterInstruction) instruction).getRegisterA()),
+                    fsvar.getV(registerA()),
                     fsengine.mkBitVector(0, size)
                     ));
             this.cmpInstruction(boolexpr);
@@ -982,7 +982,7 @@ public class FSInstructionAnalysis{
 
         case IF_LTZ:
             boolexpr = fsengine.bvult(
-                    fsvar.getV(((OneRegisterInstruction) instruction).getRegisterA()),
+                    fsvar.getV(registerA()),
                     fsengine.mkBitVector(0, size)
                     );
             this.cmpInstruction(boolexpr);
@@ -991,7 +991,7 @@ public class FSInstructionAnalysis{
 
         case IF_GEZ:
             boolexpr = fsengine.bvuge(
-                    fsvar.getV(((OneRegisterInstruction) instruction).getRegisterA()),
+                    fsvar.getV(registerA()),
                     fsengine.mkBitVector(0, size)
                     );
             this.cmpInstruction(boolexpr);
@@ -1000,7 +1000,7 @@ public class FSInstructionAnalysis{
 
         case IF_GTZ:
             boolexpr = fsengine.bvugt(
-                    fsvar.getV(((OneRegisterInstruction) instruction).getRegisterA()),
+                    fsvar.getV(registerA()),
                     fsengine.mkBitVector(0, size)
                     );
             this.cmpInstruction(boolexpr);
@@ -1009,7 +1009,7 @@ public class FSInstructionAnalysis{
 
         case IF_LEZ:
             boolexpr = fsengine.bvule(
-                    fsvar.getV(((OneRegisterInstruction) instruction).getRegisterA()),
+                    fsvar.getV(registerA()),
                     fsengine.mkBitVector(0, size)
                     );
             this.cmpInstruction(boolexpr);
@@ -1026,23 +1026,23 @@ public class FSInstructionAnalysis{
         {
         	BitVecExpr fieldValue = null;
         	if (analysis.optionArrays()){
-        		fieldValue = fsvar.getV(((ThreeRegisterInstruction) instruction).getRegisterC());
+        		fieldValue = fsvar.getV(registerC());
         	}else{
         		fieldValue = fsengine.mkBitVector(0, size);
         	}
 
         	buildH();
         	h = fsengine.and(
-        			fsengine.hPred(fsvar.getCn(), regB(),
+        			fsengine.hPred(fsvar.getCn(), fsvar.getV(registerB()),
         					fieldValue,
         					fsvar.getVal(), fsvar.getLval(), fsvar.getBval()),
         			h
         			);
 
-        	regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(), fsvar.getVal());
-        	regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(), fsvar.getLval());
-        	regUpL.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkFalse());
-        	regUpG.put(((OneRegisterInstruction)instruction).getRegisterA(), fsvar.getBval());
+        	regUpV.put(registerA(), fsvar.getVal());
+        	regUpH.put(registerA(), fsvar.getLval());
+        	regUpL.put(registerA(), fsengine.mkFalse());
+        	regUpG.put(registerA(), fsvar.getBval());
         	buildB();
         	buildRule();
         }
@@ -1058,22 +1058,22 @@ public class FSInstructionAnalysis{
         case APUT_SHORT:
         {
         	// Update the local heap
-        	BitVecExpr fieldValue = (analysis.optionArrays()? fsvar.getV(((ThreeRegisterInstruction) instruction).getRegisterC()): fsengine.mkBitVector(0, size));
+        	BitVecExpr fieldValue = (analysis.optionArrays()? fsvar.getV(registerC()): fsengine.mkBitVector(0, size));
         	buildH();
         	h = fsengine.and(
         			h,
-        			fsengine.hPred( fsvar.getCn(), regB(),
+        			fsengine.hPred( fsvar.getCn(), fsvar.getV(registerB()),
         					fsengine.mkBitVector(0, size),
         					fsvar.getVfp(),
         					fsvar.getLf(), fsvar.getBf())
         			);
-        	b = fsengine.hPred( fsvar.getCn(), regB(),
+        	b = fsengine.hPred( fsvar.getCn(), fsvar.getV(registerB()),
         			fieldValue,
-        			regA(),
-        			fsvar.getH(((OneRegisterInstruction)instruction).getRegisterA()),
+        			fsvar.getV(registerA()),
+        			fsvar.getH(registerA()),
         			fsengine.or(
-        					fsvar.getL(((OneRegisterInstruction)instruction).getRegisterA()),
-        					fsvar.getG(((OneRegisterInstruction)instruction).getRegisterA())
+        					fsvar.getL(registerA()),
+        					fsvar.getG(registerA())
         					)
         			);
         	buildRule();
@@ -1085,7 +1085,7 @@ public class FSInstructionAnalysis{
     		}
 
     		buildH();
-    		BoolExpr hh = fsengine.and(h,fsengine.cFilterPred(fsvar.getV(((OneRegisterInstruction)instruction).getRegisterA()), fsvar.getL(((OneRegisterInstruction)instruction).getRegisterA()), regUpLHV, regUpLHL, regUpLHCF));
+    		BoolExpr hh = fsengine.and(h,fsengine.cFilterPred(fsvar.getV(registerA()), fsvar.getL(registerA()), regUpLHV, regUpLHL, regUpLHCF));
 
     		liftLocalHeap(hh, null, null, regUpLHCF);
         }
@@ -1103,16 +1103,16 @@ public class FSInstructionAnalysis{
             //Object on global heap
         	buildH();
             h = fsengine.and(
-					fsvar.getG(((TwoRegisterInstruction)instruction).getRegisterB()),
-                    fsengine.hPred(fsvar.getCn(), regB(),
+					fsvar.getG(registerB()),
+                    fsengine.hPred(fsvar.getCn(), fsvar.getV(registerB()),
                             fsengine.mkBitVector(referenceIntIndex, size),
                             fsvar.getVal(), fsvar.getLval(), fsvar.getBval()),
                     h
             		);
-            regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(), fsvar.getVal());
-            regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(), fsvar.getLval());
-            regUpL.put(((OneRegisterInstruction)instruction).getRegisterA(),fsengine.mkFalse());
-            regUpG.put(((OneRegisterInstruction)instruction).getRegisterA(), fsvar.getBval());
+            regUpV.put(registerA(), fsvar.getVal());
+            regUpH.put(registerA(), fsvar.getLval());
+            regUpL.put(registerA(),fsengine.mkFalse());
+            regUpG.put(registerA(), fsvar.getBval());
             buildB();
             buildRule();
 
@@ -1127,14 +1127,14 @@ public class FSInstructionAnalysis{
             			buildH();
             			h = fsengine.and(
             					h,
-            					fsvar.getL(((TwoRegisterInstruction)instruction).getRegisterB()),
-            					fsengine.eq(regB(),fsengine.mkBitVector(allocationPoint,size))
+            					fsvar.getL(registerB()),
+            					fsengine.eq(fsvar.getV(registerB()),fsengine.mkBitVector(allocationPoint,size))
             					);
             			int fieldPosition = fsengine.getOffset(allocationPoint) + analysis.getFieldOffset(allocationPoint, referenceIntIndex);
-            			regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(),fsvar.getLHV(fieldPosition));
-            			regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(),fsvar.getLHH(fieldPosition));
-            			regUpL.put(((OneRegisterInstruction)instruction).getRegisterA(),fsvar.getLHL(fieldPosition));
-            			regUpG.put(((OneRegisterInstruction)instruction).getRegisterA(),fsvar.getLHG(fieldPosition));
+            			regUpV.put(registerA(),fsvar.getLHV(fieldPosition));
+            			regUpH.put(registerA(),fsvar.getLHH(fieldPosition));
+            			regUpL.put(registerA(),fsvar.getLHL(fieldPosition));
+            			regUpG.put(registerA(),fsvar.getLHG(fieldPosition));
             			buildB();
             			buildRule();
 
@@ -1159,7 +1159,7 @@ public class FSInstructionAnalysis{
             buildH();
         	h = fsengine.and(
         			h,
-        			fsvar.getG(((TwoRegisterInstruction)instruction).getRegisterB()));
+        			fsvar.getG(registerB()));
             buildB();
             buildRule();
 
@@ -1167,20 +1167,20 @@ public class FSInstructionAnalysis{
             //object on the global heap: update the global heap
             buildH();
             h = fsengine.and(
-                    fsvar.getG(((TwoRegisterInstruction)instruction).getRegisterB()),
+                    fsvar.getG(registerB()),
                     h,
-                    fsengine.hPred(fsvar.getCn(), regB(),
+                    fsengine.hPred(fsvar.getCn(), fsvar.getV(registerB()),
                             fsvar.getF(), fsengine.mkBitVector(0, size),
                             fsvar.getLf(), fsvar.getBf())
                     );
             b = fsengine.hPred(
-                    fsvar.getCn(), regB(),
+                    fsvar.getCn(), fsvar.getV(registerB()),
                     fsengine.mkBitVector(referenceIntIndex, size),
-                    regA(),
-                    fsvar.getH(((OneRegisterInstruction)instruction).getRegisterA()),
+                    fsvar.getV(registerA()),
+                    fsvar.getH(registerA()),
                     fsengine.or(
-                            fsvar.getL(((OneRegisterInstruction)instruction).getRegisterA()),
-                            fsvar.getG(((OneRegisterInstruction)instruction).getRegisterA())
+                            fsvar.getL(registerA()),
+                            fsvar.getG(registerA())
                             )
                     );
             buildRule();
@@ -1193,9 +1193,9 @@ public class FSInstructionAnalysis{
 
     		buildH();
     		BoolExpr hh = fsengine.and(
-            		fsvar.getG(((TwoRegisterInstruction)instruction).getRegisterB()),
+            		fsvar.getG(registerB()),
     				h,
-    				fsengine.cFilterPred(fsvar.getV(((OneRegisterInstruction)instruction).getRegisterA()), fsvar.getL(((OneRegisterInstruction)instruction).getRegisterA()), regUpLHV, regUpLHL, regUpLHCF)
+    				fsengine.cFilterPred(fsvar.getV(registerA()), fsvar.getL(registerA()), regUpLHV, regUpLHL, regUpLHCF)
     				);
 
     		liftLocalHeap(hh, null, null, regUpLHCF);
@@ -1208,14 +1208,14 @@ public class FSInstructionAnalysis{
             			buildH();
             			h = fsengine.and(
             					h,
-            					fsvar.getL(((TwoRegisterInstruction)instruction).getRegisterB()),
-            					fsengine.eq(regB(),fsengine.mkBitVector(allocationPoint,size))
+            					fsvar.getL(registerB()),
+            					fsengine.eq(fsvar.getV(registerB()),fsengine.mkBitVector(allocationPoint,size))
             					);
             			int fieldPosition = fsengine.getOffset(allocationPoint) + analysis.getFieldOffset(allocationPoint, referenceIntIndex);
-            			regUpLHV.put(fieldPosition, regA());
-            			regUpLHH.put(fieldPosition, fsvar.getH(((OneRegisterInstruction)instruction).getRegisterA()));
-            			regUpLHL.put(fieldPosition, fsvar.getL(((OneRegisterInstruction)instruction).getRegisterA()));
-            			regUpLHG.put(fieldPosition, fsvar.getG(((OneRegisterInstruction)instruction).getRegisterA()));
+            			regUpLHV.put(fieldPosition, fsvar.getV(registerA()));
+            			regUpLHH.put(fieldPosition, fsvar.getH(registerA()));
+            			regUpLHL.put(fieldPosition, fsvar.getL(registerA()));
+            			regUpLHG.put(fieldPosition, fsvar.getG(registerA()));
             			buildB();
             			buildRule();
 
@@ -1241,10 +1241,10 @@ public class FSInstructionAnalysis{
             }
 
             buildH();
-            regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkBitVector(0, size));
-            regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkFalse());
-            regUpL.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkFalse());
-            regUpG.put(((OneRegisterInstruction)instruction).getRegisterA(), fsvar.getBf());
+            regUpV.put(registerA(), fsengine.mkBitVector(0, size));
+            regUpH.put(registerA(), fsengine.mkFalse());
+            regUpL.put(registerA(), fsengine.mkFalse());
+            regUpG.put(registerA(), fsvar.getBf());
             buildB();
             buildRule();
             
@@ -1256,10 +1256,10 @@ public class FSInstructionAnalysis{
             		fsengine.sPred(fsengine.mkInt(staticFieldClassName), fsengine.mkInt(referenceIntIndex),
                             fsvar.getF(), fsvar.getLf(), fsvar.getBf())
                     );
-            regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(), fsvar.getF());
-            regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(), fsvar.getLf());
-            regUpL.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkFalse());
-            regUpG.put(((OneRegisterInstruction)instruction).getRegisterA(), fsvar.getBf());
+            regUpV.put(registerA(), fsvar.getF());
+            regUpH.put(registerA(), fsvar.getLf());
+            regUpL.put(registerA(), fsengine.mkFalse());
+            regUpG.put(registerA(), fsvar.getBf());
             buildB();
             buildRule();
             break;//((short)0x66, "sget-short", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
@@ -1280,11 +1280,11 @@ public class FSInstructionAnalysis{
 
         	buildH();
         	b = fsengine.sPred(fsengine.mkInt(staticFieldClassName), fsengine.mkInt(referenceIntIndex),
-        			regA(),
-        			fsvar.getH(((OneRegisterInstruction)instruction).getRegisterA()),
+        			fsvar.getV(registerA()),
+        			fsvar.getH(registerA()),
         			fsengine.or(
-        					fsvar.getL(((OneRegisterInstruction)instruction).getRegisterA()),
-        					fsvar.getG(((OneRegisterInstruction)instruction).getRegisterA())
+        					fsvar.getL(registerA()),
+        					fsvar.getG(registerA())
         					));
         	buildRule();
 
@@ -1297,9 +1297,9 @@ public class FSInstructionAnalysis{
 
     		buildH();
     		BoolExpr hh = fsengine.and(
-            		fsvar.getG(((TwoRegisterInstruction)instruction).getRegisterB()),
+            		fsvar.getG(registerB()),
     				h,
-    				fsengine.cFilterPred(fsvar.getV(((OneRegisterInstruction)instruction).getRegisterA()), fsvar.getL(((OneRegisterInstruction)instruction).getRegisterA()), regUpLHV, regUpLHL, regUpLHCF)
+    				fsengine.cFilterPred(fsvar.getV(registerA()), fsvar.getL(registerA()), regUpLHV, regUpLHL, regUpLHCF)
     				);
 
     		liftLocalHeap(hh, null, null, regUpLHCF);
@@ -1509,119 +1509,119 @@ public class FSInstructionAnalysis{
         break;
         
         case NEG_INT://((short)0x7b, "neg-int", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            BitVecExpr bv = fsengine.bvneg(regB(), Type.INT);
+            BitVecExpr bv = fsengine.bvneg(fsvar.getV(registerB()), Type.INT);
             this.unaryOp(bv);
             break;
         case NEG_LONG://((short)0x7d, "neg-long", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvneg(regB(), Type.LONG);
+            bv = fsengine.bvneg(fsvar.getV(registerB()), Type.LONG);
             this.unaryOp(bv);
             break;
         case NEG_FLOAT://((short)0x7f, "neg-float", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvneg(regB(), Type.FLOAT);
+            bv = fsengine.bvneg(fsvar.getV(registerB()), Type.FLOAT);
             this.unaryOp(bv);
             break;
         case NEG_DOUBLE://((short)0x80, "neg-double", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvneg(regB(), Type.DOUBLE);
+            bv = fsengine.bvneg(fsvar.getV(registerB()), Type.DOUBLE);
             this.unaryOp(bv);
             break;
         case NOT_INT://((short)0x7c, "not-int", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvnot(regB(), Type.INT);
+            bv = fsengine.bvnot(fsvar.getV(registerB()), Type.INT);
             this.unaryOp(bv);
             break;
         case NOT_LONG://((short)0x7e, "not-long", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvnot(regB(), Type.LONG);
+            bv = fsengine.bvnot(fsvar.getV(registerB()), Type.LONG);
             this.unaryOp(bv);
             break;
 
         case INT_TO_LONG://((short)0x81, "int-to-long", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.toLong(fsengine.toInt((regB())));
+            bv = fsengine.toLong(fsengine.toInt((fsvar.getV(registerB()))));
             this.unaryOp(bv);
             break;
         case INT_TO_FLOAT://((short)0x82, "int-to-float", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.uOpIntToFloat(regB());
+            bv = fsengine.uOpIntToFloat(fsvar.getV(registerB()));
             this.unaryOp(bv);
             break;
         case INT_TO_DOUBLE://((short)0x83, "int-to-double", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.uOpIntToDouble(regB());
+            bv = fsengine.uOpIntToDouble(fsvar.getV(registerB()));
             this.unaryOp(bv);
             break;
         case LONG_TO_INT://((short)0x84, "long-to-int", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.toLong(fsengine.toInt((regB())));
+            bv = fsengine.toLong(fsengine.toInt((fsvar.getV(registerB()))));
             this.unaryOp(bv);
             break;
         case LONG_TO_FLOAT://((short)0x85, "long-to-float", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.uOpLongToFloat(regB());
+            bv = fsengine.uOpLongToFloat(fsvar.getV(registerB()));
             this.unaryOp(bv);
             break;
         case LONG_TO_DOUBLE://((short)0x86, "long-to-double", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.uOpLongToDouble(regB());
+            bv = fsengine.uOpLongToDouble(fsvar.getV(registerB()));
             this.unaryOp(bv);
             break;
         case FLOAT_TO_INT://((short)0x87, "float-to-int", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.floatRoundToInt(regB());
+            bv = fsengine.floatRoundToInt(fsvar.getV(registerB()));
             this.unaryOp(bv);
             break;
         case FLOAT_TO_LONG://((short)0x88, "float-to-long", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.floatRoundToLong(regB());
+            bv = fsengine.floatRoundToLong(fsvar.getV(registerB()));
             this.unaryOp(bv);
             break;
         case FLOAT_TO_DOUBLE://((short)0x89, "float-to-double", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.floatToDouble(regB());
+            bv = fsengine.floatToDouble(fsvar.getV(registerB()));
             this.unaryOp(bv);
             break;        
         case DOUBLE_TO_INT://((short)0x8a, "double-to-int", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.doubleRoundToInt(regB());
+            bv = fsengine.doubleRoundToInt(fsvar.getV(registerB()));
             this.unaryOp(bv);
             break;
         case DOUBLE_TO_LONG://((short)0x8b, "double-to-long", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.floatRoundToLong(regB());
+            bv = fsengine.floatRoundToLong(fsvar.getV(registerB()));
             this.unaryOp(bv);
             break;
         case DOUBLE_TO_FLOAT://((short)0x8c, "double-to-float", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.doubleToFloat(regB());
+            bv = fsengine.doubleToFloat(fsvar.getV(registerB()));
             this.unaryOp(bv);
             break;
         case INT_TO_BYTE://((short)0x8d, "int-to-byte", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.intToByte(regB());
+            bv = fsengine.intToByte(fsvar.getV(registerB()));
             this.unaryOp(bv);
             break;
         case INT_TO_CHAR://((short)0x8e, "int-to-char", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.intToChar(regB());
+            bv = fsengine.intToChar(fsvar.getV(registerB()));
             this.unaryOp(bv);
             break;
         case INT_TO_SHORT://((short)0x8f, "int-to-short", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.intToShort(regB());
+            bv = fsengine.intToShort(fsvar.getV(registerB()));
             this.unaryOp(bv);
             break;
 
         case ADD_INT://((short)0x90, "add-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvadd(
-                    regB(),
-                    regC(),
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()),
                     Type.INT
                     );
             this.binaryOpC(bv);
             break;
         case ADD_LONG://((short)0x9b, "add-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvadd(
-                    regB(),
-                    regC(),
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()),
                     Type.LONG
                     );
             this.binaryOpC(bv);
             break;
         case ADD_FLOAT://((short)0xa6, "add-float", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvadd(
-                    regB(),
-                    regC(),
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()),
                     Type.FLOAT
                     );
             this.binaryOpC(bv);
             break;
         case ADD_DOUBLE://((short)0xab, "add-double", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvadd(
-                    regB(),
-                    regC(),
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()),
                     Type.DOUBLE
                     );
             this.binaryOpC(bv);
@@ -1629,40 +1629,40 @@ public class FSInstructionAnalysis{
 
         case RSUB_INT://((short)0xd1, "rsub-int", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvsub(
-                    regC(),
-                    regB(),
+                    fsvar.getV(registerC()),
+                    fsvar.getV(registerB()),
                     Type.INT
                     );
             this.binaryOpC(bv);
             break;
         case SUB_INT://((short)0x91, "sub-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvsub(
-                    regB(),
-                    regC(),
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()),
                     Type.INT
                     );
             this.binaryOpC(bv);
             break;
         case SUB_LONG://((short)0x9c, "sub-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvsub(
-                    regB(),
-                    regC(),
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()),
                     Type.LONG
                     );
             this.binaryOpC(bv);
             break;
         case SUB_FLOAT://((short)0xa7, "sub-float", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvsub(
-                    regB(),
-                    regC(), 
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()), 
                     Type.FLOAT
                     );
             this.binaryOpC(bv);
             break;
         case SUB_DOUBLE://((short)0xac, "sub-double", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvsub(
-                    regB(),
-                    regC(),
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()),
                     Type.DOUBLE
                     );
             this.binaryOpC(bv);
@@ -1670,32 +1670,32 @@ public class FSInstructionAnalysis{
 
         case MUL_INT://((short)0x92, "mul-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvmul(
-                    regB(),
-                    regC(),
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()),
                     Type.INT
                     );
             this.binaryOpC(bv);
             break;
         case MUL_LONG://((short)0x9d, "mul-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvmul(
-                    regB(),
-                    regC(),
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()),
                     Type.LONG
                     );
             this.binaryOpC(bv);
             break;
         case MUL_FLOAT://((short)0xa8, "mul-float", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvmul(
-                    regB(),
-                    regC(),
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()),
                     Type.FLOAT
                     );
             this.binaryOpC(bv);
             break;
         case MUL_DOUBLE://((short)0xad, "mul-double", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvmul(
-                    regB(),
-                    regC(),
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()),
                     Type.DOUBLE
                     );
             this.binaryOpC(bv);
@@ -1703,32 +1703,32 @@ public class FSInstructionAnalysis{
 
         case DIV_INT://((short)0x93, "div-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvdiv(
-                    regB(),
-                    regC(),
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()),
                     Type.INT
                     );
             this.binaryOpC(bv);
             break;
         case DIV_LONG://((short)0x9e, "div-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvdiv(
-                    regB(),
-                    regC(),
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()),
                     Type.LONG
                     );
             this.binaryOpC(bv);
             break;
         case DIV_FLOAT://((short)0xa9, "div-float", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvdiv(
-                    regB(),
-                    regC(),
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()),
                     Type.FLOAT
                     );
             this.binaryOpC(bv);
             break;
         case DIV_DOUBLE://((short)0xae, "div-double", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvdiv(
-                    regB(),
-                    regC(),
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()),
                     Type.DOUBLE
                     );
             this.binaryOpC(bv);
@@ -1736,32 +1736,32 @@ public class FSInstructionAnalysis{
             
         case REM_INT://((short)0x94, "rem-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvrem(
-                    regB(),
-                    regC(),
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()),
                     Type.INT
                     );
             this.binaryOpC(bv);
             break;
         case REM_LONG://((short)0x9f, "rem-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvrem(
-                    regB(),
-                    regC(),
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()),
                     Type.LONG
                     );
             this.binaryOpC(bv);
             break;
         case REM_FLOAT://((short)0xaa, "rem-float", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvrem(
-                    regB(),
-                    regC(),
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()),
                     Type.FLOAT
                     );
             this.binaryOpC(bv);
             break;
         case REM_DOUBLE://((short)0xaf, "rem-double", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvrem(
-                    regB(),
-                    regC(),
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()),
                     Type.DOUBLE
                     );
             this.binaryOpC(bv);
@@ -1769,16 +1769,16 @@ public class FSInstructionAnalysis{
             
         case AND_INT://((short)0x95, "and-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvand(
-                    regB(),
-                    regC(),
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()),
                     Type.INT
                     );
             this.binaryOpC(bv);
             break;
         case AND_LONG://((short)0xa0, "and-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvand(
-                    regB(),
-                    regC(),
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()),
                     Type.LONG
                     );
             this.binaryOpC(bv);
@@ -1786,16 +1786,16 @@ public class FSInstructionAnalysis{
 
         case OR_INT://((short)0x96, "or-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvor(
-                    regB(),
-                    regC(),
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()),
                     Type.INT
                     );
             this.binaryOpC(bv);
             break;
         case OR_LONG://((short)0xa1, "or-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvor(
-                    regB(),
-                    regC(),
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()),
                     Type.LONG
                     );
             this.binaryOpC(bv);
@@ -1803,16 +1803,16 @@ public class FSInstructionAnalysis{
 
         case XOR_INT://((short)0x97, "xor-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvxor(
-                    regB(),
-                    regC(),
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()),
                     Type.INT
                     );
             this.binaryOpC(bv);
             break;
         case XOR_LONG://((short)0xa2, "xor-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvxor(
-                    regB(),
-                    regC(),
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()),
                     Type.LONG
                     );
             this.binaryOpC(bv);
@@ -1820,16 +1820,16 @@ public class FSInstructionAnalysis{
 
         case SHL_INT://((short)0x98, "shl-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvshl(
-                    regB(),
-                    regC(), 
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()), 
                     Type.INT
                     );
             this.binaryOpC(bv);
             break;
         case SHL_LONG://((short)0xa3, "shl-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvshl(
-                    regB(),
-                    regC(), 
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()), 
                     Type.LONG
                     );
             this.binaryOpC(bv);
@@ -1837,16 +1837,16 @@ public class FSInstructionAnalysis{
 
         case SHR_LONG://((short)0xa4, "shr-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvashr(
-                    regB(),
-                    regC(), 
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()), 
                     Type.LONG
                     );
             this.binaryOpC(bv);
             break;
         case SHR_INT://((short)0x99, "shr-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvashr(
-                    regB(),
-                    regC(), 
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()), 
                     Type.INT
                     );
             this.binaryOpC(bv);
@@ -1854,16 +1854,16 @@ public class FSInstructionAnalysis{
 
         case USHR_INT://((short)0x9a, "ushr-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvlshr(
-                    regB(),
-                    regC(), 
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()), 
                     Type.INT
                     );
             this.binaryOpC(bv);
             break;
         case USHR_LONG://((short)0xa5, "ushr-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvlshr(
-                    regB(),
-                    regC(), 
+                    fsvar.getV(registerB()),
+                    fsvar.getV(registerC()), 
                     Type.LONG
                     );
             this.binaryOpC(bv);
@@ -1871,32 +1871,32 @@ public class FSInstructionAnalysis{
 
         case ADD_INT_2ADDR://((short)0xb0, "add-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvadd(
-                    regA(),
-                    regB(),
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()),
                     Type.INT
                     );
             this.binaryOp(bv);
             break;
         case ADD_LONG_2ADDR://((short)0xc0, "and-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvadd(
-                    regA(),
-                    regB(),
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()),
                     Type.LONG
                     );
             this.binaryOp(bv);
             break;
         case ADD_FLOAT_2ADDR://((short)0xc6, "add-float/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvadd(
-                    regA(),
-                    regB(),
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()),
                     Type.FLOAT
                     );
             this.binaryOp(bv);
             break;        
         case ADD_DOUBLE_2ADDR://((short)0xcb, "add-double/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvadd(
-                    regA(),
-                    regB(),
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()),
                     Type.DOUBLE
                     );
             this.binaryOp(bv);
@@ -1904,32 +1904,32 @@ public class FSInstructionAnalysis{
 
         case SUB_INT_2ADDR://((short)0xb1, "sub-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvsub(
-                    regA(),
-                    regB(),
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()),
                     Type.INT
                     );
             this.binaryOp(bv);
             break;
         case SUB_LONG_2ADDR://((short)0xbc, "sub-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvsub(
-                    regA(),
-                    regB(),
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()),
                     Type.LONG
                     );
             this.binaryOp(bv);
             break;
         case SUB_FLOAT_2ADDR://((short)0xc7, "sub-float/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvsub(
-                    regA(),
-                    regB(),
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()),
                     Type.FLOAT
                     );
             this.binaryOp(bv);
             break;
         case SUB_DOUBLE_2ADDR://((short)0xcc, "sub-double/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvsub(
-                    regA(),
-                    regB(),
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()),
                     Type.DOUBLE
                     );
             this.binaryOp(bv);
@@ -1937,32 +1937,32 @@ public class FSInstructionAnalysis{
 
         case MUL_INT_2ADDR://((short)0xb2, "mul-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvmul(
-                    regA(),
-                    regB(),
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()),
                     Type.INT
                     );
             this.binaryOp(bv);
             break;
         case MUL_LONG_2ADDR://((short)0xbd, "mul-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvmul(
-                    regA(),
-                    regB(),
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()),
                     Type.LONG
                     );
             this.binaryOp(bv);
             break;
         case MUL_FLOAT_2ADDR://((short)0xc8, "mul-float/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvmul(
-                    regA(),
-                    regB(),
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()),
                     Type.FLOAT
                     );
             this.binaryOp(bv);
             break;
         case MUL_DOUBLE_2ADDR://((short)0xcd, "mul-double/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvmul(
-                    regA(),
-                    regB(),
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()),
                     Type.DOUBLE
                     );
             this.binaryOp(bv);
@@ -1970,32 +1970,32 @@ public class FSInstructionAnalysis{
 
         case DIV_INT_2ADDR://((short)0xb3, "div-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvdiv(
-                    regA(),
-                    regB(),
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()),
                     Type.INT
                     );
             this.binaryOp(bv);
             break;
         case DIV_LONG_2ADDR://((short)0xbe, "div-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvdiv(
-                    regA(),
-                    regB(),
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()),
                     Type.LONG
                     );
             this.binaryOp(bv);
             break;
         case DIV_FLOAT_2ADDR://((short)0xc9, "div-float/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvdiv(
-                    regA(),
-                    regB(),
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()),
                     Type.FLOAT
                     );
             this.binaryOp(bv);
             break;
         case DIV_DOUBLE_2ADDR://((short)0xce, "div-double/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvdiv(
-                    regA(),
-                    regB(),
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()),
                     Type.DOUBLE
                     );
             this.binaryOp(bv);
@@ -2003,32 +2003,32 @@ public class FSInstructionAnalysis{
 
         case REM_INT_2ADDR://((short)0xb4, "rem-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvrem(
-                    regA(),
-                    regB(),
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()),
                     Type.INT
                     );
             this.binaryOp(bv);
             break;
         case REM_LONG_2ADDR://((short)0xbf, "rem-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvrem(
-                    regA(),
-                    regB(),
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()),
                     Type.LONG
                     );
             this.binaryOp(bv);
             break;
         case REM_FLOAT_2ADDR://((short)0xca, "rem-float/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvrem(
-                    regA(),
-                    regB(),
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()),
                     Type.FLOAT
                     );
             this.binaryOp(bv);
             break;
         case REM_DOUBLE_2ADDR://((short)0xcf, "rem-double/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvrem(
-                    regA(),
-                    regB(),
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()),
                     Type.DOUBLE
                     );
             this.binaryOp(bv);
@@ -2036,16 +2036,16 @@ public class FSInstructionAnalysis{
 
         case AND_INT_2ADDR://((short)0xb5, "and-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvand(
-                    regA(),
-                    regB(), 
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()), 
                     Type.INT
                     );
             this.binaryOp(bv);
             break;
         case AND_LONG_2ADDR://((short)0xbb, "add-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvand(
-                    regA(),
-                    regB(), 
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()), 
                     Type.LONG
                     );
             this.binaryOp(bv);
@@ -2053,16 +2053,16 @@ public class FSInstructionAnalysis{
             
         case OR_INT_2ADDR://((short)0xb6, "or-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvor(
-                    regA(),
-                    regB(), 
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()), 
                     Type.INT
                     );
             this.binaryOp(bv);
             break;
         case OR_LONG_2ADDR://((short)0xc1, "or-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvor(
-                    regA(),
-                    regB(), 
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()), 
                     Type.LONG
                     );
             this.binaryOp(bv);
@@ -2070,16 +2070,16 @@ public class FSInstructionAnalysis{
 
         case XOR_INT_2ADDR://((short)0xb7, "xor-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvxor(
-                    regA(),
-                    regB(), 
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()), 
                     Type.INT
                     );
             this.binaryOp(bv);
             break;
         case XOR_LONG_2ADDR://((short)0xc2, "xor-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvxor(
-                    regA(),
-                    regB(), 
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()), 
                     Type.LONG
                     );
             this.binaryOp(bv);
@@ -2087,16 +2087,16 @@ public class FSInstructionAnalysis{
             
         case SHL_INT_2ADDR://((short)0xb8, "shl-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvshl(
-                    regA(),
-                    regB(), 
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()), 
                     Type.INT
                     );
             this.binaryOp(bv);
             break;
         case SHL_LONG_2ADDR://((short)0xc3, "shl-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvshl(
-                    regA(),
-                    regB(), 
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()), 
                     Type.LONG
                     );
             this.binaryOp(bv);
@@ -2104,16 +2104,16 @@ public class FSInstructionAnalysis{
             
         case SHR_INT_2ADDR://((short)0xb9, "shr-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvashr(
-                    regA(),
-                    regB(), 
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()), 
                     Type.INT
                     );
             this.binaryOp(bv);
             break;
         case SHR_LONG_2ADDR://((short)0xc4, "shr-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvashr(
-                    regA(),
-                    regB(), 
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()), 
                     Type.LONG
                     );
             this.binaryOp(bv);
@@ -2121,16 +2121,16 @@ public class FSInstructionAnalysis{
 
         case USHR_INT_2ADDR://((short)0xba, "ushr-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvlshr(
-                    regA(),
-                    regB(), 
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()), 
                     Type.INT
                     );
             this.binaryOp(bv);
             break;
         case USHR_LONG_2ADDR://((short)0xc5, "ushr-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
             bv = fsengine.bvlshr(
-                    regA(),
-                    regB(), 
+                    fsvar.getV(registerA()),
+                    fsvar.getV(registerB()), 
                     Type.LONG
                     );
             this.binaryOp(bv);
@@ -2139,7 +2139,7 @@ public class FSInstructionAnalysis{
         case ADD_INT_LIT16://((short)0xd0, "add-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case ADD_INT_LIT8://((short)0xd8, "add-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvadd(
-                    regB(),
+                    fsvar.getV(registerB()),
                     fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
                     Type.INT);
             this.unaryOp(bv);
@@ -2148,7 +2148,7 @@ public class FSInstructionAnalysis{
         case MUL_INT_LIT16://((short)0xd2, "mul-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case MUL_INT_LIT8://((short)0xda, "mul-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvmul(
-                    regB(),
+                    fsvar.getV(registerB()),
                     fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
                     Type.INT);
             this.unaryOp(bv);
@@ -2157,7 +2157,7 @@ public class FSInstructionAnalysis{
         case DIV_INT_LIT16://((short)0xd3, "div-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case DIV_INT_LIT8://((short)0xdb, "div-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvdiv(
-                    regB(),
+                    fsvar.getV(registerB()),
                     fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
                     Type.INT);
             this.unaryOp(bv);
@@ -2166,7 +2166,7 @@ public class FSInstructionAnalysis{
         case REM_INT_LIT16://((short)0xd4, "rem-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case REM_INT_LIT8://((short)0xdc, "rem-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvrem(
-                    regB(),
+                    fsvar.getV(registerB()),
                     fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
                     Type.INT);
             this.unaryOp(bv);
@@ -2175,7 +2175,7 @@ public class FSInstructionAnalysis{
         case AND_INT_LIT16://((short)0xd5, "and-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case AND_INT_LIT8://((short)0xdd, "and-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvand(
-                    regB(),
+                    fsvar.getV(registerB()),
                     fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
                     Type.INT);
             this.unaryOp(bv);
@@ -2184,7 +2184,7 @@ public class FSInstructionAnalysis{
         case OR_INT_LIT16://((short)0xd6, "or-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case OR_INT_LIT8://((short)0xde, "or-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvor(
-                    regB(),
+                    fsvar.getV(registerB()),
                     fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
                     Type.INT);
             this.unaryOp(bv);
@@ -2193,7 +2193,7 @@ public class FSInstructionAnalysis{
         case XOR_INT_LIT16://((short)0xd7, "xor-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case XOR_INT_LIT8://((short)0xdf, "xor-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvxor(
-                    regB(),
+                    fsvar.getV(registerB()),
                     fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
                     Type.INT);
             this.unaryOp(bv);
@@ -2202,14 +2202,14 @@ public class FSInstructionAnalysis{
         case RSUB_INT_LIT8://((short)0xd9, "rsub-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvsub(
                     fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
-                    regB(),
+                    fsvar.getV(registerB()),
                     Type.INT);
             this.unaryOp(bv);
             break;
 
         case SHL_INT_LIT8://((short)0xe0, "shl-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvshl(
-                    regB(),
+                    fsvar.getV(registerB()),
                     fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
                     Type.INT);
             this.unaryOp(bv);
@@ -2217,7 +2217,7 @@ public class FSInstructionAnalysis{
 
         case SHR_INT_LIT8://((short)0xe1, "shr-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvashr(
-                    regB(),
+                    fsvar.getV(registerB()),
                     fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
                     Type.INT);
             this.unaryOp(bv);
@@ -2225,7 +2225,7 @@ public class FSInstructionAnalysis{
 
         case USHR_INT_LIT8://((short)0xe2, "ushr-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvlshr(
-                    regB(),
+                    fsvar.getV(registerB()),
                     fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
                     Type.INT);
             this.unaryOp(bv);
@@ -2270,30 +2270,30 @@ public class FSInstructionAnalysis{
         }
     }
     
-    private BitVecExpr regA(){
-        return fsvar.getV(((OneRegisterInstruction)instruction).getRegisterA());
+    private int registerA(){
+        return ((OneRegisterInstruction)instruction).getRegisterA();
     }
     
-    private BitVecExpr regB(){
-        return fsvar.getV(((TwoRegisterInstruction)instruction).getRegisterB());
+    private int registerB(){
+        return ((TwoRegisterInstruction)instruction).getRegisterB();
     }
     
-    private BitVecExpr regC(){
-        return fsvar.getV(((ThreeRegisterInstruction)instruction).getRegisterC());
+    private int registerC(){
+        return ((ThreeRegisterInstruction)instruction).getRegisterC();
     }
     
     
     private void unaryOp(BitVecExpr bv){
         if (analysis.getSize() == 64){
             buildH();
-            regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(),bv);
-            regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(), fsvar.getH(((TwoRegisterInstruction)instruction).getRegisterB()));
+            regUpV.put(registerA(),bv);
+            regUpH.put(registerA(), fsvar.getH(registerB()));
             buildB();
             buildRule();
         }else{
             buildH();
-            regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(),fsvar.getVal());
-            regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(), fsvar.getH(((TwoRegisterInstruction)instruction).getRegisterB()));
+            regUpV.put(registerA(),fsvar.getVal());
+            regUpH.put(registerA(), fsvar.getH(registerB()));
             buildB();
             buildRule();
             
@@ -2304,20 +2304,20 @@ public class FSInstructionAnalysis{
     private void binaryOp(BitVecExpr bv){
         if (analysis.getSize() == 64){
             buildH();
-            regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(),bv);
-            regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(),
+            regUpV.put(registerA(),bv);
+            regUpH.put(registerA(),
                     fsengine.or(
-                            fsvar.getH(((TwoRegisterInstruction)instruction).getRegisterA()),
-                            fsvar.getH(((TwoRegisterInstruction)instruction).getRegisterB())));
+                            fsvar.getH(registerA()),
+                            fsvar.getH(registerB())));
             buildB();
             buildRule();
         }else{
             buildH();
-            regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(),fsvar.getVal());
-            regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(),
+            regUpV.put(registerA(),fsvar.getVal());
+            regUpH.put(registerA(),
                     fsengine.or(
-                            fsvar.getH(((TwoRegisterInstruction)instruction).getRegisterA()),
-                            fsvar.getH(((TwoRegisterInstruction)instruction).getRegisterB())));
+                            fsvar.getH(registerA()),
+                            fsvar.getH(registerB())));
             buildB();
             buildRule();
         }
@@ -2326,20 +2326,20 @@ public class FSInstructionAnalysis{
     private void binaryOpC(BitVecExpr bv){
         if (analysis.getSize() == 64){
             buildH();
-            regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(),bv);
-            regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(),
+            regUpV.put(registerA(),bv);
+            regUpH.put(registerA(),
                     fsengine.or(
-                            fsvar.getH(((ThreeRegisterInstruction)instruction).getRegisterB()),
-                            fsvar.getH(((ThreeRegisterInstruction)instruction).getRegisterC())));
+                            fsvar.getH(registerB()),
+                            fsvar.getH(registerC())));
             buildB();
             buildRule();
         }else{
             buildH();
-            regUpV.put(((OneRegisterInstruction)instruction).getRegisterA(),fsvar.getVal());
-            regUpH.put(((OneRegisterInstruction)instruction).getRegisterA(),
+            regUpV.put(registerA(),fsvar.getVal());
+            regUpH.put(registerA(),
                     fsengine.or(
-                            fsvar.getH(((ThreeRegisterInstruction)instruction).getRegisterB()),
-                            fsvar.getH(((ThreeRegisterInstruction)instruction).getRegisterC())));
+                            fsvar.getH(registerB()),
+                            fsvar.getH(registerC())));
             buildB();
             buildRule();            
         }
