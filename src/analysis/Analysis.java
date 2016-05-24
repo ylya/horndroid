@@ -470,14 +470,13 @@ public class Analysis {
     public TreeMap<Integer, Boolean> getClassFields(final String className, final int instanceNum){
         TreeMap<Integer, Boolean> result = new TreeMap <Integer, Boolean>();
         boolean found = false;
-        boolean prim;
         if (classes.containsKey(className.hashCode())){
             GeneralClass c = classes.get(className.hashCode());
             if (c instanceof DalvikClass && c != null){
                 final DalvikClass dc = (DalvikClass) c;
                 found = true;
                 for (DalvikField field: dc.getFields()) {
-                    prim = false;
+                    boolean prim = false;
                     final String fieldName = field.getName();
                     switch (fieldName){
                     case "Z": case "B": case "S": case "C": case "I": case "J": case "F": case "D": 

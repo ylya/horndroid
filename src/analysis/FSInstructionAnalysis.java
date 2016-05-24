@@ -407,7 +407,7 @@ public class FSInstructionAnalysis{
 
 
         case NEW_INSTANCE:
-           
+
         	//special treatment for the "global by default objects"
         	if (globalByDefault(dispatch, referenceIntIndex)){
         		instanceNum = analysis.getInstNum(ci, mi, codeAddress);
@@ -423,7 +423,7 @@ public class FSInstructionAnalysis{
         		regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
 
         		final Map<Integer, Boolean> fields = analysis.getClassFields(referenceString, instanceNum);
-        		if (fields != null)
+        		if (fields != null){
         			for (Map.Entry<Integer, Boolean> fieldN : fields.entrySet()){
         				buildH();
         				b = fsengine.hPred(fsengine.mkBitVector(referenceIntIndex, size),
@@ -433,14 +433,15 @@ public class FSInstructionAnalysis{
         						fsengine.mkFalse(),
         						fsengine.mkBool(fieldN.getValue()));
         				buildRule();
-        			} else {
-        				buildH();
-        				b = fsengine.hPred(fsengine.mkBitVector(referenceIntIndex, size),
-        						fsengine.mkBitVector(instanceNum, size),
-        						fsvar.getF(), fsengine.mkBitVector(0, size),
-        						fsengine.mkFalse(), fsvar.getBf());
-        				buildRule();
         			}
+        		} else {
+        			buildH();
+        			b = fsengine.hPred(fsengine.mkBitVector(referenceIntIndex, size),
+        					fsengine.mkBitVector(instanceNum, size),
+        					fsvar.getF(), fsengine.mkBitVector(0, size),
+        					fsengine.mkFalse(), fsvar.getBf());
+        			buildRule();
+        		}
         	}else if (referenceIntIndex == "Landroid/content/Intent;".hashCode()){
         		buildH();
         		buildB();
