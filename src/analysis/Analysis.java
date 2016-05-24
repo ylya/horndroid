@@ -466,7 +466,9 @@ public class Analysis {
     public int getAllocationPointPC(int instanceNum){
         return allocationPointPC.get(instanceNum);
     }
-    
+   /*
+    * Return a tree map of the format (hash code of the field name) -> (identifier whether the field has a primitive type)
+    */
     public TreeMap<Integer, Boolean> getClassFields(final String className, final int instanceNum){
         TreeMap<Integer, Boolean> result = new TreeMap <Integer, Boolean>();
         boolean found = false;
