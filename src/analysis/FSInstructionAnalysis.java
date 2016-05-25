@@ -1194,7 +1194,6 @@ public class FSInstructionAnalysis{
 
     		buildH();
     		BoolExpr hh = fsengine.and(
-            		fsvar.getG(registerB()),
     				h,
     				fsengine.cFilterPred(fsvar.getV(registerA()), fsvar.getL(registerA()), regUpLHV, regUpLHL, regUpLHCF)
     				);
