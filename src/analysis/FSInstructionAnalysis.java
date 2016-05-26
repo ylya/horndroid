@@ -1309,22 +1309,22 @@ public class FSInstructionAnalysis{
 
         case INVOKE_SUPER:
         {
-        	if (!processIntent()){
+        	
         		dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.SUPER);
         		int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
         		if (dispatchResult != null){
         			this.invoke(dispatchResult, false, referenceReg);
         		}
         		else{
-        			this.invokeNotKnown(false, referenceStringClass, referenceString);
+        		    if (!processIntent()){
+        		        this.invokeNotKnown(false, referenceStringClass, referenceString);
+        		    }
         		}
-        	}
         }
         break;
 
         case INVOKE_SUPER_RANGE:
         {
-        	if (!processIntent()){
         		dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.SUPER);
         		int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
         		if (dispatchResult != null){
@@ -1333,37 +1333,36 @@ public class FSInstructionAnalysis{
         		else{
         			this.invokeNotKnown(true, referenceStringClass, referenceString);
         		}
-        	}
         }
         break;
 
         case INVOKE_VIRTUAL:
         {
-        	if (!processIntent()){
         		dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.VIRTUAL);
         		int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
         		if (dispatchResult != null){
         			this.invoke(dispatchResult, false, referenceReg);
         		}
         		else{
-        			this.invokeNotKnown(false, referenceStringClass, referenceString);
+        		    if (!processIntent()){
+        		        this.invokeNotKnown(false, referenceStringClass, referenceString);
+        		    }
         		}
-        	}
         }
         break;
 
         case INVOKE_VIRTUAL_RANGE:
         {
-        	if (!processIntent()){
         		dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.VIRTUAL);
         		int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
         		if (dispatchResult != null){
         			this.invoke(dispatchResult, true, referenceReg);
         		}
         		else{
-        			this.invokeNotKnown(true, referenceStringClass, referenceString);
+        	        if (!processIntent()){
+        	            this.invokeNotKnown(true, referenceStringClass, referenceString);
+        	        }
         		}
-        	}
         }
         break;
 
@@ -1376,37 +1375,36 @@ public class FSInstructionAnalysis{
          */
         case INVOKE_INTERFACE:
         {
-        	if (!processIntent()){
         		dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.INTERFACE);
         		int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
         		if (dispatchResult != null){
         			this.invoke(dispatchResult, false, referenceReg);
         		}
         		else{
-        			this.invokeNotKnown(false, referenceStringClass, referenceString);
+        	        if (!processIntent()){
+        	            this.invokeNotKnown(false, referenceStringClass, referenceString);
+        	        }
         		}
-        	}
         }
         break;
 
         case INVOKE_INTERFACE_RANGE:
         {
-        	if (!processIntent()){
         		dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.INTERFACE);
         		int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
         		if (dispatchResult != null){
         			this.invoke(dispatchResult, true, referenceReg);
         		}
         		else{
-        			this.invokeNotKnown(true, referenceStringClass, referenceString);
+        	        if (!processIntent()){
+        	            this.invokeNotKnown(true, referenceStringClass, referenceString);
+        	        }
         		}
-        	}
         }
         break;
         
         case INVOKE_DIRECT:
         {
-            if (!processIntent()){
             	//TODO: address the following
             	/* we do a resolution on thread init, not on thread start, as at thread start the class information is lost
               (it is stored somewhere in the thread class by the operating system, we can also simulate that storing class name somewhere).
@@ -1451,7 +1449,9 @@ public class FSInstructionAnalysis{
 
             			}
             		}else{
-            			this.invokeNotKnown(false, referenceStringClass, referenceString);
+            	        if (!processIntent()){
+            	            this.invokeNotKnown(false, referenceStringClass, referenceString);
+            	        }
             		}
             	}else{
 
@@ -1459,52 +1459,53 @@ public class FSInstructionAnalysis{
             		if (dispatchResult != null){
             			this.invoke(dispatchResult, false, null);
             		}else{
-            			this.invokeNotKnown(false, referenceStringClass, referenceString);
+            	        if (!processIntent()){
+            	            this.invokeNotKnown(false, referenceStringClass, referenceString);
+            	        }
             		}
             	}
-            }
         }
         break;
         
         case INVOKE_DIRECT_RANGE:
         {
-        	if (!processIntent()){
         		dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.DIRECT);
         		if (dispatchResult != null){
         			this.invoke(dispatchResult, true, null);
         		}
         		else{
-        			this.invokeNotKnown(true, referenceStringClass, referenceString);
+        	        if (!processIntent()){
+        	            this.invokeNotKnown(true, referenceStringClass, referenceString);
+        	        }
         		}
-        	}
         }
         break;
         
         case INVOKE_STATIC:
         {
-            if (!processIntent()){
             	dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.STATIC);
             	if (dispatchResult != null){
             		this.invoke(dispatchResult, false, null);
             	}
             	else{
-            		this.invokeNotKnown(false, referenceStringClass, referenceString);
+                    if (!processIntent()){
+                        this.invokeNotKnown(false, referenceStringClass, referenceString);
+                    }
             	}
-            }
         }
         break;
 
         case INVOKE_STATIC_RANGE:
         {
-        	if (!processIntent()){
         		dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.STATIC);
         		if (dispatchResult != null){
         			this.invoke(dispatchResult, true, null);
         		}
         		else{
-        			this.invokeNotKnown(true, referenceStringClass, referenceString);
+        	        if (!processIntent()){
+        	            this.invokeNotKnown(true, referenceStringClass, referenceString);
+        	        }
         		}
-        	}
         }
         break;
         
