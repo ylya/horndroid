@@ -410,7 +410,12 @@ public class Analysis {
     private void initializeAllocationMapping(){
         Integer itNumber = 0;
         Integer offset = 0;
-        for (DalvikInstance i : instances.getAllOnce()){
+        
+        Set<DalvikInstance> setOfInst = instances.getAllOnce();
+        if(options.stubs){
+            setOfInst.addAll(stubs.getInstances().getAllOnce());
+        }
+        for (DalvikInstance i : setOfInst){
             final int instanceNum = i.hashCode();
             final String referenceString = i.getType().getType();
             final Map<Integer, Boolean> fieldsMap = getClassFields(referenceString, instanceNum);
