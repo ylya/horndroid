@@ -177,7 +177,7 @@ public class FSInstructionAnalysis{
                    fsengine.addQueryDebug(q3);
                }
            }
-            for (int i = 0; i < analysis.getLocalHeapNumberEntries(); i++){
+            /*for (int i = 0; i < analysis.getLocalHeapNumberEntries(); i++){
                 int instanceNumber = analysis.getInstanceNumFromReverse(i);
                 int lhoffset = fsengine.getOffset(instanceNumber);
                 int lhsize = fsengine.getSize(instanceNumber);
@@ -200,7 +200,7 @@ public class FSInstructionAnalysis{
                         fsengine.addQueryDebug(q3);
                     }
                 }
-            }
+            }*/
         }
 
         
@@ -1316,7 +1316,7 @@ public class FSInstructionAnalysis{
         			this.invoke(dispatchResult, false, referenceReg);
         		}
         		else{
-        		    if (!processIntent()){
+        		    if (!computeStub(false, referenceString)){
         		        this.invokeNotKnown(false, referenceStringClass, referenceString);
         		    }
         		}
@@ -1331,7 +1331,9 @@ public class FSInstructionAnalysis{
         			this.invoke(dispatchResult, true, referenceReg);
         		}
         		else{
-        			this.invokeNotKnown(true, referenceStringClass, referenceString);
+        		    if (!computeStub(true, referenceString)){
+        		        this.invokeNotKnown(true, referenceStringClass, referenceString);
+        		    }
         		}
         }
         break;
@@ -1344,7 +1346,7 @@ public class FSInstructionAnalysis{
         			this.invoke(dispatchResult, false, referenceReg);
         		}
         		else{
-        		    if (!processIntent()){
+        		    if (!computeStub(false, referenceString)){
         		        this.invokeNotKnown(false, referenceStringClass, referenceString);
         		    }
         		}
@@ -1359,7 +1361,7 @@ public class FSInstructionAnalysis{
         			this.invoke(dispatchResult, true, referenceReg);
         		}
         		else{
-        	        if (!processIntent()){
+        		    if (!computeStub(true, referenceString)){
         	            this.invokeNotKnown(true, referenceStringClass, referenceString);
         	        }
         		}
@@ -1381,7 +1383,7 @@ public class FSInstructionAnalysis{
         			this.invoke(dispatchResult, false, referenceReg);
         		}
         		else{
-        	        if (!processIntent()){
+        		    if (!computeStub(false, referenceString)){
         	            this.invokeNotKnown(false, referenceStringClass, referenceString);
         	        }
         		}
@@ -1396,7 +1398,7 @@ public class FSInstructionAnalysis{
         			this.invoke(dispatchResult, true, referenceReg);
         		}
         		else{
-        	        if (!processIntent()){
+        		    if (!computeStub(true, referenceString)){
         	            this.invokeNotKnown(true, referenceStringClass, referenceString);
         	        }
         		}
@@ -1449,17 +1451,16 @@ public class FSInstructionAnalysis{
 
             			}
             		}else{
-            	        if (!processIntent()){
+            		    if (!computeStub(false, referenceString)){
             	            this.invokeNotKnown(false, referenceStringClass, referenceString);
             	        }
             		}
             	}else{
-
             		dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.DIRECT);
             		if (dispatchResult != null){
             			this.invoke(dispatchResult, false, null);
             		}else{
-            	        if (!processIntent()){
+            		    if (!computeStub(false, referenceString)){
             	            this.invokeNotKnown(false, referenceStringClass, referenceString);
             	        }
             		}
@@ -1474,7 +1475,7 @@ public class FSInstructionAnalysis{
         			this.invoke(dispatchResult, true, null);
         		}
         		else{
-        	        if (!processIntent()){
+        		    if (!computeStub(true, referenceString)){
         	            this.invokeNotKnown(true, referenceStringClass, referenceString);
         	        }
         		}
@@ -1488,7 +1489,7 @@ public class FSInstructionAnalysis{
             		this.invoke(dispatchResult, false, null);
             	}
             	else{
-                    if (!processIntent()){
+            	    if (!computeStub(false, referenceString)){
                         this.invokeNotKnown(false, referenceStringClass, referenceString);
                     }
             	}
@@ -1502,7 +1503,7 @@ public class FSInstructionAnalysis{
         			this.invoke(dispatchResult, true, null);
         		}
         		else{
-        	        if (!processIntent()){
+        		    if (!computeStub(true, referenceString)){
         	            this.invokeNotKnown(true, referenceStringClass, referenceString);
         	        }
         		}
@@ -2708,8 +2709,6 @@ public class FSInstructionAnalysis{
     	regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
     	regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
     }
-
-    
  
     // For comparison instruction. Jump iff boolexpr is true
     private void cmpInstruction(BoolExpr boolexpr){
@@ -2728,12 +2727,95 @@ public class FSInstructionAnalysis{
         buildB();
         buildRule();
     }
+    
+    private boolean simpleSkip(final int c){
+        if (c == ("Ljava/lang/Object;".hashCode()) && ("<init>()V".hashCode() == referenceIntIndex)){
+            return true;
+        }
+        if ((c == ("Landroid/app/Activity;".hashCode())) && 
+                (("<init>()V".hashCode() == referenceIntIndex))){
+            return true;
+        }
+        if ((c == ("Landroid/app/Activity;".hashCode())) && 
+                (("onCreate(Landroid/os/Bundle;)V".hashCode() == referenceIntIndex))){
+            return true;
+        }
+        if ((c == ("Landroid/app/Activity;".hashCode())) && 
+                (("setContentView(I)V".hashCode() == referenceIntIndex))){
+            return true;
+        }
+        if ((c == ("Landroid/telephony/SmsManager;".hashCode())) && 
+                (("sendTextMessage(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Landroid/app/PendingIntent;Landroid/app/PendingIntent;)V".hashCode() == referenceIntIndex))){
+            return true;
+        }
+        if (analysis.getGeneralClass(c) instanceof DalvikClass){
+            return simpleSkip(((DalvikClass) analysis.getGeneralClass(c)).getSuperClass().getType().hashCode());
+        }
+        return false;
+    }
+        
+    private boolean manualStub(final int cCall){
+        int size = analysis.getSize();
+        // sources
+        if ((cCall == ("Landroid/telephony/TelephonyManager;".hashCode())) && 
+                (("getSimSerialNumber()Ljava/lang/String;".hashCode() == referenceIntIndex))){
+            buildH();
+            regUpV.put(numRegLoc, fsvar.getVal());
+            regUpH.put(numRegLoc, fsengine.mkTrue());
+            regUpL.put(numRegLoc, fsengine.mkFalse());
+            regUpG.put(numRegLoc, fsengine.mkFalse());
+            buildB();
+            buildRule();
+            return true;
+        }
+        // returning object
+        boolean flag1 = false, flag2 = false;
+        if (cCall == "Landroid/app/Activity;".hashCode() && 
+                "getSystemService(Ljava/lang/String;)Ljava/lang/Object;".hashCode() == referenceIntIndex){
+            flag1 = true;
+        }
+        if (cCall == "Landroid/telephony/SmsManager;".hashCode() && 
+                "getDefault()Landroid/telephony/SmsManager;".hashCode() == referenceIntIndex){
+            flag2 = true;
+        }
+        if (flag1 || flag2){
+            instanceNum = analysis.getInstNum(c, m, codeAddress);
+            buildH();
+            //update the register receiving the pointer to the newly created object
+            regUpV.put(numRegLoc, fsengine.mkBitVector(instanceNum, size));
+            regUpH.put(numRegLoc, fsengine.mkFalse());
+            regUpL.put(numRegLoc, fsengine.mkFalse());
+            regUpG.put(numRegLoc, fsengine.mkTrue());
+            buildB();
+            buildRule();
 
+            regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
 
-    /*
-     * TODO: rename this into computeStub or something like that 
-     */
-    private boolean processIntent(){
+            
+                buildH();
+                b = fsengine.hPred(fsengine.mkBitVector(returnType.hashCode(), size),
+                        fsengine.mkBitVector(instanceNum, size),
+                        fsengine.mkBitVector(0, size), fsengine.mkBitVector(0, size),
+                        fsengine.mkFalse(), fsengine.mkFalse());
+                buildRule();
+                return true;
+        }
+        if (analysis.getGeneralClass(cCall) instanceof DalvikClass){
+            return manualStub(((DalvikClass) analysis.getGeneralClass(cCall)).getSuperClass().getType().hashCode());
+        }
+        return false;
+    }
+
+    private boolean computeStub(boolean range, final String invMethod){
+        if (analysis.isSink(className,methodName,referenceClassIndex, referenceIntIndex)){
+            if (range) {
+                addQueryRange(fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
+                        className, methodName, Integer.toString(codeAddress), invMethod, analysis.optionVerbose());
+            }else{
+                addQuery(fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
+                        className, methodName, Integer.toString(codeAddress), invMethod, analysis.optionVerbose());
+            }
+        }
         final int size = analysis.getSize();
         int registerC, // r_d
         registerE, // c'
@@ -2741,20 +2823,21 @@ public class FSInstructionAnalysis{
         BitVecExpr typec = null;
         
         /*
-         * For Object and Activity <init>, we do nothing
+         * For some methods we do nothing
          */
-        if (referenceClassIndex == ("Ljava/lang/Object;".hashCode()) && ("<init>()V".hashCode() == referenceIntIndex)){
+        if (simpleSkip(referenceClassIndex)){
         	buildH();
         	buildB();
         	buildRule();
         	return true;
         }
-        if ((referenceClassIndex == ("Landroid/app/Activity;".hashCode())) && 
-        		(("<init>()V".hashCode() == referenceIntIndex))){
-        	buildH();
-        	buildB();
-        	buildRule();
-        	return true;
+        
+        /*
+         * For some methods wehave manual stubs
+         */
+        
+        if (manualStub(referenceClassIndex)){
+            return true;
         }
 
         if (referenceClassIndex == ("Landroid/content/Intent;".hashCode())
@@ -3318,6 +3401,7 @@ public class FSInstructionAnalysis{
      * Advances pc with a top values for the return value (if exists)
      */
     private void invokeNotKnown(final Boolean range, final String invClass, final String invMethod){
+        System.err.println("Not known implementation: " + invClass + " " +  invMethod);
         if (analysis.isSink(className,methodName,invClass.hashCode(), invMethod.hashCode())){
             if (range) {
                 addQueryRange(fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),

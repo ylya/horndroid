@@ -258,6 +258,13 @@ public class Analysis {
         return Integer.toString(ci);
     }
     
+    public GeneralClass getGeneralClass(final int ci){
+        if (classes.containsKey(ci)){
+            return classes.get(ci);
+        }
+        return null;
+    }
+    
     public String getMethodString(final int ci, final int mi){
         if (classes.containsKey(ci)){
             GeneralClass c = classes.get(ci);
@@ -1034,10 +1041,6 @@ public class Analysis {
                                    fetchInvoke(dispatchResult);
                                    addToPool(lazyUnion,pool, processCM, cmMap);
                                 }
-                                else{
-                                    System.out.println("Not Found :" + ((MethodReference) reference).getDefiningClass() + " " + referenceString+ " " + instruction.getOpcode().toString());
-                                }
-                                
                             }
                         }
                     }

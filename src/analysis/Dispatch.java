@@ -254,8 +254,6 @@ public class Dispatch {
             final String className, final String methodName) {
         final StringPair checkFailed = getFailed(c, m);
         if (checkFailed != null) {
-            System.err.println("Failed dispatch: " + checkFailed.st1 + " "
-                    + checkFailed.st2);
             return null;
         } else {
             if ((getImplementations(c, m) != null)) {
@@ -291,8 +289,6 @@ public class Dispatch {
             final String className, final String methodName) {
         final StringPair checkFailed = getFailed(c, m);
         if (checkFailed != null) {
-            System.err.println("Failed dispatch: " + checkFailed.st1 + " "
-                    + checkFailed.st2);
             return null;
         } else {
             if ((getImplementations(c, m) != null)) {
@@ -328,8 +324,6 @@ public class Dispatch {
             final String className, final String methodName) {
         final StringPair checkFailed = getFailed(c, m);
         if (checkFailed != null) {
-            System.err.println("Failed dispatch: " + checkFailed.st1 + " "
-                    + checkFailed.st2);
             return null;
         } else {
             if ((getImplementations(c, m) != null)
@@ -376,8 +370,6 @@ public class Dispatch {
             final String className, final String methodName) {
         final StringPair checkFailed = getFailed(c, m);
         if (checkFailed != null) {
-            System.err.println("Failed dispatch: " + checkFailed.st1 + " "
-                    + checkFailed.st2);
             return null;
         } else {
             if ((getImplementations(c, m) != null)
@@ -452,59 +444,10 @@ public class Dispatch {
          }
     }
     
-    /*private DispatchResult superSearch(final int c, final int m, final String className, final String methodName, GeneralClass currentClass){
-        for (final GeneralClass genCl: classes.values()){
-            if (genCl instanceof DalvikClass){
-                final DalvikClass dalCl = (DalvikClass) genCl;
-                if (dalCl.getSuperClass().getType().hashCode() == c){
-                    if (dalCl.getSuperClass() instanceof DalvikClass){
-                        final DalvikClass dc = (DalvikClass) dalCl.getSuperClass();
-                        final HashSet<DalvikInstance> instSet = new HashSet<DalvikInstance>();
-                        final HashSet<DalvikImplementation> implSet = new HashSet<DalvikImplementation>();
-                        if (dc.getMethod(m) != null) {
-                            implSet.add(new DalvikImplementation(dc, dc
-                                    .getMethod(m)));
-                        }
-                        if (dc.getSuperClass() instanceof DalvikClass) {
-                            superVirtualDispatch((DalvikClass) dc.getSuperClass(),
-                                    m, instSet, implSet);
-                        }
-                        if (instSet.isEmpty() || implSet.isEmpty()) {
-                            for (final DalvikClass child : dc.getChildClasses()) {
-                                if (instances.getByType(child.getType()
-                                        .hashCode()) != null){
-                                    instSet.addAll(instances.getByType(child.getType()
-                                            .hashCode()));
-                                }
-                                if (child.getMethod(m) != null) {
-                                    implSet.add(new DalvikImplementation(child,
-                                            child.getMethod(m)));
-                                }
-                            }
-                        }
-                        if (instSet.isEmpty()
-                                || implSet.isEmpty()) {
-                            putFailed(c,m,className,methodName);
-                            return null;
-                        }
-                        else{
-                            putImplementations(c,m,implSet);
-                            putInstances(c,m,instSet);
-                            return new DispatchResult(instSet, implSet);
-                        } 
-                    }
-                }
-            }
-        }
-        return null;
-    }*/
-    
     private DispatchResult virtualDispatch(final int c, final int m,
             final String className, final String methodName) {
         final StringPair checkFailed = getFailed(c, m);
         if (checkFailed != null) {
-            System.err.println("Failed dispatch: " + checkFailed.st1 + " "
-                    + checkFailed.st2);
             return null;
         } else {
             if ((getImplementations(c, m) != null)
