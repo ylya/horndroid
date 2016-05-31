@@ -129,7 +129,6 @@ public class FSInstructionAnalysis{
         referenceString = null;
         nextCode = codeAddress + instruction.getCodeUnits();
 
-
         if (instruction instanceof ReferenceInstruction) {
             ReferenceInstruction referenceInstruction = (ReferenceInstruction)instruction;
             Reference reference = referenceInstruction.getReference();
@@ -158,8 +157,7 @@ public class FSInstructionAnalysis{
         classIndex = Utils.Dec(ci);
         numRegLoc = dm.getNumReg();
         numParLoc = dm.getNumArg();
-
-
+        
         if (options.debug){
            buildH();
            for (int i = 0; i <= this.numRegLoc; i++){
@@ -177,7 +175,7 @@ public class FSInstructionAnalysis{
                    fsengine.addQueryDebug(q3);
                }
            }
-            /*for (int i = 0; i < analysis.getLocalHeapNumberEntries(); i++){
+            for (int i = 0; i < analysis.getLocalHeapNumberEntries(); i++){
                 int instanceNumber = analysis.getInstanceNumFromReverse(i);
                 int lhoffset = fsengine.getOffset(instanceNumber);
                 int lhsize = fsengine.getSize(instanceNumber);
@@ -200,7 +198,7 @@ public class FSInstructionAnalysis{
                         fsengine.addQueryDebug(q3);
                     }
                 }
-            }*/
+            }
         }
 
         
@@ -482,6 +480,9 @@ public class FSInstructionAnalysis{
         		}
         		LHUpdate lhu = new LHUpdate(newV, newH, newL, newG);
 
+        		regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
+                regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
+        		
         		liftLocalHeap(h, u, lhu, regUpLHCF);
 
         		regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
@@ -698,7 +699,8 @@ public class FSInstructionAnalysis{
         			fsengine.mkFalse(),
         			fsengine.mkFalse(),
         			fsengine.mkTrue());
-
+        	regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
+            regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
         	liftLocalHeap(hh, u, null, regUpLHCF);            
         }
         break;//((short)0x24, "filled-new-array", ReferenceType.TYPE, Format.Format35c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_RESULT),
@@ -744,6 +746,8 @@ public class FSInstructionAnalysis{
         			fsengine.mkFalse(),
         			fsengine.mkFalse(),
         			fsengine.mkTrue());
+        	regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
+            regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
         	liftLocalHeap(hh, u, null, filter);
 
         }
@@ -1084,10 +1088,12 @@ public class FSInstructionAnalysis{
     		for (int i = 0; i < analysis.getLocalHeapSize(); i++){
     			regUpLHCF.put(i, fsvar.getLHCF(i));
     		}
+            regUpH.put(registerB(),fsengine.or(fsvar.getH(registerA()), fsvar.getH(registerB())));
 
     		buildH();
     		BoolExpr hh = fsengine.and(h,fsengine.cFilterPred(fsvar.getV(registerA()), fsvar.getL(registerA()), regUpLHV, regUpLHL, regUpLHCF));
-
+    		regUpV.clear(); regUpL.clear(); regUpG.clear();
+            regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
     		liftLocalHeap(hh, null, null, regUpLHCF);
         }
         break;
@@ -1116,6 +1122,7 @@ public class FSInstructionAnalysis{
             regUpG.put(registerA(), fsvar.getBval());
             buildB();
             buildRule();
+            
 
             regUpV.clear();regUpH.clear();regUpL.clear();regUpG.clear();
             
@@ -1132,6 +1139,7 @@ public class FSInstructionAnalysis{
             					fsengine.eq(fsvar.getV(registerB()),fsengine.mkBitVector(allocationPoint,size))
             					);
             			int fieldPosition = fsengine.getOffset(allocationPoint) + analysis.getFieldOffset(allocationPoint, referenceIntIndex);
+            			
             			regUpV.put(registerA(),fsvar.getLHV(fieldPosition));
             			regUpH.put(registerA(),fsvar.getLHH(fieldPosition));
             			regUpL.put(registerA(),fsvar.getLHL(fieldPosition));
@@ -1140,7 +1148,8 @@ public class FSInstructionAnalysis{
             			buildRule();
 
             			regUpV.clear();regUpH.clear();regUpL.clear();regUpG.clear();
-            			regUpLHV.clear();regUpLHH.clear();regUpLHL.clear();regUpLHG.clear();
+            			regUpLHV.clear();regUpLHH.clear();regUpLHL.clear();regUpLHG.clear();            			
+            			 
             		}
             	}
             }
@@ -1156,14 +1165,15 @@ public class FSInstructionAnalysis{
         case IPUT_CHAR://((short)0x5e, "iput-char", ReferenceType.FIELD, Format.Format22c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
         case IPUT_SHORT:
         {
-            //object on the global heap: propagate R
+            /*//object on the global heap: propagate R
             buildH();
         	h = fsengine.and(
         			h,
         			fsvar.getG(registerB()));
+        	regUpH.put(registerB(),fsengine.or(fsvar.getH(registerA()), fsvar.getH(registerB())));
             buildB();
             buildRule();
-
+            regUpH.clear();*/
 
             //object on the global heap: update the global heap
             buildH();
@@ -1195,6 +1205,7 @@ public class FSInstructionAnalysis{
     		buildH();
     		BoolExpr hh = fsengine.and(
     				h,
+    				fsvar.getG(registerB()),
     				fsengine.cFilterPred(fsvar.getV(registerA()), fsvar.getL(registerA()), regUpLHV, regUpLHL, regUpLHCF)
     				);
 
@@ -1212,12 +1223,19 @@ public class FSInstructionAnalysis{
             					fsengine.eq(fsvar.getV(registerB()),fsengine.mkBitVector(allocationPoint,size))
             					);
             			int fieldPosition = fsengine.getOffset(allocationPoint) + analysis.getFieldOffset(allocationPoint, referenceIntIndex);
+            			
             			regUpLHV.put(fieldPosition, fsvar.getV(registerA()));
             			regUpLHH.put(fieldPosition, fsvar.getH(registerA()));
             			regUpLHL.put(fieldPosition, fsvar.getL(registerA()));
             			regUpLHG.put(fieldPosition, fsvar.getG(registerA()));
+            			
+            	        regUpH.put(registerB(),fsengine.or(fsvar.getH(registerA()), fsvar.getH(registerB())));
+
+            			
             			buildB();
             			buildRule();
+            			
+            			 
 
             			regUpV.clear();regUpH.clear();regUpL.clear();regUpG.clear();
             			regUpLHV.clear();regUpLHH.clear();regUpLHL.clear();regUpLHG.clear();
@@ -1301,7 +1319,8 @@ public class FSInstructionAnalysis{
     				h,
     				fsengine.cFilterPred(fsvar.getV(registerA()), fsvar.getL(registerA()), regUpLHV, regUpLHL, regUpLHCF)
     				);
-
+    		regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
+            regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
     		liftLocalHeap(hh, null, null, regUpLHCF);
         }
         break;//((short)0x6d, "sput-short", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
@@ -2409,13 +2428,13 @@ public class FSInstructionAnalysis{
         for (int reg = startRegister; reg <= endRegister; reg++ ){
             BoolExpr q = fsengine.and(
                     p,
-                    fsengine.eq(fsvar.getH(reg), fsengine.mkTrue()),
-                    fsengine.or(fsengine.eq(fsvar.getG(reg), fsengine.mkFalse()), fsengine.eq(fsvar.getL(reg), fsengine.mkFalse()))
+                    fsengine.eq(fsvar.getH(reg), fsengine.mkTrue())
+                    //,fsengine.or(fsengine.eq(fsvar.getG(reg), fsengine.mkFalse()), fsengine.eq(fsvar.getL(reg), fsengine.mkFalse()))
                     );
-            String d = "[PRIM] Test if register " + Integer.toString(reg) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            String d = "Test if register " + Integer.toString(reg) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             fsengine.addQuery(new Z3Query(q, d, verboseOption, className, methodName, pc, sinkName));
         }
-        for (int reg = startRegister; reg <= endRegister; reg++ ){
+        /*for (int reg = startRegister; reg <= endRegister; reg++ ){
             BoolExpr q = fsengine.and(
                     p,
                     fsengine.taintPred(fsvar.getV(reg), fsengine.mkTrue()),
@@ -2423,7 +2442,7 @@ public class FSInstructionAnalysis{
                     );
             String d = "[REF] Test if register " + Integer.toString(reg) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             fsengine.addQuery(new Z3Query(q, d, verboseOption, className, methodName, pc, sinkName));
-        }
+        }*/
     }
 
     private void addQuery(BoolExpr p, String className, String methodName, String pc, String sinkName, final boolean verboseResults){
@@ -2434,78 +2453,78 @@ public class FSInstructionAnalysis{
         case 5:
             BoolExpr q5 = fsengine.and(
                     p,
-                    fsengine.eq(fsvar.getH(instruction.getRegisterG()), fsengine.mkTrue()),
-                    fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterG()), fsengine.mkFalse()), fsengine.eq(fsvar.getL(instruction.getRegisterG()), fsengine.mkFalse()))
+                    fsengine.eq(fsvar.getH(instruction.getRegisterG()), fsengine.mkTrue())
+                    //,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterG()), fsengine.mkFalse()), fsengine.eq(fsvar.getL(instruction.getRegisterG()), fsengine.mkFalse()))
                     );
-            String d5 = "[PRIM] Test if register " + Integer.toString(instruction.getRegisterG()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            String d5 = "Test if register " + Integer.toString(instruction.getRegisterG()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             fsengine.addQuery(new Z3Query(q5, d5, verboseResults, className, methodName, pc, sinkName));
-            q5 = fsengine.and(
+            /*q5 = fsengine.and(
                     p,
-                    fsengine.taintPred(fsvar.getV(instruction.getRegisterG()), fsengine.mkTrue()),
-                    fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterG()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterG()), fsengine.mkTrue()))
+                    fsengine.taintPred(fsvar.getV(instruction.getRegisterG()), fsengine.mkTrue())
+                    //,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterG()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterG()), fsengine.mkTrue()))
                     );
             d5 = "[REF] Test if register " + Integer.toString(instruction.getRegisterG()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
-            fsengine.addQuery(new Z3Query(q5, d5, verboseResults, className, methodName, pc, sinkName));
+            fsengine.addQuery(new Z3Query(q5, d5, verboseResults, className, methodName, pc, sinkName));*/
         case 4:
             BoolExpr q4 = fsengine.and(
                     p,
-                    fsengine.eq(fsvar.getH(instruction.getRegisterF()), fsengine.mkTrue()),
-                    fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterF()), fsengine.mkFalse()), fsengine.eq(fsvar.getL(instruction.getRegisterF()), fsengine.mkFalse()))
+                    fsengine.eq(fsvar.getH(instruction.getRegisterF()), fsengine.mkTrue())
+                    //,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterF()), fsengine.mkFalse()), fsengine.eq(fsvar.getL(instruction.getRegisterF()), fsengine.mkFalse()))
                     );
-            String d4 = "[PRIM] Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            String d4 = "Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             fsengine.addQuery(new Z3Query(q4, d4, verboseResults, className, methodName, pc, sinkName));
-            q4 = fsengine.and(
+            /*q4 = fsengine.and(
                     p,
-                    fsengine.taintPred(fsvar.getV(instruction.getRegisterF()), fsengine.mkTrue()),
-                    fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterF()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterF()), fsengine.mkTrue()))
+                    fsengine.taintPred(fsvar.getV(instruction.getRegisterF()), fsengine.mkTrue())
+                    //,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterF()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterF()), fsengine.mkTrue()))
                     );
             d4 = "[REF] Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
-            fsengine.addQuery(new Z3Query(q4, d4, verboseResults, className, methodName, pc, sinkName));
+            fsengine.addQuery(new Z3Query(q4, d4, verboseResults, className, methodName, pc, sinkName));*/
         case 3:
             BoolExpr q3 = fsengine.and(
                     p,
-                    fsengine.eq(fsvar.getH(instruction.getRegisterE()), fsengine.mkTrue()),
-                    fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterE()), fsengine.mkFalse()), fsengine.eq(fsvar.getL(instruction.getRegisterE()), fsengine.mkFalse()))
+                    fsengine.eq(fsvar.getH(instruction.getRegisterE()), fsengine.mkTrue())
+                    //,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterE()), fsengine.mkFalse()), fsengine.eq(fsvar.getL(instruction.getRegisterE()), fsengine.mkFalse()))
                     );
-            String d3 = "[PRIM] Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            String d3 = "Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             fsengine.addQuery(new Z3Query(q3, d3, verboseResults, className, methodName, pc, sinkName));
-            q3 = fsengine.and(
+            /*q3 = fsengine.and(
                     p,
-                    fsengine.taintPred(fsvar.getV(instruction.getRegisterE()), fsengine.mkTrue()),
-                    fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterE()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterE()), fsengine.mkTrue()))
+                    fsengine.taintPred(fsvar.getV(instruction.getRegisterE()), fsengine.mkTrue())
+                    //,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterE()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterE()), fsengine.mkTrue()))
                     );
             d3 = "[REF] Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
-            fsengine.addQuery(new Z3Query(q3, d3, verboseResults, className, methodName, pc, sinkName));
+            fsengine.addQuery(new Z3Query(q3, d3, verboseResults, className, methodName, pc, sinkName));*/
         case 2:
             BoolExpr q2 = fsengine.and(
                     p,
-                    fsengine.eq(fsvar.getH(instruction.getRegisterD()), fsengine.mkTrue()),
-                    fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterD()), fsengine.mkFalse()), fsengine.eq(fsvar.getL(instruction.getRegisterD()), fsengine.mkFalse()))
+                    fsengine.eq(fsvar.getH(instruction.getRegisterD()), fsengine.mkTrue())
+                    //,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterD()), fsengine.mkFalse()), fsengine.eq(fsvar.getL(instruction.getRegisterD()), fsengine.mkFalse()))
                     );
-            String d2 = "[PRIM] Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            String d2 = "Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             fsengine.addQuery(new Z3Query(q2, d2, verboseResults, className, methodName, pc, sinkName));
-            q2 = fsengine.and(
+            /*q2 = fsengine.and(
                     p,
-                    fsengine.taintPred(fsvar.getV(instruction.getRegisterD()), fsengine.mkTrue()),
-                    fsengine.eq(fsengine.or(fsvar.getG(instruction.getRegisterD()), fsvar.getL(instruction.getRegisterD())), fsengine.mkTrue())
+                    fsengine.taintPred(fsvar.getV(instruction.getRegisterD()), fsengine.mkTrue())
+                    //,fsengine.eq(fsengine.or(fsvar.getG(instruction.getRegisterD()), fsvar.getL(instruction.getRegisterD())), fsengine.mkTrue())
                     );
             d2 = "[REF] Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
-            fsengine.addQuery(new Z3Query(q2, d2, verboseResults, className, methodName, pc, sinkName));
+            fsengine.addQuery(new Z3Query(q2, d2, verboseResults, className, methodName, pc, sinkName));*/
         case 1:
             BoolExpr q1 = fsengine.and(
                     p,
-                    fsengine.eq(fsvar.getH(instruction.getRegisterC()), fsengine.mkTrue()),
-                    fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterC()), fsengine.mkFalse()), fsengine.eq(fsvar.getL(instruction.getRegisterC()), fsengine.mkFalse()))
+                    fsengine.eq(fsvar.getH(instruction.getRegisterC()), fsengine.mkTrue())
+                    //,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterC()), fsengine.mkFalse()), fsengine.eq(fsvar.getL(instruction.getRegisterC()), fsengine.mkFalse()))
                     );
-            String d1 = "[PRIM] Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            String d1 = "Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             fsengine.addQuery(new Z3Query(q1, d1, verboseResults, className, methodName, pc, sinkName));
-            q1 = fsengine.and(
+            /*q1 = fsengine.and(
                     p,
-                    fsengine.taintPred(fsvar.getV(instruction.getRegisterC()), fsengine.mkTrue()),
-                    fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterC()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterC()), fsengine.mkTrue()))
+                    fsengine.taintPred(fsvar.getV(instruction.getRegisterC()), fsengine.mkTrue())
+                    //,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterC()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterC()), fsengine.mkTrue()))
                     );
             d1 = "[REF] Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
-            fsengine.addQuery(new Z3Query(q1, d1, verboseResults, className, methodName, pc, sinkName));
+            fsengine.addQuery(new Z3Query(q1, d1, verboseResults, className, methodName, pc, sinkName));*/
         }
     }
  
@@ -2756,9 +2775,17 @@ public class FSInstructionAnalysis{
         
     private boolean manualStub(final int cCall){
         int size = analysis.getSize();
+        boolean flag1 = false, flag2 = false;
         // sources
         if ((cCall == ("Landroid/telephony/TelephonyManager;".hashCode())) && 
-                (("getSimSerialNumber()Ljava/lang/String;".hashCode() == referenceIntIndex))){
+                ("getSimSerialNumber()Ljava/lang/String;".hashCode() == referenceIntIndex)){
+            flag1 = true;
+        }
+        if ((cCall == ("Landroid/telephony/TelephonyManager;".hashCode())) && 
+                ("getDeviceId()Ljava/lang/String;".hashCode() == referenceIntIndex)){
+            flag2 = true;
+        }
+        if (flag1 || flag2){
             buildH();
             regUpV.put(numRegLoc, fsvar.getVal());
             regUpH.put(numRegLoc, fsengine.mkTrue());
@@ -2769,7 +2796,6 @@ public class FSInstructionAnalysis{
             return true;
         }
         // returning object
-        boolean flag1 = false, flag2 = false;
         if (cCall == "Landroid/app/Activity;".hashCode() && 
                 "getSystemService(Ljava/lang/String;)Ljava/lang/Object;".hashCode() == referenceIntIndex){
             flag1 = true;
