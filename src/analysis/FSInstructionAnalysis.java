@@ -175,7 +175,7 @@ public class FSInstructionAnalysis{
                    fsengine.addQueryDebug(q3);
                }
            }
-            for (int i = 0; i < analysis.getLocalHeapNumberEntries(); i++){
+           for (int i = 0; i < analysis.getLocalHeapNumberEntries(); i++){
                 int instanceNumber = analysis.getInstanceNumFromReverse(i);
                 int lhoffset = fsengine.getOffset(instanceNumber);
                 int lhsize = fsengine.getSize(instanceNumber);
@@ -480,9 +480,6 @@ public class FSInstructionAnalysis{
         		}
         		LHUpdate lhu = new LHUpdate(newV, newH, newL, newG);
 
-        		regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
-                regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
-        		
         		liftLocalHeap(h, u, lhu, regUpLHCF);
 
         		regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
@@ -699,8 +696,7 @@ public class FSInstructionAnalysis{
         			fsengine.mkFalse(),
         			fsengine.mkFalse(),
         			fsengine.mkTrue());
-        	regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
-            regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
+      
         	liftLocalHeap(hh, u, null, regUpLHCF);            
         }
         break;//((short)0x24, "filled-new-array", ReferenceType.TYPE, Format.Format35c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_RESULT),
@@ -746,8 +742,7 @@ public class FSInstructionAnalysis{
         			fsengine.mkFalse(),
         			fsengine.mkFalse(),
         			fsengine.mkTrue());
-        	regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
-            regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
+
         	liftLocalHeap(hh, u, null, filter);
 
         }
@@ -1088,12 +1083,14 @@ public class FSInstructionAnalysis{
     		for (int i = 0; i < analysis.getLocalHeapSize(); i++){
     			regUpLHCF.put(i, fsvar.getLHCF(i));
     		}
-            regUpH.put(registerB(),fsengine.or(fsvar.getH(registerA()), fsvar.getH(registerB())));
 
     		buildH();
-    		BoolExpr hh = fsengine.and(h,fsengine.cFilterPred(fsvar.getV(registerA()), fsvar.getL(registerA()), regUpLHV, regUpLHL, regUpLHCF));
-    		regUpV.clear(); regUpL.clear(); regUpG.clear();
-            regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
+    		BoolExpr hh = fsengine.and(h,
+    		        fsvar.getG(registerB()),
+    		        fsengine.cFilterPred(fsvar.getV(registerA()), fsvar.getL(registerA()), regUpLHV, regUpLHL, regUpLHCF));
+    		
+            //regUpH.put(registerB(),fsengine.or(fsvar.getH(registerA()), fsvar.getH(registerB())));
+
     		liftLocalHeap(hh, null, null, regUpLHCF);
         }
         break;
@@ -1208,7 +1205,8 @@ public class FSInstructionAnalysis{
     				fsvar.getG(registerB()),
     				fsengine.cFilterPred(fsvar.getV(registerA()), fsvar.getL(registerA()), regUpLHV, regUpLHL, regUpLHCF)
     				);
-
+    		
+    	
     		liftLocalHeap(hh, null, null, regUpLHCF);
             
             //object is on the local heap: update the local heap
@@ -1229,7 +1227,7 @@ public class FSInstructionAnalysis{
             			regUpLHL.put(fieldPosition, fsvar.getL(registerA()));
             			regUpLHG.put(fieldPosition, fsvar.getG(registerA()));
             			
-            	        regUpH.put(registerB(),fsengine.or(fsvar.getH(registerA()), fsvar.getH(registerB())));
+            	        //regUpH.put(registerB(),fsengine.or(fsvar.getH(registerA()), fsvar.getH(registerB())));
 
             			
             			buildB();
@@ -1319,8 +1317,7 @@ public class FSInstructionAnalysis{
     				h,
     				fsengine.cFilterPred(fsvar.getV(registerA()), fsvar.getL(registerA()), regUpLHV, regUpLHL, regUpLHCF)
     				);
-    		regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
-            regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
+    
     		liftLocalHeap(hh, null, null, regUpLHCF);
         }
         break;//((short)0x6d, "sput-short", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
@@ -3137,7 +3134,7 @@ public class FSInstructionAnalysis{
          * Put information in the intent object with reference in r_i aka
          * (put-extra r_i r_k k_j)_pp note: r_k is ignore, field insensitivity
          */
-        if (referenceString.contains((String) "putExtra")
+        /*if (referenceString.contains((String) "putExtra")
                 && referenceClassIndex == ("Landroid/content/Intent;".hashCode())) {
             if (this.instruction instanceof FiveRegisterInstruction) {
                 FiveRegisterInstruction instruction = (FiveRegisterInstruction) this.instruction;
@@ -3157,14 +3154,14 @@ public class FSInstructionAnalysis{
                  * Go to the next pc with the same register values, but raise
                  * the label of r_i to the (l_i join l_j)
                  */
-                buildH();
+         /*       buildH();
                 regUpH.put(instruction.getRegisterC(), fsengine.or(fsvar.getH(instruction.getRegisterC()),
                         fsvar.getH(instruction.getRegisterE())));
                 buildB();
                 fsengine.addRule(fsengine.implies(h2, b), null);
                 return true;
             }
-        }
+        }*/
         /*
          * getAction returns a string which shows what to do with a data
          * received from the intent e.g., ACTION_VIEW
