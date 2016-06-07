@@ -250,6 +250,23 @@ public class Dispatch {
         }
     }
     
+    private void childVirtualDispatch(final DalvikClass dc, final int m, final Set<DalvikInstance> instSet, 
+            final Set<DalvikImplementation> implSet){
+        
+        for (final GeneralClass childClass : dc.getChildClasses()){
+            final DalvikClass cc = (DalvikClass) childClass;
+            if (childClass instanceof DalvikClass){
+                if (instances.getByType(cc.getType().hashCode()) != null){
+                    instSet.addAll(instances.getByType(cc.getType().hashCode()));
+                }        
+                if (cc.getMethod(m) != null){
+                    implSet.add(new DalvikImplementation(cc, cc.getMethod(m)));
+                }
+                childVirtualDispatch(cc, m, instSet, implSet);
+            }
+        }
+    }
+    
     private DispatchResult staticDispatch(final int c, final int m,
             final String className, final String methodName) {
         final StringPair checkFailed = getFailed(c, m);
@@ -462,6 +479,8 @@ public class Dispatch {
                 }
                 if (gc instanceof DalvikClass) {
                     final DalvikClass dc = (DalvikClass) gc;
+                    childVirtualDispatch(dc, m, instSet, implSet);
+
                     if (dc.getMethod(m) != null) {
                         implSet.add(new DalvikImplementation(dc, dc
                                 .getMethod(m)));

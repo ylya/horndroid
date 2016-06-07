@@ -161,12 +161,12 @@ public class FSInstructionAnalysis{
         if (options.debug){
            buildH();
            for (int i = 0; i <= this.numRegLoc; i++){
-               BoolExpr h1 = fsengine.and(fsvar.getH(i),h);
-               BoolExpr h2 = fsengine.and(fsvar.getL(i),h);
-               BoolExpr h3 = fsengine.and(fsvar.getG(i),h);
-               Z3Query q1 = new Z3Query(h1,i,QUERY_TYPE.HIGH,className,methodName,Integer.toString(codeAddress));
-               Z3Query q2 = new Z3Query(h2,i,QUERY_TYPE.LOCAL,className,methodName,Integer.toString(codeAddress));
-               Z3Query q3 = new Z3Query(h3,i,QUERY_TYPE.GLOBAL,className,methodName,Integer.toString(codeAddress));
+               BoolExpr h1 = fsengine.and(fsvar.getH(0),h);
+               BoolExpr h2 = fsengine.and(fsvar.getL(0),h);
+               BoolExpr h3 = fsengine.and(fsvar.getG(0),h);
+               Z3Query q1 = new Z3Query(h1,0,QUERY_TYPE.HIGH,className,methodName,Integer.toString(codeAddress));
+               Z3Query q2 = new Z3Query(h2,0,QUERY_TYPE.LOCAL,className,methodName,Integer.toString(codeAddress));
+               Z3Query q3 = new Z3Query(h3,0,QUERY_TYPE.GLOBAL,className,methodName,Integer.toString(codeAddress));
                fsengine.addQueryDebug(q1);
                if (analysis.getDebugNumber() >= 2){
                    fsengine.addQueryDebug(q2);
@@ -480,7 +480,7 @@ public class FSInstructionAnalysis{
         		}
         		LHUpdate lhu = new LHUpdate(newV, newH, newL, newG);
 
-        		liftLocalHeap(h, u, lhu, regUpLHCF);
+        		liftLocalHeap(h, u, lhu, regUpLHCF, null, null);
 
         		regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
         		regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
@@ -697,7 +697,7 @@ public class FSInstructionAnalysis{
         			fsengine.mkFalse(),
         			fsengine.mkTrue());
       
-        	liftLocalHeap(hh, u, null, regUpLHCF);            
+        	liftLocalHeap(hh, u, null, regUpLHCF, null, null);            
         }
         break;//((short)0x24, "filled-new-array", ReferenceType.TYPE, Format.Format35c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_RESULT),
 
@@ -743,7 +743,7 @@ public class FSInstructionAnalysis{
         			fsengine.mkFalse(),
         			fsengine.mkTrue());
 
-        	liftLocalHeap(hh, u, null, filter);
+        	liftLocalHeap(hh, u, null, filter, null, null);
 
         }
         break;//((short)0x25, "filled-new-array/range", ReferenceType.TYPE, Format.Format3rc, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_RESULT),
@@ -1089,9 +1089,7 @@ public class FSInstructionAnalysis{
     		        fsvar.getG(registerB()),
     		        fsengine.cFilterPred(fsvar.getV(registerA()), fsvar.getL(registerA()), regUpLHV, regUpLHL, regUpLHCF));
     		
-            //regUpH.put(registerB(),fsengine.or(fsvar.getH(registerA()), fsvar.getH(registerB())));
-
-    		liftLocalHeap(hh, null, null, regUpLHCF);
+    		liftLocalHeap(hh, null, null, regUpLHCF, registerB(), fsengine.or(fsvar.getH(registerA()), fsvar.getH(registerB())));
         }
         break;
             //((short)0x51, "aput-short", ReferenceType.NONE, Format.Format23x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
@@ -1207,7 +1205,7 @@ public class FSInstructionAnalysis{
     				);
     		
     	
-    		liftLocalHeap(hh, null, null, regUpLHCF);
+    		liftLocalHeap(hh, null, null, regUpLHCF, registerB(), fsengine.or(fsvar.getH(registerA()), fsvar.getH(registerB())));
             
             //object is on the local heap: update the local heap
             for (int allocationPoint : analysis.getAllocationPoints()){
@@ -1318,7 +1316,7 @@ public class FSInstructionAnalysis{
     				fsengine.cFilterPred(fsvar.getV(registerA()), fsvar.getL(registerA()), regUpLHV, regUpLHL, regUpLHCF)
     				);
     
-    		liftLocalHeap(hh, null, null, regUpLHCF);
+    		liftLocalHeap(hh, null, null, regUpLHCF, null, null);
         }
         break;//((short)0x6d, "sput-short", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
 
@@ -2675,7 +2673,7 @@ public class FSInstructionAnalysis{
      * Warning: regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG and regUpLHF 
      * are taken from the corresponding fsvar default values
      */
-    private void liftLocalHeap(BoolExpr h,FSSingleRegUpdate u,LHUpdate lhu, Map<Integer,BoolExpr> filter){
+    private void liftLocalHeap(BoolExpr h,FSSingleRegUpdate u,LHUpdate lhu, Map<Integer,BoolExpr> filter, Integer regNumber, BoolExpr updRefLabel){
     	if (!(filter.size() == analysis.getLocalHeapSize())){
     		throw new RuntimeException("FSInstructionAnalysis: liftLocalHeap should be fully defined, so as not to rely on default values!");
     	}
@@ -2683,6 +2681,8 @@ public class FSInstructionAnalysis{
     	
     	regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
     	regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear();
+    	
+    	
     	
     	// Lift the local heap according to 'filter'
     	fsengine.addRule(fsengine.implies
@@ -2719,6 +2719,12 @@ public class FSInstructionAnalysis{
     	if (lhu != null){
     		lhu.apply(regUpLHV, regUpLHH, regUpLHL, regUpLHG);
     	}    	
+    	
+    	
+    	if (updRefLabel != null){
+    	    regUpH.put(regNumber, updRefLabel);
+    	}
+    	
     	buildB();
     	fsengine.addRule(fsengine.implies(h, b), null);
 
@@ -3251,9 +3257,8 @@ public class FSInstructionAnalysis{
                     registerE = ((RegisterRangeInstruction) instruction)
                             .getStartRegister() + 2;
                 }
-
-                BoolExpr h2 = fsengine.and(h, fsengine
-                        .hiPred(fsvar.getCn(), fsvar.getV(registerE), fsvar.getVal(),
+                buildH();
+                BoolExpr h2 = fsengine.and(h, fsengine.hiPred(fsvar.getCn(), fsvar.getV(registerE), fsvar.getVal(),
                                 fsvar.getLf(), fsvar.getBf()));
                 b = fsengine.hPred(fsengine.mkBitVector(c, size),
                         fsengine.mkBitVector(c, size),
