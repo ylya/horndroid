@@ -590,12 +590,12 @@ public class Analysis {
         final int classIndex = dc.getType().hashCode();
         if (options.fsanalysis){
             BoolExpr b2 = fsengine.hPred( fsengine.mkBitVector(classIndex, options.bitvectorSize),
-                    fsvar.getFpp(), fsvar.getF(), fsvar.getVal(),
+                    fsengine.mkBitVector(getInstNum(0, 0, 0), options.bitvectorSize), fsvar.getF(), fsvar.getVal(),
                     fsengine.mkFalse(), fsengine.mkTrue());
             fsengine.addRule(b2, null);
         }else{
             BoolExpr b2 = z3engine.hPred( z3engine.mkBitVector(classIndex, options.bitvectorSize),
-                    var.getFpp(), var.getF(), var.getVal(),
+                    z3engine.mkBitVector(getInstNum(0, 0, 0), options.bitvectorSize), var.getF(), var.getVal(),
                     z3engine.mkFalse(), z3engine.mkTrue());
             z3engine.addRule(b2, null);
         }

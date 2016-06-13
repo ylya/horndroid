@@ -158,6 +158,17 @@ public class FSInstructionAnalysis{
         numRegLoc = dm.getNumReg();
         numParLoc = dm.getNumArg();
         
+        /*buildH();
+        if (c == "Lde/ecspride/ArrayAccess1;".hashCode() && m == "onCreate(Landroid/os/Bundle;)V".hashCode() && codeAddress == 49){
+            int reg = 0;
+            BoolExpr q = fsengine.and(
+                    h,
+                    fsengine.taintPred(fsvar.getV(reg), fsengine.mkTrue())
+                    ,fsengine.or(fsengine.eq(fsvar.getG(reg), fsengine.mkTrue()), fsengine.eq(fsvar.getL(reg), fsengine.mkTrue()))
+                    );
+            String d = "My! " + Integer.toString(reg) +  " leaks @line " + Integer.toString(codeAddress);
+            fsengine.addQuery(new Z3Query(q, d, true, className, methodName, "0", "sink"));
+        }*/
         if (options.debug){
            buildH();
            for (int i = 0; i <= this.numRegLoc; i++){
@@ -2449,7 +2460,7 @@ public class FSInstructionAnalysis{
             BoolExpr q5 = fsengine.and(
                     p,
                     fsengine.eq(fsvar.getH(instruction.getRegisterG()), fsengine.mkTrue())
-                    ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterG()), fsengine.mkFalse()), fsengine.eq(fsvar.getL(instruction.getRegisterG()), fsengine.mkFalse()))
+                    //,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterG()), fsengine.mkFalse()), fsengine.eq(fsvar.getL(instruction.getRegisterG()), fsengine.mkFalse()))
                     );
             String d5 = "Test if register " + Integer.toString(instruction.getRegisterG()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             fsengine.addQuery(new Z3Query(q5, d5, verboseResults, className, methodName, pc, sinkName));
@@ -2464,7 +2475,7 @@ public class FSInstructionAnalysis{
             BoolExpr q4 = fsengine.and(
                     p,
                     fsengine.eq(fsvar.getH(instruction.getRegisterF()), fsengine.mkTrue())
-                    ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterF()), fsengine.mkFalse()), fsengine.eq(fsvar.getL(instruction.getRegisterF()), fsengine.mkFalse()))
+                    //,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterF()), fsengine.mkFalse()), fsengine.eq(fsvar.getL(instruction.getRegisterF()), fsengine.mkFalse()))
                     );
             String d4 = "Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             fsengine.addQuery(new Z3Query(q4, d4, verboseResults, className, methodName, pc, sinkName));
@@ -2494,7 +2505,7 @@ public class FSInstructionAnalysis{
             BoolExpr q2 = fsengine.and(
                     p,
                     fsengine.eq(fsvar.getH(instruction.getRegisterD()), fsengine.mkTrue())
-                    ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterD()), fsengine.mkFalse()), fsengine.eq(fsvar.getL(instruction.getRegisterD()), fsengine.mkFalse()))
+                    //,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterD()), fsengine.mkFalse()), fsengine.eq(fsvar.getL(instruction.getRegisterD()), fsengine.mkFalse()))
                     );
             String d2 = "Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             fsengine.addQuery(new Z3Query(q2, d2, verboseResults, className, methodName, pc, sinkName));
@@ -2509,7 +2520,7 @@ public class FSInstructionAnalysis{
             BoolExpr q1 = fsengine.and(
                     p,
                     fsengine.eq(fsvar.getH(instruction.getRegisterC()), fsengine.mkTrue())
-                    ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterC()), fsengine.mkFalse()), fsengine.eq(fsvar.getL(instruction.getRegisterC()), fsengine.mkFalse()))
+                    //,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterC()), fsengine.mkFalse()), fsengine.eq(fsvar.getL(instruction.getRegisterC()), fsengine.mkFalse()))
                     );
             String d1 = "Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             fsengine.addQuery(new Z3Query(q1, d1, verboseResults, className, methodName, pc, sinkName));
@@ -2770,6 +2781,30 @@ public class FSInstructionAnalysis{
                 (("sendTextMessage(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Landroid/app/PendingIntent;Landroid/app/PendingIntent;)V".hashCode() == referenceIntIndex))){
             return true;
         }
+        if ((c == ("Ljava/util/LinkedList;".hashCode())) && 
+                (("<init>()V".hashCode() == referenceIntIndex))){
+            return true;
+        }
+        /*if ((c == ("Landroid/support/v4/app/Fragment;".hashCode())) && 
+                (("<init>()V".hashCode() == referenceIntIndex))){
+            return true;
+        }
+        if ((c == ("Landroid/view/MenuInflater;".hashCode())) && 
+                (("inflate(ILandroid/view/Menu;)V".hashCode() == referenceIntIndex))){
+            return true;
+        }
+        if ((c == ("Landroid/support/v7/app/ActionBarActivity;".hashCode())) && 
+                (("<init>()V".hashCode() == referenceIntIndex))){
+            return true;
+        }
+        if ((c == ("Landroid/support/v7/app/ActionBarActivity;".hashCode())) && 
+                (("setContentView(I)V".hashCode() == referenceIntIndex))){
+            return true;
+        }
+        if ((c == ("Landroid/support/v7/app/ActionBarActivity;".hashCode())) && 
+                (("onCreate(Landroid/os/Bundle;)V".hashCode() == referenceIntIndex))){
+            return true;
+        }*/
         if (analysis.getGeneralClass(c) instanceof DalvikClass){
             return simpleSkip(((DalvikClass) analysis.getGeneralClass(c)).getSuperClass().getType().hashCode());
         }
@@ -2778,17 +2813,17 @@ public class FSInstructionAnalysis{
         
     private boolean manualStub(final int cCall){
         int size = analysis.getSize();
-        boolean flag1 = false, flag2 = false;
+        boolean flag = false;
         // sources
         if ((cCall == ("Landroid/telephony/TelephonyManager;".hashCode())) && 
                 ("getSimSerialNumber()Ljava/lang/String;".hashCode() == referenceIntIndex)){
-            flag1 = true;
+            flag = true;
         }
         if ((cCall == ("Landroid/telephony/TelephonyManager;".hashCode())) && 
                 ("getDeviceId()Ljava/lang/String;".hashCode() == referenceIntIndex)){
-            flag2 = true;
+            flag = true;
         }
-        if (flag1 || flag2){
+        if (flag){
             buildH();
             instanceNum = analysis.getInstNum(c, m, codeAddress);
             regUpV.put(numRegLoc, fsengine.mkBitVector(instanceNum, size));
@@ -2799,16 +2834,67 @@ public class FSInstructionAnalysis{
             buildRule();
             return true;
         }
+        // returning primitive
+        /*if ((cCall == ("Landroid/support/v4/app/FragmentTransaction;".hashCode())) && 
+                ("commit()I".hashCode() == referenceIntIndex)){
+            flag = true;
+        }
+        if ((cCall == ("Landroid/view/MenuItem;".hashCode())) && 
+                ("getItemId()I".hashCode() == referenceIntIndex)){
+            flag = true;
+        }
+        if ((cCall == ("Landroid/support/v7/app/ActionBarActivity;".hashCode())) && 
+                ("onOptionsItemSelected(Landroid/view/MenuItem;)Z".hashCode() == referenceIntIndex)){
+            flag = true;
+        }
+        if ((cCall == ("Ljava/lang/Math;".hashCode())) && 
+                ("random()D".hashCode() == referenceIntIndex)){
+            flag = true;
+        }
+        if (flag){
+            buildH();
+            regUpV.put(numRegLoc, fsvar.getF());
+            regUpH.put(numRegLoc, fsengine.mkFalse());
+            regUpL.put(numRegLoc, fsengine.mkFalse());
+            regUpG.put(numRegLoc, fsengine.mkFalse());
+            buildB();
+            buildRule();
+            return true;
+        }*/
         // returning object
         if (cCall == "Landroid/app/Activity;".hashCode() && 
                 "getSystemService(Ljava/lang/String;)Ljava/lang/Object;".hashCode() == referenceIntIndex){
-            flag1 = true;
+            flag = true;
         }
         if (cCall == "Landroid/telephony/SmsManager;".hashCode() && 
                 "getDefault()Landroid/telephony/SmsManager;".hashCode() == referenceIntIndex){
-            flag2 = true;
+            flag = true;
         }
-        if (flag1 || flag2){
+        /*if (cCall == "Landroid/support/v7/app/ActionBarActivity;".hashCode() && 
+                "getSupportFragmentManager()Landroid/support/v4/app/FragmentManager;".hashCode() == referenceIntIndex){
+            flag = true;
+        }
+        if (cCall == "Landroid/support/v7/app/ActionBarActivity;".hashCode() && 
+                "getSystemService(Ljava/lang/String;)Ljava/lang/Object;".hashCode() == referenceIntIndex){
+            flag = true;
+        }
+        if (cCall == "Landroid/support/v7/app/ActionBarActivity;".hashCode() && 
+                "getMenuInflater()Landroid/view/MenuInflater;".hashCode() == referenceIntIndex){
+            flag = true;
+        }
+        if (cCall == "Landroid/view/LayoutInflater;".hashCode() && 
+                "inflate(ILandroid/view/ViewGroup;Z)Landroid/view/View;".hashCode() == referenceIntIndex){
+            flag = true;
+        }
+        if (cCall == "Landroid/support/v4/app/FragmentManager;".hashCode() && 
+                "beginTransaction()Landroid/support/v4/app/FragmentTransaction;".hashCode() == referenceIntIndex){
+            flag = true;
+        }
+        if (cCall == "Landroid/support/v4/app/FragmentTransaction;".hashCode() && 
+                "add(ILandroid/support/v4/app/Fragment;)Landroid/support/v4/app/FragmentTransaction;".hashCode() == referenceIntIndex){
+            flag = true;
+        }*/
+        if (flag){
             instanceNum = analysis.getInstNum(c, m, codeAddress);
             buildH();
             //update the register receiving the pointer to the newly created object
@@ -2822,13 +2908,184 @@ public class FSInstructionAnalysis{
             regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
 
             
-                buildH();
-                b = fsengine.hPred(fsengine.mkBitVector(returnType.hashCode(), size),
-                        fsengine.mkBitVector(instanceNum, size),
-                        fsengine.mkBitVector(0, size), fsengine.mkBitVector(0, size),
-                        fsengine.mkFalse(), fsengine.mkFalse());
-                buildRule();
-                return true;
+            buildH();
+            b = fsengine.hPred(fsengine.mkBitVector(returnType.hashCode(), size),
+            fsengine.mkBitVector(instanceNum, size),
+            fsengine.mkBitVector(32, size), fsengine.mkBitVector(32, size),
+            fsengine.mkFalse(), fsengine.mkFalse());
+            buildRule();
+            return true;
+        }
+        if (cCall == ("Ljava/util/Map;".hashCode())
+                && ("put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"
+                        .hashCode()) == referenceIntIndex) {
+            int registerC, registerD, registerE;
+            if (this.instruction instanceof FiveRegisterInstruction) {
+                registerC = ((FiveRegisterInstruction) instruction)
+                        .getRegisterC();
+                registerD = ((FiveRegisterInstruction) instruction)
+                        .getRegisterD();
+                registerE = ((FiveRegisterInstruction) instruction)
+                        .getRegisterE();
+            } else {
+                registerC = ((RegisterRangeInstruction) instruction)
+                        .getStartRegister();
+                registerD = ((RegisterRangeInstruction) instruction)
+                        .getStartRegister() + 1;
+                registerE = ((RegisterRangeInstruction) instruction)
+                        .getStartRegister() + 2;
+            }
+            buildH();
+            b = fsengine.hPred(
+                    fsengine.mkBitVector("Ljava/util/Map;".hashCode(), size),
+                    fsvar.getV(registerC), fsvar.getV(registerD),
+                    fsvar.getV(registerE), fsvar.getH(registerE),
+                    fsengine.or(fsvar.getL(registerE), fsvar.getG(registerE)));
+            buildRule();
+            buildH();
+            buildB();
+            buildRule();
+            return true;
+        }
+        if (cCall == ("Ljava/util/Map;".hashCode())
+                && ("get(Ljava/lang/Object;)Ljava/lang/Object;".hashCode()) == referenceIntIndex) {
+
+            int registerC, registerD;
+            if (this.instruction instanceof FiveRegisterInstruction) {
+                registerC = ((FiveRegisterInstruction) instruction)
+                        .getRegisterC();
+                registerD = ((FiveRegisterInstruction) instruction)
+                        .getRegisterD();
+            } else {
+                registerC = ((RegisterRangeInstruction) instruction)
+                        .getStartRegister();
+                registerD = ((RegisterRangeInstruction) instruction)
+                        .getStartRegister() + 1;
+            }
+            buildH();
+            BoolExpr h2 = fsengine.and(h, fsengine.hPred(
+                    fsengine.mkBitVector("Ljava/util/Map;".hashCode(), size),
+                    fsvar.getV(registerC), fsvar.getV(registerD), fsvar.getF(),
+                    fsvar.getLf(), fsvar.getBf()));
+            regUpV.put(numRegLoc, fsvar.getF());
+            regUpH.put(numRegLoc, fsvar.getLf());
+            regUpL.put(numRegLoc, fsengine.mkFalse());
+            regUpG.put(numRegLoc, fsvar.getBf());
+            buildB();
+            fsengine.addRule(fsengine.implies(h2, b), null);
+            return true;
+        }
+        if (cCall == ("Ljava/util/LinkedList;".hashCode())
+                && ("add(Ljava/lang/Object;)Z"
+                        .hashCode()) == referenceIntIndex) {
+            int registerC, registerD;
+            if (this.instruction instanceof FiveRegisterInstruction) {
+                registerC = ((FiveRegisterInstruction) instruction)
+                        .getRegisterC();
+                registerD = ((FiveRegisterInstruction) instruction)
+                        .getRegisterD();
+            } else {
+                registerC = ((RegisterRangeInstruction) instruction)
+                        .getStartRegister();
+                registerD = ((RegisterRangeInstruction) instruction)
+                        .getStartRegister() + 1;
+            }
+            buildH();
+            b = fsengine.hPred(
+                    fsengine.mkBitVector("Ljava/util/LinkedList;".hashCode(), size),
+                    fsvar.getV(registerC), 
+                    fsvar.getF(), //field insensitive for the moment
+                    fsvar.getV(registerD), fsvar.getH(registerD),
+                    fsengine.or(fsvar.getL(registerD), fsvar.getG(registerD)));
+            buildRule();
+            buildH();
+            buildB();
+            buildRule();
+            return true;
+        }
+        if (cCall == ("Ljava/util/LinkedList;".hashCode())
+                && ("get(I)Ljava/lang/Object;".hashCode()) == referenceIntIndex) {
+
+            int registerC, registerD;
+            if (this.instruction instanceof FiveRegisterInstruction) {
+                registerC = ((FiveRegisterInstruction) instruction)
+                        .getRegisterC();
+                registerD = ((FiveRegisterInstruction) instruction)
+                        .getRegisterD();
+            } else {
+                registerC = ((RegisterRangeInstruction) instruction)
+                        .getStartRegister();
+                registerD = ((RegisterRangeInstruction) instruction)
+                        .getStartRegister() + 1;
+            }
+            buildH();
+            BoolExpr h2 = fsengine.and(h, fsengine.hPred(
+                    fsengine.mkBitVector("Ljava/util/LinkedList;".hashCode(), size),
+                    fsvar.getV(registerC), fsvar.getV(registerD), fsvar.getF(),
+                    fsvar.getLf(), fsvar.getBf()));
+            regUpV.put(numRegLoc, fsvar.getF());
+            regUpH.put(numRegLoc, fsvar.getLf());
+            regUpL.put(numRegLoc, fsengine.mkFalse());
+            regUpG.put(numRegLoc, fsvar.getBf());
+            buildB();
+            fsengine.addRule(fsengine.implies(h2, b), null);
+            return true;
+        }
+        if (cCall == ("Ljava/util/List;".hashCode())
+                && ("add(Ljava/lang/Object;)Z"
+                        .hashCode()) == referenceIntIndex) {
+            int registerC, registerD;
+            if (this.instruction instanceof FiveRegisterInstruction) {
+                registerC = ((FiveRegisterInstruction) instruction)
+                        .getRegisterC();
+                registerD = ((FiveRegisterInstruction) instruction)
+                        .getRegisterD();
+            } else {
+                registerC = ((RegisterRangeInstruction) instruction)
+                        .getStartRegister();
+                registerD = ((RegisterRangeInstruction) instruction)
+                        .getStartRegister() + 1;
+            }
+            buildH();
+            b = fsengine.hPred(
+                    fsengine.mkBitVector("Ljava/util/LinkedList;".hashCode(), size),
+                    fsvar.getV(registerC), 
+                    fsvar.getF(), //field insensitive for the moment
+                    fsvar.getV(registerD), fsvar.getH(registerD),
+                    fsengine.or(fsvar.getL(registerD), fsvar.getG(registerD)));
+            buildRule();
+            buildH();
+            buildB();
+            buildRule();
+            return true;
+        }
+        if (cCall == ("Ljava/util/List;".hashCode())
+                && ("get(I)Ljava/lang/Object;".hashCode()) == referenceIntIndex) {
+
+            int registerC, registerD;
+            if (this.instruction instanceof FiveRegisterInstruction) {
+                registerC = ((FiveRegisterInstruction) instruction)
+                        .getRegisterC();
+                registerD = ((FiveRegisterInstruction) instruction)
+                        .getRegisterD();
+            } else {
+                registerC = ((RegisterRangeInstruction) instruction)
+                        .getStartRegister();
+                registerD = ((RegisterRangeInstruction) instruction)
+                        .getStartRegister() + 1;
+            }
+            buildH();
+            BoolExpr h2 = fsengine.and(h, fsengine.hPred(
+                    fsengine.mkBitVector("Ljava/util/LinkedList;".hashCode(), size),
+                    fsvar.getV(registerC), fsvar.getV(registerD), fsvar.getF(),
+                    fsvar.getLf(), fsvar.getBf()));
+            regUpV.put(numRegLoc, fsvar.getF());
+            regUpH.put(numRegLoc, fsvar.getLf());
+            regUpL.put(numRegLoc, fsengine.mkFalse());
+            regUpG.put(numRegLoc, fsvar.getBf());
+            buildB();
+            fsengine.addRule(fsengine.implies(h2, b), null);
+            return true;
         }
         if (analysis.getGeneralClass(cCall) instanceof DalvikClass){
             return manualStub(((DalvikClass) analysis.getGeneralClass(cCall)).getSuperClass().getType().hashCode());

@@ -52,6 +52,8 @@ public class main {
         options.addOption("w", false, "sensitive array indexes");
         options.addOption("n", true, "bitvector size (default 64)");
         options.addOption("t", false, "fetch stubs");
+        options.addOption("o", true, "timeout (default 30 min)");
+        options.addOption("l", false, "stop after fisrt leak found");
     }
     public static void main(String[] args) {
         parseCommandLine(args);
@@ -260,6 +262,12 @@ public class main {
             case 'n':
                 hornDroidOptions.bitvectorSize = Integer.parseInt(commandLine.getOptionValue("n"));
                 break;
+            case 'o':
+                hornDroidOptions.timeout= Integer.parseInt(commandLine.getOptionValue("o"));
+                break;
+            case 'l':
+                hornDroidOptions.tillFirstLeak = true;
+                break;
             }
         }
         if (otherArgs.length != 3) {
@@ -293,7 +301,7 @@ public class main {
             consoleWidth = 100;
         }
         formatter.setWidth(consoleWidth);
-        System.out.println("java -jar HornDroid.jar [options] %Z3Home%/bin %apktool%/ <apk-file> | <apk-folder> \n finds leaks in the app");
+        System.out.println("java -jar fs.jar [options] %Z3Home%/bin %apktool%/ <apk-file> | <apk-folder> \n finds leaks in the app");
         System.out.println("options:");
         System.out.println("-q precise query results");
         System.out.println("-f flow-sensitive heap");
@@ -301,5 +309,7 @@ public class main {
         System.out.println("-w sensitive array indexes");
         System.out.println("-n bitvector size (default 64)");
         System.out.println("-t fetch stubs");
+        System.out.println("-o timeout (default 30 min)");
+        System.out.println("-l stop after fisrt leak found");
     }
 }

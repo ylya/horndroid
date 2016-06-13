@@ -24,9 +24,11 @@ public class FSEngine extends Z3Clauses{
     private Map<Integer, Integer> allocationPointOffset;
 
     private Map<Integer, Integer> allocationPointSize;
+    private options options;
 
     public FSEngine(options options) {
         try {
+            this.options = options;
             bvSize = options.bitvectorSize;
             mQueries = new ArrayList<>();
             //mQueriesDebug = new ArrayList<>();
@@ -180,8 +182,7 @@ public class FSEngine extends Z3Clauses{
         if (mCurrentQuery != null){
             mQueries.add(mCurrentQuery);
         }
-
-        int timeout = 30; // 30 minutes
+        int timeout = options.timeout;
 
         // ExecutorService executor = Executors.newFixedThreadPool(threshold);
         ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -292,7 +293,10 @@ public class FSEngine extends Z3Clauses{
 
 
                 if(!q.debugging){
-                    future.get(timeout, TimeUnit.MINUTES);
+                    String result = future.get(timeout, TimeUnit.MINUTES);
+                    if (options.tillFirstLeak && result.equals("SATISFIABLE")){
+                        break;
+                    }
                 }
                 
             } catch (TimeoutException e) {

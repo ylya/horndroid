@@ -12,4 +12,6 @@ public class options {
     public int maxQueries = 0;
     public int debugInt = 3;
     public boolean stubs = false;
+    public int timeout = 30;
+    public boolean tillFirstLeak = false;
 }
