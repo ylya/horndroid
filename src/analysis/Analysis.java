@@ -370,7 +370,7 @@ public class Analysis {
      * Generates the Horn Clauses for the LiftLH predicate.
      * We consider that an object in the local heap should be lifted iff its first field is label by true in the abstract filter
      */
-    private void generatesLiftLH() {
+    /*private void generatesLiftLH() {
     	Map<Integer, BitVecExpr> lHValues = new HashMap<Integer,BitVecExpr>(localHeapSize);
     	Map<Integer, BoolExpr> lHHigh= new HashMap<Integer,BoolExpr>(localHeapSize);
     	Map<Integer, BoolExpr> lHLocal = new HashMap<Integer,BoolExpr>(localHeapSize);
@@ -411,7 +411,7 @@ public class Analysis {
                 fsengine.addRule(fsengine.implies(hh, b), null);
             }    		
     	}    	
-    }
+    }*/
 
     
     private void initializeAllocationMapping(){
@@ -590,12 +590,16 @@ public class Analysis {
         final int classIndex = dc.getType().hashCode();
         if (options.fsanalysis){
             BoolExpr b2 = fsengine.hPred( fsengine.mkBitVector(classIndex, options.bitvectorSize),
-                    fsengine.mkBitVector(getInstNum(0, 0, 0), options.bitvectorSize), fsvar.getF(), fsvar.getVal(),
+                    //fsvar.getFpp(),
+                    fsengine.mkBitVector(getInstNum(0, 0, 0), options.bitvectorSize), 
+                    fsvar.getF(), fsvar.getVal(),
                     fsengine.mkFalse(), fsengine.mkTrue());
             fsengine.addRule(b2, null);
         }else{
             BoolExpr b2 = z3engine.hPred( z3engine.mkBitVector(classIndex, options.bitvectorSize),
-                    z3engine.mkBitVector(getInstNum(0, 0, 0), options.bitvectorSize), var.getF(), var.getVal(),
+                    //var.getFpp(),
+                    z3engine.mkBitVector(getInstNum(0, 0, 0), options.bitvectorSize), 
+                    var.getF(), var.getVal(),
                     z3engine.mkFalse(), z3engine.mkTrue());
             z3engine.addRule(b2, null);
         }
@@ -1160,7 +1164,7 @@ public class Analysis {
             // Generates heap handling rules for the flow-sensitive analysis
             generateReachLHRules();
             generatesCFilter();
-            generatesLiftLH();
+            //generatesLiftLH();
         }
         
         addStaticFieldsValues();

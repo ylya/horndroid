@@ -129,9 +129,11 @@ public class FSEngine extends Z3Clauses{
         this.var.initialize(localHeapSize);
         this.initialized = true;
         
-        func.setReachLH(this.reachLHDef());        
+        func.setReachLH(this.reachLHDef()); 
+        this.declareRel(func.getReachLH());
         func.setCFilter(this.cFilterDef());
-        func.setLiftLH((this.liftLHDef()));
+        this.declareRel(func.getCFilter());
+        //func.setLiftLH((this.liftLHDef()));
     }
 
 	public Boolean isInitialized() {
@@ -721,7 +723,7 @@ public class FSEngine extends Z3Clauses{
                 }
                 e[k] = lHFilter.get(loop);
                 if (e[k] == null) {
-                    e[k] = var.getLHCF(loop);
+                    e[k] = var.getLHF(loop);
                 }
             }
 
@@ -742,7 +744,7 @@ public class FSEngine extends Z3Clauses{
      * h^* global labels
      * k^*
      */
-    private FuncDecl liftLHDef() {
+    /*private FuncDecl liftLHDef() {
     	if (!isInitialized()){
     		throw new RuntimeException("Initialize the FSEngine before defining ReachLH predicate");
     	}
@@ -796,7 +798,7 @@ public class FSEngine extends Z3Clauses{
             e.printStackTrace();
             throw new RuntimeException("FSEngine Failed: liftLHPred");
         }
-    }
+    }*/
     
     
     public BoolExpr reachPred(BitVecExpr value, BitVecExpr value2) {

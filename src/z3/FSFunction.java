@@ -61,12 +61,12 @@ public class FSFunction {
     public void setCFilter(FuncDecl f){
     	this.cFilter = f;
     }
-    public FuncDecl getLiftLH(){
+    /*public FuncDecl getLiftLH(){
     	return liftLH;
     }
     public void setLiftLH(FuncDecl f){
     	this.liftLH = f;
-    }
+    }*/
     public FuncDecl getReach(){
         return ra;
     }
