@@ -2904,6 +2904,9 @@ public class FSInstructionAnalysis{
         if (c == ("Ljava/lang/Object;".hashCode()) && ("<init>()V".hashCode() == referenceIntIndex)){
             return true;
         }
+        if (c == ("Ljava/util/HashMap;".hashCode()) && ("<init>()V".hashCode() == referenceIntIndex)){
+            return true;
+        }
         if ((c == ("Landroid/app/Activity;".hashCode())) && 
                 (("<init>()V".hashCode() == referenceIntIndex))){
             return true;
