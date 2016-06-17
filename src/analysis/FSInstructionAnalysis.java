@@ -1699,14 +1699,14 @@ public class FSInstructionAnalysis{
             this.binaryOpC(bv);
             break;
 
-        case RSUB_INT://((short)0xd1, "rsub-int", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+        /*case RSUB_INT://((short)0xd1, "rsub-int", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvsub(
                     fsvar.getV(registerC()),
                     fsvar.getV(registerB()),
                     Type.INT
                     );
             this.binaryOpC(bv);
-            break;
+            break;*/
         case SUB_INT://((short)0x91, "sub-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvsub(
                     fsvar.getV(registerB()),
@@ -2270,7 +2270,7 @@ public class FSInstructionAnalysis{
                     Type.INT);
             this.unaryOp(bv);
             break;
-
+        case RSUB_INT:
         case RSUB_INT_LIT8://((short)0xd9, "rsub-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
             bv = fsengine.bvsub(
                     fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
