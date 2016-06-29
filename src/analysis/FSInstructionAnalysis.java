@@ -1580,726 +1580,1136 @@ public class FSInstructionAnalysis{
         }
         break;
         
-        case NEG_INT://((short)0x7b, "neg-int", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            BitVecExpr bv = fsengine.bvneg(fsvar.getV(registerB()), Type.INT);
+        case NEG_INT:// ((short)0x7b, "neg-int", ReferenceType.NONE,
+                     // Format.Format12x, Opcode.CAN_CONTINUE |
+                     // Opcode.SETS_REGISTER),
+            BitVecExpr bv;
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvneg(fsvar.getV(registerB()), Type.INT);
+            } else {
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
-        case NEG_LONG://((short)0x7d, "neg-long", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvneg(fsvar.getV(registerB()), Type.LONG);
+        case NEG_LONG:// ((short)0x7d, "neg-long", ReferenceType.NONE,
+                      // Format.Format12x, Opcode.CAN_CONTINUE |
+                      // Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvneg(fsvar.getV(registerB()), Type.LONG);
+            } else {
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
-        case NEG_FLOAT://((short)0x7f, "neg-float", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvneg(fsvar.getV(registerB()), Type.FLOAT);
+        case NEG_FLOAT:// ((short)0x7f, "neg-float", ReferenceType.NONE,
+                       // Format.Format12x, Opcode.CAN_CONTINUE |
+                       // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvneg(fsvar.getV(registerB()), Type.FLOAT);
+            } else {
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
-        case NEG_DOUBLE://((short)0x80, "neg-double", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvneg(fsvar.getV(registerB()), Type.DOUBLE);
+        case NEG_DOUBLE:// ((short)0x80, "neg-double", ReferenceType.NONE,
+                        // Format.Format12x, Opcode.CAN_CONTINUE |
+                        // Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvneg(fsvar.getV(registerB()), Type.DOUBLE);
+            } else {
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
-        case NOT_INT://((short)0x7c, "not-int", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvnot(fsvar.getV(registerB()), Type.INT);
+        case NOT_INT:// ((short)0x7c, "not-int", ReferenceType.NONE,
+                     // Format.Format12x, Opcode.CAN_CONTINUE |
+                     // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvnot(fsvar.getV(registerB()), Type.INT);
+            } else {
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
-        case NOT_LONG://((short)0x7e, "not-long", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvnot(fsvar.getV(registerB()), Type.LONG);
-            this.unaryOp(bv);
-            break;
-
-        case INT_TO_LONG://((short)0x81, "int-to-long", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.toLong(fsengine.toInt((fsvar.getV(registerB()))));
-            this.unaryOp(bv);
-            break;
-        case INT_TO_FLOAT://((short)0x82, "int-to-float", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.uOpIntToFloat(fsvar.getV(registerB()));
-            this.unaryOp(bv);
-            break;
-        case INT_TO_DOUBLE://((short)0x83, "int-to-double", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.uOpIntToDouble(fsvar.getV(registerB()));
-            this.unaryOp(bv);
-            break;
-        case LONG_TO_INT://((short)0x84, "long-to-int", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.toLong(fsengine.toInt((fsvar.getV(registerB()))));
-            this.unaryOp(bv);
-            break;
-        case LONG_TO_FLOAT://((short)0x85, "long-to-float", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.uOpLongToFloat(fsvar.getV(registerB()));
-            this.unaryOp(bv);
-            break;
-        case LONG_TO_DOUBLE://((short)0x86, "long-to-double", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.uOpLongToDouble(fsvar.getV(registerB()));
-            this.unaryOp(bv);
-            break;
-        case FLOAT_TO_INT://((short)0x87, "float-to-int", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.floatRoundToInt(fsvar.getV(registerB()));
-            this.unaryOp(bv);
-            break;
-        case FLOAT_TO_LONG://((short)0x88, "float-to-long", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.floatRoundToLong(fsvar.getV(registerB()));
-            this.unaryOp(bv);
-            break;
-        case FLOAT_TO_DOUBLE://((short)0x89, "float-to-double", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.floatToDouble(fsvar.getV(registerB()));
-            this.unaryOp(bv);
-            break;        
-        case DOUBLE_TO_INT://((short)0x8a, "double-to-int", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.doubleRoundToInt(fsvar.getV(registerB()));
-            this.unaryOp(bv);
-            break;
-        case DOUBLE_TO_LONG://((short)0x8b, "double-to-long", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.floatRoundToLong(fsvar.getV(registerB()));
-            this.unaryOp(bv);
-            break;
-        case DOUBLE_TO_FLOAT://((short)0x8c, "double-to-float", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.doubleToFloat(fsvar.getV(registerB()));
-            this.unaryOp(bv);
-            break;
-        case INT_TO_BYTE://((short)0x8d, "int-to-byte", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.intToByte(fsvar.getV(registerB()));
-            this.unaryOp(bv);
-            break;
-        case INT_TO_CHAR://((short)0x8e, "int-to-char", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.intToChar(fsvar.getV(registerB()));
-            this.unaryOp(bv);
-            break;
-        case INT_TO_SHORT://((short)0x8f, "int-to-short", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.intToShort(fsvar.getV(registerB()));
+        case NOT_LONG:// ((short)0x7e, "not-long", ReferenceType.NONE,
+                      // Format.Format12x, Opcode.CAN_CONTINUE |
+                      // Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvnot(fsvar.getV(registerB()), Type.LONG);
+            } else {
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
 
-        case ADD_INT://((short)0x90, "add-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvadd(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()),
-                    Type.INT
-                    );
-            this.binaryOpC(bv);
+        case INT_TO_LONG:// ((short)0x81, "int-to-long", ReferenceType.NONE,
+                         // Format.Format12x, Opcode.CAN_CONTINUE |
+                         // Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.toLong(fsengine.toInt((fsvar.getV(registerB()))));
+            } else {
+                bv = null;
+            }
+            this.unaryOp(bv);
             break;
-        case ADD_LONG://((short)0x9b, "add-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvadd(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()),
-                    Type.LONG
-                    );
-            this.binaryOpC(bv);
+        case INT_TO_FLOAT:// ((short)0x82, "int-to-float", ReferenceType.NONE,
+                          // Format.Format12x, Opcode.CAN_CONTINUE |
+                          // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.uOpIntToFloat(fsvar.getV(registerB()));
+            } else {
+                bv = null;
+            }
+            this.unaryOp(bv);
             break;
-        case ADD_FLOAT://((short)0xa6, "add-float", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvadd(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()),
-                    Type.FLOAT
-                    );
-            this.binaryOpC(bv);
+        case INT_TO_DOUBLE:// ((short)0x83, "int-to-double", ReferenceType.NONE,
+                           // Format.Format12x, Opcode.CAN_CONTINUE |
+                           // Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.uOpIntToDouble(fsvar.getV(registerB()));
+            } else {
+                bv = null;
+            }
+            this.unaryOp(bv);
             break;
-        case ADD_DOUBLE://((short)0xab, "add-double", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvadd(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()),
-                    Type.DOUBLE
-                    );
-            this.binaryOpC(bv);
+        case LONG_TO_INT:// ((short)0x84, "long-to-int", ReferenceType.NONE,
+                         // Format.Format12x, Opcode.CAN_CONTINUE |
+                         // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.toLong(fsengine.toInt((fsvar.getV(registerB()))));
+            } else {
+                bv = null;
+            }
+            this.unaryOp(bv);
             break;
-
-        /*case RSUB_INT://((short)0xd1, "rsub-int", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvsub(
-                    fsvar.getV(registerC()),
-                    fsvar.getV(registerB()),
-                    Type.INT
-                    );
-            this.binaryOpC(bv);
-            break;*/
-        case SUB_INT://((short)0x91, "sub-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvsub(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()),
-                    Type.INT
-                    );
-            this.binaryOpC(bv);
+        case LONG_TO_FLOAT:// ((short)0x85, "long-to-float", ReferenceType.NONE,
+                           // Format.Format12x, Opcode.CAN_CONTINUE |
+                           // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.uOpLongToFloat(fsvar.getV(registerB()));
+            } else {
+                bv = null;
+            }
+            this.unaryOp(bv);
             break;
-        case SUB_LONG://((short)0x9c, "sub-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvsub(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()),
-                    Type.LONG
-                    );
-            this.binaryOpC(bv);
+        case LONG_TO_DOUBLE:// ((short)0x86, "long-to-double",
+                            // ReferenceType.NONE, Format.Format12x,
+                            // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER |
+                            // Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.uOpLongToDouble(fsvar.getV(registerB()));
+            } else {
+                bv = null;
+            }
+            this.unaryOp(bv);
             break;
-        case SUB_FLOAT://((short)0xa7, "sub-float", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvsub(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()), 
-                    Type.FLOAT
-                    );
-            this.binaryOpC(bv);
+        case FLOAT_TO_INT:// ((short)0x87, "float-to-int", ReferenceType.NONE,
+                          // Format.Format12x, Opcode.CAN_CONTINUE |
+                          // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.floatRoundToInt(fsvar.getV(registerB()));
+            } else {
+                bv = null;
+            }
+            this.unaryOp(bv);
             break;
-        case SUB_DOUBLE://((short)0xac, "sub-double", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvsub(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()),
-                    Type.DOUBLE
-                    );
-            this.binaryOpC(bv);
+        case FLOAT_TO_LONG:// ((short)0x88, "float-to-long", ReferenceType.NONE,
+                           // Format.Format12x, Opcode.CAN_CONTINUE |
+                           // Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.floatRoundToLong(fsvar.getV(registerB()));
+            } else {
+                bv = null;
+            }
+            this.unaryOp(bv);
             break;
-
-        case MUL_INT://((short)0x92, "mul-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvmul(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()),
-                    Type.INT
-                    );
-            this.binaryOpC(bv);
+        case FLOAT_TO_DOUBLE:// ((short)0x89, "float-to-double",
+                             // ReferenceType.NONE, Format.Format12x,
+                             // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER |
+                             // Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.floatToDouble(fsvar.getV(registerB()));
+            } else {
+                bv = null;
+            }
+            this.unaryOp(bv);
             break;
-        case MUL_LONG://((short)0x9d, "mul-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvmul(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()),
-                    Type.LONG
-                    );
-            this.binaryOpC(bv);
+        case DOUBLE_TO_INT:// ((short)0x8a, "double-to-int", ReferenceType.NONE,
+                           // Format.Format12x, Opcode.CAN_CONTINUE |
+                           // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.doubleRoundToInt(fsvar.getV(registerB()));
+            } else {
+                bv = null;
+            }
+            this.unaryOp(bv);
             break;
-        case MUL_FLOAT://((short)0xa8, "mul-float", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvmul(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()),
-                    Type.FLOAT
-                    );
-            this.binaryOpC(bv);
+        case DOUBLE_TO_LONG:// ((short)0x8b, "double-to-long",
+                            // ReferenceType.NONE, Format.Format12x,
+                            // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER |
+                            // Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.floatRoundToLong(fsvar.getV(registerB()));
+            } else {
+                bv = null;
+            }
+            this.unaryOp(bv);
             break;
-        case MUL_DOUBLE://((short)0xad, "mul-double", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvmul(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()),
-                    Type.DOUBLE
-                    );
-            this.binaryOpC(bv);
+        case DOUBLE_TO_FLOAT:// ((short)0x8c, "double-to-float",
+                             // ReferenceType.NONE, Format.Format12x,
+                             // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.doubleToFloat(fsvar.getV(registerB()));
+            } else {
+                bv = null;
+            }
+            this.unaryOp(bv);
             break;
-
-        case DIV_INT://((short)0x93, "div-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvdiv(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()),
-                    Type.INT
-                    );
-            this.binaryOpC(bv);
+        case INT_TO_BYTE:// ((short)0x8d, "int-to-byte", ReferenceType.NONE,
+                         // Format.Format12x, Opcode.CAN_CONTINUE |
+                         // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.intToByte(fsvar.getV(registerB()));
+            } else {
+                bv = null;
+            }
+            this.unaryOp(bv);
             break;
-        case DIV_LONG://((short)0x9e, "div-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvdiv(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()),
-                    Type.LONG
-                    );
-            this.binaryOpC(bv);
+        case INT_TO_CHAR:// ((short)0x8e, "int-to-char", ReferenceType.NONE,
+                         // Format.Format12x, Opcode.CAN_CONTINUE |
+                         // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.intToChar(fsvar.getV(registerB()));
+            } else {
+                bv = null;
+            }
+            this.unaryOp(bv);
             break;
-        case DIV_FLOAT://((short)0xa9, "div-float", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvdiv(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()),
-                    Type.FLOAT
-                    );
-            this.binaryOpC(bv);
-            break;
-        case DIV_DOUBLE://((short)0xae, "div-double", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvdiv(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()),
-                    Type.DOUBLE
-                    );
-            this.binaryOpC(bv);
-            break;
-            
-        case REM_INT://((short)0x94, "rem-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvrem(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()),
-                    Type.INT
-                    );
-            this.binaryOpC(bv);
-            break;
-        case REM_LONG://((short)0x9f, "rem-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvrem(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()),
-                    Type.LONG
-                    );
-            this.binaryOpC(bv);
-            break;
-        case REM_FLOAT://((short)0xaa, "rem-float", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvrem(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()),
-                    Type.FLOAT
-                    );
-            this.binaryOpC(bv);
-            break;
-        case REM_DOUBLE://((short)0xaf, "rem-double", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvrem(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()),
-                    Type.DOUBLE
-                    );
-            this.binaryOpC(bv);
-            break;
-            
-        case AND_INT://((short)0x95, "and-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvand(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()),
-                    Type.INT
-                    );
-            this.binaryOpC(bv);
-            break;
-        case AND_LONG://((short)0xa0, "and-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvand(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()),
-                    Type.LONG
-                    );
-            this.binaryOpC(bv);
-            break;
-
-        case OR_INT://((short)0x96, "or-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvor(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()),
-                    Type.INT
-                    );
-            this.binaryOpC(bv);
-            break;
-        case OR_LONG://((short)0xa1, "or-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvor(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()),
-                    Type.LONG
-                    );
-            this.binaryOpC(bv);
-            break;
-
-        case XOR_INT://((short)0x97, "xor-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvxor(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()),
-                    Type.INT
-                    );
-            this.binaryOpC(bv);
-            break;
-        case XOR_LONG://((short)0xa2, "xor-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvxor(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()),
-                    Type.LONG
-                    );
-            this.binaryOpC(bv);
-            break;
-
-        case SHL_INT://((short)0x98, "shl-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvshl(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()), 
-                    Type.INT
-                    );
-            this.binaryOpC(bv);
-            break;
-        case SHL_LONG://((short)0xa3, "shl-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvshl(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()), 
-                    Type.LONG
-                    );
-            this.binaryOpC(bv);
-            break;
-
-        case SHR_LONG://((short)0xa4, "shr-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvashr(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()), 
-                    Type.LONG
-                    );
-            this.binaryOpC(bv);
-            break;
-        case SHR_INT://((short)0x99, "shr-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvashr(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()), 
-                    Type.INT
-                    );
-            this.binaryOpC(bv);
-            break;
-
-        case USHR_INT://((short)0x9a, "ushr-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvlshr(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()), 
-                    Type.INT
-                    );
-            this.binaryOpC(bv);
-            break;
-        case USHR_LONG://((short)0xa5, "ushr-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvlshr(
-                    fsvar.getV(registerB()),
-                    fsvar.getV(registerC()), 
-                    Type.LONG
-                    );
-            this.binaryOpC(bv);
-            break;
-
-        case ADD_INT_2ADDR://((short)0xb0, "add-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvadd(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()),
-                    Type.INT
-                    );
-            this.binaryOp(bv);
-            break;
-        case ADD_LONG_2ADDR://((short)0xc0, "and-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvadd(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()),
-                    Type.LONG
-                    );
-            this.binaryOp(bv);
-            break;
-        case ADD_FLOAT_2ADDR://((short)0xc6, "add-float/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvadd(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()),
-                    Type.FLOAT
-                    );
-            this.binaryOp(bv);
-            break;        
-        case ADD_DOUBLE_2ADDR://((short)0xcb, "add-double/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvadd(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()),
-                    Type.DOUBLE
-                    );
-            this.binaryOp(bv);
-            break;
-
-        case SUB_INT_2ADDR://((short)0xb1, "sub-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvsub(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()),
-                    Type.INT
-                    );
-            this.binaryOp(bv);
-            break;
-        case SUB_LONG_2ADDR://((short)0xbc, "sub-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvsub(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()),
-                    Type.LONG
-                    );
-            this.binaryOp(bv);
-            break;
-        case SUB_FLOAT_2ADDR://((short)0xc7, "sub-float/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvsub(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()),
-                    Type.FLOAT
-                    );
-            this.binaryOp(bv);
-            break;
-        case SUB_DOUBLE_2ADDR://((short)0xcc, "sub-double/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvsub(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()),
-                    Type.DOUBLE
-                    );
-            this.binaryOp(bv);
-            break;
-
-        case MUL_INT_2ADDR://((short)0xb2, "mul-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvmul(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()),
-                    Type.INT
-                    );
-            this.binaryOp(bv);
-            break;
-        case MUL_LONG_2ADDR://((short)0xbd, "mul-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvmul(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()),
-                    Type.LONG
-                    );
-            this.binaryOp(bv);
-            break;
-        case MUL_FLOAT_2ADDR://((short)0xc8, "mul-float/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvmul(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()),
-                    Type.FLOAT
-                    );
-            this.binaryOp(bv);
-            break;
-        case MUL_DOUBLE_2ADDR://((short)0xcd, "mul-double/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvmul(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()),
-                    Type.DOUBLE
-                    );
-            this.binaryOp(bv);
-            break;
-
-        case DIV_INT_2ADDR://((short)0xb3, "div-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvdiv(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()),
-                    Type.INT
-                    );
-            this.binaryOp(bv);
-            break;
-        case DIV_LONG_2ADDR://((short)0xbe, "div-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvdiv(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()),
-                    Type.LONG
-                    );
-            this.binaryOp(bv);
-            break;
-        case DIV_FLOAT_2ADDR://((short)0xc9, "div-float/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvdiv(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()),
-                    Type.FLOAT
-                    );
-            this.binaryOp(bv);
-            break;
-        case DIV_DOUBLE_2ADDR://((short)0xce, "div-double/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvdiv(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()),
-                    Type.DOUBLE
-                    );
-            this.binaryOp(bv);
-            break;
-
-        case REM_INT_2ADDR://((short)0xb4, "rem-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvrem(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()),
-                    Type.INT
-                    );
-            this.binaryOp(bv);
-            break;
-        case REM_LONG_2ADDR://((short)0xbf, "rem-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvrem(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()),
-                    Type.LONG
-                    );
-            this.binaryOp(bv);
-            break;
-        case REM_FLOAT_2ADDR://((short)0xca, "rem-float/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvrem(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()),
-                    Type.FLOAT
-                    );
-            this.binaryOp(bv);
-            break;
-        case REM_DOUBLE_2ADDR://((short)0xcf, "rem-double/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvrem(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()),
-                    Type.DOUBLE
-                    );
-            this.binaryOp(bv);
-            break;
-
-        case AND_INT_2ADDR://((short)0xb5, "and-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvand(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()), 
-                    Type.INT
-                    );
-            this.binaryOp(bv);
-            break;
-        case AND_LONG_2ADDR://((short)0xbb, "add-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvand(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()), 
-                    Type.LONG
-                    );
-            this.binaryOp(bv);
-            break;
-            
-        case OR_INT_2ADDR://((short)0xb6, "or-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvor(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()), 
-                    Type.INT
-                    );
-            this.binaryOp(bv);
-            break;
-        case OR_LONG_2ADDR://((short)0xc1, "or-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvor(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()), 
-                    Type.LONG
-                    );
-            this.binaryOp(bv);
-            break;
-
-        case XOR_INT_2ADDR://((short)0xb7, "xor-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvxor(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()), 
-                    Type.INT
-                    );
-            this.binaryOp(bv);
-            break;
-        case XOR_LONG_2ADDR://((short)0xc2, "xor-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvxor(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()), 
-                    Type.LONG
-                    );
-            this.binaryOp(bv);
-            break;
-            
-        case SHL_INT_2ADDR://((short)0xb8, "shl-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvshl(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()), 
-                    Type.INT
-                    );
-            this.binaryOp(bv);
-            break;
-        case SHL_LONG_2ADDR://((short)0xc3, "shl-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvshl(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()), 
-                    Type.LONG
-                    );
-            this.binaryOp(bv);
-            break;
-            
-        case SHR_INT_2ADDR://((short)0xb9, "shr-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvashr(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()), 
-                    Type.INT
-                    );
-            this.binaryOp(bv);
-            break;
-        case SHR_LONG_2ADDR://((short)0xc4, "shr-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvashr(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()), 
-                    Type.LONG
-                    );
-            this.binaryOp(bv);
-            break;
-
-        case USHR_INT_2ADDR://((short)0xba, "ushr-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvlshr(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()), 
-                    Type.INT
-                    );
-            this.binaryOp(bv);
-            break;
-        case USHR_LONG_2ADDR://((short)0xc5, "ushr-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
-            bv = fsengine.bvlshr(
-                    fsvar.getV(registerA()),
-                    fsvar.getV(registerB()), 
-                    Type.LONG
-                    );
-            this.binaryOp(bv);
-            break;
-
-        case ADD_INT_LIT16://((short)0xd0, "add-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-        case ADD_INT_LIT8://((short)0xd8, "add-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvadd(
-                    fsvar.getV(registerB()),
-                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
-                    Type.INT);
+        case INT_TO_SHORT:// ((short)0x8f, "int-to-short", ReferenceType.NONE,
+                          // Format.Format12x, Opcode.CAN_CONTINUE |
+                          // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.intToShort(fsvar.getV(registerB()));
+            } else {
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
 
-        case MUL_INT_LIT16://((short)0xd2, "mul-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-        case MUL_INT_LIT8://((short)0xda, "mul-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvmul(
-                    fsvar.getV(registerB()),
-                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
-                    Type.INT);
+        case ADD_INT:// ((short)0x90, "add-int", ReferenceType.NONE,
+                     // Format.Format23x, Opcode.CAN_CONTINUE |
+                     // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvadd(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.INT);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+        case ADD_LONG:// ((short)0x9b, "add-long", ReferenceType.NONE,
+                      // Format.Format23x, Opcode.CAN_CONTINUE |
+                      // Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvadd(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.LONG);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+        case ADD_FLOAT:// ((short)0xa6, "add-float", ReferenceType.NONE,
+                       // Format.Format23x, Opcode.CAN_CONTINUE |
+                       // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvadd(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.FLOAT);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+        case ADD_DOUBLE:// ((short)0xab, "add-double", ReferenceType.NONE,
+                        // Format.Format23x, Opcode.CAN_CONTINUE |
+                        // Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvadd(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.DOUBLE);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+
+        /*
+         * case RSUB_INT://((short)0xd1, "rsub-int", ReferenceType.NONE,
+         * Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER), bv =
+         * fsengine.bvsub( fsvar.getV(registerC()), fsvar.getV(registerB()),
+         * Type.INT ); this.binaryOpC(bv); break;
+         */
+        case SUB_INT:// ((short)0x91, "sub-int", ReferenceType.NONE,
+                     // Format.Format23x, Opcode.CAN_CONTINUE |
+                     // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvsub(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.INT);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+        case SUB_LONG:// ((short)0x9c, "sub-long", ReferenceType.NONE,
+                      // Format.Format23x, Opcode.CAN_CONTINUE |
+                      // Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvsub(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.LONG);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+        case SUB_FLOAT:// ((short)0xa7, "sub-float", ReferenceType.NONE,
+                       // Format.Format23x, Opcode.CAN_CONTINUE |
+                       // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvsub(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.FLOAT);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+        case SUB_DOUBLE:// ((short)0xac, "sub-double", ReferenceType.NONE,
+                        // Format.Format23x, Opcode.CAN_CONTINUE |
+                        // Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvsub(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.DOUBLE);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+
+        case MUL_INT:// ((short)0x92, "mul-int", ReferenceType.NONE,
+                     // Format.Format23x, Opcode.CAN_CONTINUE |
+                     // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvmul(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.INT);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+        case MUL_LONG:// ((short)0x9d, "mul-long", ReferenceType.NONE,
+                      // Format.Format23x, Opcode.CAN_CONTINUE |
+                      // Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvmul(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.LONG);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+        case MUL_FLOAT:// ((short)0xa8, "mul-float", ReferenceType.NONE,
+                       // Format.Format23x, Opcode.CAN_CONTINUE |
+                       // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvmul(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.FLOAT);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+        case MUL_DOUBLE:// ((short)0xad, "mul-double", ReferenceType.NONE,
+                        // Format.Format23x, Opcode.CAN_CONTINUE |
+                        // Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvmul(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.DOUBLE);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+
+        case DIV_INT:// ((short)0x93, "div-int", ReferenceType.NONE,
+                     // Format.Format23x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE
+                     // | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvdiv(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.INT);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+        case DIV_LONG:// ((short)0x9e, "div-long", ReferenceType.NONE,
+                      // Format.Format23x, Opcode.CAN_THROW |
+                      // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER |
+                      // Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvdiv(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.LONG);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+        case DIV_FLOAT:// ((short)0xa9, "div-float", ReferenceType.NONE,
+                       // Format.Format23x, Opcode.CAN_CONTINUE |
+                       // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvdiv(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.FLOAT);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+        case DIV_DOUBLE:// ((short)0xae, "div-double", ReferenceType.NONE,
+                        // Format.Format23x, Opcode.CAN_CONTINUE |
+                        // Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvdiv(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.DOUBLE);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+
+        case REM_INT:// ((short)0x94, "rem-int", ReferenceType.NONE,
+                     // Format.Format23x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE
+                     // | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvrem(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.INT);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+        case REM_LONG:// ((short)0x9f, "rem-long", ReferenceType.NONE,
+                      // Format.Format23x, Opcode.CAN_THROW |
+                      // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER |
+                      // Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvrem(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.LONG);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+        case REM_FLOAT:// ((short)0xaa, "rem-float", ReferenceType.NONE,
+                       // Format.Format23x, Opcode.CAN_CONTINUE |
+                       // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvrem(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.FLOAT);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+        case REM_DOUBLE:// ((short)0xaf, "rem-double", ReferenceType.NONE,
+                        // Format.Format23x, Opcode.CAN_CONTINUE |
+                        // Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvrem(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.DOUBLE);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+
+        case AND_INT:// ((short)0x95, "and-int", ReferenceType.NONE,
+                     // Format.Format23x, Opcode.CAN_CONTINUE |
+                     // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvand(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.INT);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+        case AND_LONG:// ((short)0xa0, "and-long", ReferenceType.NONE,
+                      // Format.Format23x, Opcode.CAN_CONTINUE |
+                      // Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvand(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.LONG);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+
+        case OR_INT:// ((short)0x96, "or-int", ReferenceType.NONE,
+                    // Format.Format23x, Opcode.CAN_CONTINUE |
+                    // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvor(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.INT);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+        case OR_LONG:// ((short)0xa1, "or-long", ReferenceType.NONE,
+                     // Format.Format23x, Opcode.CAN_CONTINUE |
+                     // Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvor(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.LONG);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+
+        case XOR_INT:// ((short)0x97, "xor-int", ReferenceType.NONE,
+                     // Format.Format23x, Opcode.CAN_CONTINUE |
+                     // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvxor(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.INT);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+        case XOR_LONG:// ((short)0xa2, "xor-long", ReferenceType.NONE,
+                      // Format.Format23x, Opcode.CAN_CONTINUE |
+                      // Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvxor(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.LONG);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+
+        case SHL_INT:// ((short)0x98, "shl-int", ReferenceType.NONE,
+                     // Format.Format23x, Opcode.CAN_CONTINUE |
+                     // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvshl(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.INT);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+        case SHL_LONG:// ((short)0xa3, "shl-long", ReferenceType.NONE,
+                      // Format.Format23x, Opcode.CAN_CONTINUE |
+                      // Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvshl(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.LONG);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+
+        case SHR_LONG:// ((short)0xa4, "shr-long", ReferenceType.NONE,
+                      // Format.Format23x, Opcode.CAN_CONTINUE |
+                      // Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvashr(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.LONG);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+        case SHR_INT:// ((short)0x99, "shr-int", ReferenceType.NONE,
+                     // Format.Format23x, Opcode.CAN_CONTINUE |
+                     // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvashr(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.INT);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+
+        case USHR_INT:// ((short)0x9a, "ushr-int", ReferenceType.NONE,
+                      // Format.Format23x, Opcode.CAN_CONTINUE |
+                      // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvlshr(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.INT);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+        case USHR_LONG:// ((short)0xa5, "ushr-long", ReferenceType.NONE,
+                       // Format.Format23x, Opcode.CAN_CONTINUE |
+                       // Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvlshr(fsvar.getV(registerB()),
+                        fsvar.getV(registerC()), Type.LONG);
+            } else {
+                bv = null;
+            }
+            this.binaryOpC(bv);
+            break;
+
+        case ADD_INT_2ADDR:// ((short)0xb0, "add-int/2addr", ReferenceType.NONE,
+                           // Format.Format12x, Opcode.CAN_CONTINUE |
+                           // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvadd(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.INT);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+        case ADD_LONG_2ADDR:// ((short)0xc0, "and-long/2addr",
+                            // ReferenceType.NONE, Format.Format12x,
+                            // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER |
+                            // Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvadd(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.LONG);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+        case ADD_FLOAT_2ADDR:// ((short)0xc6, "add-float/2addr",
+                             // ReferenceType.NONE, Format.Format12x,
+                             // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvadd(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.FLOAT);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+        case ADD_DOUBLE_2ADDR:// ((short)0xcb, "add-double/2addr",
+                              // ReferenceType.NONE, Format.Format12x,
+                              // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER |
+                              // Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvadd(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.DOUBLE);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+
+        case SUB_INT_2ADDR:// ((short)0xb1, "sub-int/2addr", ReferenceType.NONE,
+                           // Format.Format12x, Opcode.CAN_CONTINUE |
+                           // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvsub(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.INT);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+        case SUB_LONG_2ADDR:// ((short)0xbc, "sub-long/2addr",
+                            // ReferenceType.NONE, Format.Format12x,
+                            // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER |
+                            // Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvsub(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.LONG);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+        case SUB_FLOAT_2ADDR:// ((short)0xc7, "sub-float/2addr",
+                             // ReferenceType.NONE, Format.Format12x,
+                             // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvsub(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.FLOAT);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+        case SUB_DOUBLE_2ADDR:// ((short)0xcc, "sub-double/2addr",
+                              // ReferenceType.NONE, Format.Format12x,
+                              // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER |
+                              // Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvsub(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.DOUBLE);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+
+        case MUL_INT_2ADDR:// ((short)0xb2, "mul-int/2addr", ReferenceType.NONE,
+                           // Format.Format12x, Opcode.CAN_CONTINUE |
+                           // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvmul(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.INT);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+        case MUL_LONG_2ADDR:// ((short)0xbd, "mul-long/2addr",
+                            // ReferenceType.NONE, Format.Format12x,
+                            // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER |
+                            // Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvmul(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.LONG);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+        case MUL_FLOAT_2ADDR:// ((short)0xc8, "mul-float/2addr",
+                             // ReferenceType.NONE, Format.Format12x,
+                             // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvmul(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.FLOAT);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+        case MUL_DOUBLE_2ADDR:// ((short)0xcd, "mul-double/2addr",
+                              // ReferenceType.NONE, Format.Format12x,
+                              // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER |
+                              // Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvmul(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.DOUBLE);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+
+        case DIV_INT_2ADDR:// ((short)0xb3, "div-int/2addr", ReferenceType.NONE,
+                           // Format.Format12x, Opcode.CAN_THROW |
+                           // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvdiv(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.INT);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+        case DIV_LONG_2ADDR:// ((short)0xbe, "div-long/2addr",
+                            // ReferenceType.NONE, Format.Format12x,
+                            // Opcode.CAN_THROW | Opcode.CAN_CONTINUE |
+                            // Opcode.SETS_REGISTER |
+                            // Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvdiv(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.LONG);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+        case DIV_FLOAT_2ADDR:// ((short)0xc9, "div-float/2addr",
+                             // ReferenceType.NONE, Format.Format12x,
+                             // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvdiv(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.FLOAT);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+        case DIV_DOUBLE_2ADDR:// ((short)0xce, "div-double/2addr",
+                              // ReferenceType.NONE, Format.Format12x,
+                              // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER |
+                              // Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvdiv(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.DOUBLE);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+
+        case REM_INT_2ADDR:// ((short)0xb4, "rem-int/2addr", ReferenceType.NONE,
+                           // Format.Format12x, Opcode.CAN_THROW |
+                           // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvrem(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.INT);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+        case REM_LONG_2ADDR:// ((short)0xbf, "rem-long/2addr",
+                            // ReferenceType.NONE, Format.Format12x,
+                            // Opcode.CAN_THROW | Opcode.CAN_CONTINUE |
+                            // Opcode.SETS_REGISTER |
+                            // Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvrem(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.LONG);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+        case REM_FLOAT_2ADDR:// ((short)0xca, "rem-float/2addr",
+                             // ReferenceType.NONE, Format.Format12x,
+                             // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvrem(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.FLOAT);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+        case REM_DOUBLE_2ADDR:// ((short)0xcf, "rem-double/2addr",
+                              // ReferenceType.NONE, Format.Format12x,
+                              // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER |
+                              // Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvrem(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.DOUBLE);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+
+        case AND_INT_2ADDR:// ((short)0xb5, "and-int/2addr", ReferenceType.NONE,
+                           // Format.Format12x, Opcode.CAN_CONTINUE |
+                           // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvand(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.INT);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+        case AND_LONG_2ADDR:// ((short)0xbb, "add-long/2addr",
+                            // ReferenceType.NONE, Format.Format12x,
+                            // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER |
+                            // Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvand(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.LONG);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+
+        case OR_INT_2ADDR:// ((short)0xb6, "or-int/2addr", ReferenceType.NONE,
+                          // Format.Format12x, Opcode.CAN_CONTINUE |
+                          // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvor(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.INT);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+        case OR_LONG_2ADDR:// ((short)0xc1, "or-long/2addr", ReferenceType.NONE,
+                           // Format.Format12x, Opcode.CAN_CONTINUE |
+                           // Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvor(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.LONG);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+
+        case XOR_INT_2ADDR:// ((short)0xb7, "xor-int/2addr", ReferenceType.NONE,
+                           // Format.Format12x, Opcode.CAN_CONTINUE |
+                           // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvxor(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.INT);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+        case XOR_LONG_2ADDR:// ((short)0xc2, "xor-long/2addr",
+                            // ReferenceType.NONE, Format.Format12x,
+                            // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER |
+                            // Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvxor(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.LONG);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+
+        case SHL_INT_2ADDR:// ((short)0xb8, "shl-int/2addr", ReferenceType.NONE,
+                           // Format.Format12x, Opcode.CAN_CONTINUE |
+                           // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvshl(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.INT);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+        case SHL_LONG_2ADDR:// ((short)0xc3, "shl-long/2addr",
+                            // ReferenceType.NONE, Format.Format12x,
+                            // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER |
+                            // Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvshl(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.LONG);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+
+        case SHR_INT_2ADDR:// ((short)0xb9, "shr-int/2addr", ReferenceType.NONE,
+                           // Format.Format12x, Opcode.CAN_CONTINUE |
+                           // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvashr(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.INT);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+        case SHR_LONG_2ADDR:// ((short)0xc4, "shr-long/2addr",
+                            // ReferenceType.NONE, Format.Format12x,
+                            // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER |
+                            // Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvashr(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.LONG);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+
+        case USHR_INT_2ADDR:// ((short)0xba, "ushr-int/2addr",
+                            // ReferenceType.NONE, Format.Format12x,
+                            // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvlshr(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.INT);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+        case USHR_LONG_2ADDR:// ((short)0xc5, "ushr-long/2addr",
+                             // ReferenceType.NONE, Format.Format12x,
+                             // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER |
+                             // Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvlshr(fsvar.getV(registerA()),
+                        fsvar.getV(registerB()), Type.LONG);
+            } else {
+                bv = null;
+            }
+            this.binaryOp(bv);
+            break;
+
+        case ADD_INT_LIT16:// ((short)0xd0, "add-int/lit16", ReferenceType.NONE,
+                           // Format.Format22s, Opcode.CAN_CONTINUE |
+                           // Opcode.SETS_REGISTER),
+        case ADD_INT_LIT8:// ((short)0xd8, "add-int/lit8", ReferenceType.NONE,
+                          // Format.Format22b, Opcode.CAN_CONTINUE |
+                          // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvadd(fsvar.getV(registerB()), fsengine
+                        .mkBitVector(((WideLiteralInstruction) instruction)
+                                .getWideLiteral(), size), Type.INT);
+            } else {
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
 
-        case DIV_INT_LIT16://((short)0xd3, "div-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-        case DIV_INT_LIT8://((short)0xdb, "div-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvdiv(
-                    fsvar.getV(registerB()),
-                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
-                    Type.INT);
+        case MUL_INT_LIT16:// ((short)0xd2, "mul-int/lit16", ReferenceType.NONE,
+                           // Format.Format22s, Opcode.CAN_CONTINUE |
+                           // Opcode.SETS_REGISTER),
+        case MUL_INT_LIT8:// ((short)0xda, "mul-int/lit8", ReferenceType.NONE,
+                          // Format.Format22b, Opcode.CAN_CONTINUE |
+                          // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvmul(fsvar.getV(registerB()), fsengine
+                        .mkBitVector(((WideLiteralInstruction) instruction)
+                                .getWideLiteral(), size), Type.INT);
+            } else {
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
 
-        case REM_INT_LIT16://((short)0xd4, "rem-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-        case REM_INT_LIT8://((short)0xdc, "rem-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvrem(
-                    fsvar.getV(registerB()),
-                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
-                    Type.INT);
+        case DIV_INT_LIT16:// ((short)0xd3, "div-int/lit16", ReferenceType.NONE,
+                           // Format.Format22s, Opcode.CAN_THROW |
+                           // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+        case DIV_INT_LIT8:// ((short)0xdb, "div-int/lit8", ReferenceType.NONE,
+                          // Format.Format22b, Opcode.CAN_THROW |
+                          // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvdiv(fsvar.getV(registerB()), fsengine
+                        .mkBitVector(((WideLiteralInstruction) instruction)
+                                .getWideLiteral(), size), Type.INT);
+            } else {
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
 
-        case AND_INT_LIT16://((short)0xd5, "and-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-        case AND_INT_LIT8://((short)0xdd, "and-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvand(
-                    fsvar.getV(registerB()),
-                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
-                    Type.INT);
+        case REM_INT_LIT16:// ((short)0xd4, "rem-int/lit16", ReferenceType.NONE,
+                           // Format.Format22s, Opcode.CAN_THROW |
+                           // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+        case REM_INT_LIT8:// ((short)0xdc, "rem-int/lit8", ReferenceType.NONE,
+                          // Format.Format22b, Opcode.CAN_THROW |
+                          // Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvrem(fsvar.getV(registerB()), fsengine
+                        .mkBitVector(((WideLiteralInstruction) instruction)
+                                .getWideLiteral(), size), Type.INT);
+            } else {
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
 
-        case OR_INT_LIT16://((short)0xd6, "or-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-        case OR_INT_LIT8://((short)0xde, "or-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvor(
-                    fsvar.getV(registerB()),
-                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
-                    Type.INT);
+        case AND_INT_LIT16:// ((short)0xd5, "and-int/lit16", ReferenceType.NONE,
+                           // Format.Format22s, Opcode.CAN_CONTINUE |
+                           // Opcode.SETS_REGISTER),
+        case AND_INT_LIT8:// ((short)0xdd, "and-int/lit8", ReferenceType.NONE,
+                          // Format.Format22b, Opcode.CAN_CONTINUE |
+                          // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvand(fsvar.getV(registerB()), fsengine
+                        .mkBitVector(((WideLiteralInstruction) instruction)
+                                .getWideLiteral(), size), Type.INT);
+            } else {
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
 
-        case XOR_INT_LIT16://((short)0xd7, "xor-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-        case XOR_INT_LIT8://((short)0xdf, "xor-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvxor(
-                    fsvar.getV(registerB()),
-                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
-                    Type.INT);
+        case OR_INT_LIT16:// ((short)0xd6, "or-int/lit16", ReferenceType.NONE,
+                          // Format.Format22s, Opcode.CAN_CONTINUE |
+                          // Opcode.SETS_REGISTER),
+        case OR_INT_LIT8:// ((short)0xde, "or-int/lit8", ReferenceType.NONE,
+                         // Format.Format22b, Opcode.CAN_CONTINUE |
+                         // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvor(fsvar.getV(registerB()), fsengine
+                        .mkBitVector(((WideLiteralInstruction) instruction)
+                                .getWideLiteral(), size), Type.INT);
+            } else {
+                bv = null;
+            }
+            this.unaryOp(bv);
+            break;
+
+        case XOR_INT_LIT16:// ((short)0xd7, "xor-int/lit16", ReferenceType.NONE,
+                           // Format.Format22s, Opcode.CAN_CONTINUE |
+                           // Opcode.SETS_REGISTER),
+        case XOR_INT_LIT8:// ((short)0xdf, "xor-int/lit8", ReferenceType.NONE,
+                          // Format.Format22b, Opcode.CAN_CONTINUE |
+                          // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvxor(fsvar.getV(registerB()), fsengine
+                        .mkBitVector(((WideLiteralInstruction) instruction)
+                                .getWideLiteral(), size), Type.INT);
+            } else {
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
         case RSUB_INT:
-        case RSUB_INT_LIT8://((short)0xd9, "rsub-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvsub(
-                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
-                    fsvar.getV(registerB()),
-                    Type.INT);
+        case RSUB_INT_LIT8:// ((short)0xd9, "rsub-int/lit8", ReferenceType.NONE,
+                           // Format.Format22b, Opcode.CAN_CONTINUE |
+                           // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvsub(
+                        fsengine.mkBitVector(
+                                ((WideLiteralInstruction) instruction)
+                                        .getWideLiteral(), size), fsvar
+                                .getV(registerB()), Type.INT);
+            } else {
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
 
-        case SHL_INT_LIT8://((short)0xe0, "shl-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvshl(
-                    fsvar.getV(registerB()),
-                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
-                    Type.INT);
+        case SHL_INT_LIT8:// ((short)0xe0, "shl-int/lit8", ReferenceType.NONE,
+                          // Format.Format22b, Opcode.CAN_CONTINUE |
+                          // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvshl(fsvar.getV(registerB()), fsengine
+                        .mkBitVector(((WideLiteralInstruction) instruction)
+                                .getWideLiteral(), size), Type.INT);
+            } else {
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
 
-        case SHR_INT_LIT8://((short)0xe1, "shr-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvashr(
-                    fsvar.getV(registerB()),
-                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
-                    Type.INT);
+        case SHR_INT_LIT8:// ((short)0xe1, "shr-int/lit8", ReferenceType.NONE,
+                          // Format.Format22b, Opcode.CAN_CONTINUE |
+                          // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvashr(fsvar.getV(registerB()), fsengine
+                        .mkBitVector(((WideLiteralInstruction) instruction)
+                                .getWideLiteral(), size), Type.INT);
+            } else {
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
 
-        case USHR_INT_LIT8://((short)0xe2, "ushr-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = fsengine.bvlshr(
-                    fsvar.getV(registerB()),
-                    fsengine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
-                    Type.INT);
+        case USHR_INT_LIT8:// ((short)0xe2, "ushr-int/lit8", ReferenceType.NONE,
+                           // Format.Format22b, Opcode.CAN_CONTINUE |
+                           // Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
+                bv = fsengine.bvlshr(fsvar.getV(registerB()), fsengine
+                        .mkBitVector(((WideLiteralInstruction) instruction)
+                                .getWideLiteral(), size), Type.INT);
+            } else {
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
         case PACKED_SWITCH_PAYLOAD://((short)0x100, "packed-switch-payload", ReferenceType.NONE, Format.PackedSwitchPayload, 0),
