@@ -14,4 +14,5 @@ public class options {
     public boolean stubs = false;
     public int timeout = 30;
     public boolean tillFirstLeak = false;
+    public boolean sensIfHasSink = false;
 }

@@ -4,6 +4,7 @@ package analysis;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -66,6 +67,7 @@ public class DataExtraction {
     final private SourcesSinks sourcesSinks;
     private Set<CMPair> refSources;
     private Set<CMPair> refSinks;
+    final private Set<Integer> methodHasSink;
     
     private final Set<Integer> launcherActivities;
     
@@ -77,7 +79,8 @@ public class DataExtraction {
              Set<PackedSwitch> packedSwitchPayload, Set<SparseSwitch> sparseSwitchPayload, 
              Set<Integer> staticConstructor, Set<ConstString> constStrings, Set<Integer> launcherActivities, final boolean fromApk,
              final SourcesSinks sourcesSinks,
-             final Set<CMPair> refSources, final Set<CMPair> refSinks){
+             final Set<CMPair> refSources, final Set<CMPair> refSinks,
+             final Set<Integer> methodHasSink){
         this.classes = classes;
         this.instances = instances;
         this.arrayDataPayload = arrayDataPayload;
@@ -90,6 +93,13 @@ public class DataExtraction {
         this.sourcesSinks = sourcesSinks;
         this.refSinks = refSinks;
         this.refSources = refSources;
+        
+        this.methodHasSink = methodHasSink;
+    }
+    public void putMethodHasSink(int cmHash){
+        if (this.methodHasSink != null){
+            this.methodHasSink.add(cmHash);
+        }
     }
     
     private void formClassStructure(){
@@ -363,6 +373,7 @@ public class DataExtraction {
                         if (isSourceSink) {
                             refSources.add(new CMPair(referenceStringClass.hashCode(),referenceString.hashCode()));
                         } else {
+                            this.putMethodHasSink((new CMPair(c,m)).hashCode());
                             refSinks.add(new CMPair(referenceStringClass.hashCode(),referenceString.hashCode()));
                         }
                     }
@@ -459,6 +470,7 @@ public class DataExtraction {
                         if (isSourceSink) {
                             refSources.add(new CMPair(referenceStringClass.hashCode(),referenceString.hashCode()));
                         } else {
+                            this.putMethodHasSink((new CMPair(c,m)).hashCode());
                             refSinks.add(new CMPair(referenceStringClass.hashCode(),referenceString.hashCode()));
                         }
                     }

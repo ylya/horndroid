@@ -72,7 +72,7 @@ public class Analysis {
     final private Z3Variable var;
     final private FSVariable fsvar;
     final private Stubs stubs;
-    
+        
     final ExecutorService instructionExecutorService;
     private Set<CMPair> refSources;
     private Set<CMPair> refSinks;
@@ -92,6 +92,8 @@ public class Analysis {
     private Integer localHeapNumberEntries;
     private Integer localHeapSize;
     private HashSet<StringPair> apkClassesMethods;
+    
+    private Set<Integer> methodHasSink;
     
     public Analysis(final Z3Engine z3engine,final FSEngine fsengine, 
             final SourcesSinks sourcesSinks, final options options, final ExecutorService instructionExecutorService,
@@ -120,6 +122,9 @@ public class Analysis {
         this.options = options;
         
         this.stubs = stubs;
+        
+        this.methodHasSink = new HashSet <Integer>();
+        
 
         this.refSources = new HashSet <CMPair>();
         this.refSinks = new HashSet <CMPair>();
@@ -137,6 +142,12 @@ public class Analysis {
         
         this.methodIsEntryPoint = new HashSet<CMPair>();
         this.staticConstructor = new HashSet<Integer>();
+    }
+    public boolean checkMethodHasSink(int cmHash){
+        if (methodHasSink != null){
+            return methodHasSink.contains(cmHash);
+        }
+        else return false;
     }
     public  Set<Integer> getDisabledActivities(){
         return disabledActivities;
@@ -175,6 +186,9 @@ public class Analysis {
     public boolean optionVerbose(){
         return options.verboseResults;
     }
+    public boolean optionFlowSensIfSink(){
+        return options.sensIfHasSink;
+    }
     public Set<ArrayData> getArrayData(){
         return arrayDataPayload;
     }
@@ -201,7 +215,7 @@ public class Analysis {
      */
     public void collectDataFromApk( List<? extends ClassDef> classDefs){
         DataExtraction de = new DataExtraction(apkClasses, apkInstances, arrayDataPayload, packedSwitchPayload, sparseSwitchPayload, 
-                staticConstructor, constStrings, launcherActivities, true, sourcesSinks, refSources, refSinks);
+                staticConstructor, constStrings, launcherActivities, true, sourcesSinks, refSources, refSinks, methodHasSink);
         de.collectData(classDefs);
         
     }
@@ -423,6 +437,13 @@ public class Analysis {
             setOfInst.addAll(stubs.getInstances().getAllOnce());
         }
         for (DalvikInstance i : setOfInst){
+            
+            // check if instance is created in the method with a sink
+            
+            if ((!checkMethodHasSink((new CMPair(i.getC(), i.getM())).hashCode())) && options.sensIfHasSink){
+                continue;
+            }
+            
             final int instanceNum = i.hashCode();
             final String referenceString = i.getType().getType();
             final Map<Integer, Boolean> fieldsMap = getClassFields(referenceString, instanceNum);

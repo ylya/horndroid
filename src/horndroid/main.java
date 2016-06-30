@@ -54,6 +54,7 @@ public class main {
         options.addOption("t", false, "fetch stubs");
         options.addOption("o", true, "timeout (default 30 min)");
         options.addOption("l", false, "stop after fisrt leak found");
+        options.addOption("s", false, "flow sensitive heap only for the objects created in the method that contains a call to a sink");
     }
     public static void main(String[] args) {
         parseCommandLine(args);
@@ -259,6 +260,9 @@ public class main {
             case 't':
                 hornDroidOptions.stubs = true;
                 break;
+            case 's':
+                hornDroidOptions.sensIfHasSink = true;
+                break;
             case 'n':
                 hornDroidOptions.bitvectorSize = Integer.parseInt(commandLine.getOptionValue("n"));
                 break;
@@ -311,5 +315,6 @@ public class main {
         System.out.println("-t fetch stubs");
         System.out.println("-o timeout (default 30 min)");
         System.out.println("-l stop after fisrt leak found");
+        System.out.println("-s flow sensitive heap only for the objects created in the method that contains a call to a sink");
     }
 }

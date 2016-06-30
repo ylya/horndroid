@@ -34,6 +34,7 @@ import org.jf.dexlib2.iface.reference.Reference;
 import payload.ArrayData;
 import payload.PackedSwitch;
 import payload.SparseSwitch;
+import util.CMPair;
 import util.StringPair;
 import util.Utils;
 import util.Utils.CallType;
@@ -433,7 +434,7 @@ public class FSInstructionAnalysis{
         case NEW_INSTANCE:
 
         	//special treatment for the "global by default objects"
-        	if (globalByDefault(dispatch, referenceIntIndex)){
+        	if (globalByDefault(dispatch, referenceIntIndex) || ((!analysis.checkMethodHasSink(makeCMHash(c,m))) && analysis.optionFlowSensIfSink())){
         		instanceNum = analysis.getInstNum(ci, mi, codeAddress);
         		buildH();
         		//update the register receiving the pointer to the newly created object
@@ -2750,6 +2751,10 @@ public class FSInstructionAnalysis{
         default:
             throw new RuntimeException("FSInstructionAnalysis: unsuported instruction" + instruction.getOpcode());
         }
+    }
+    
+    private int makeCMHash(int c, int m){
+        return (new CMPair(c,m)).hashCode();
     }
     
     private int registerA(){

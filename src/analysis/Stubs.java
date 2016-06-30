@@ -83,7 +83,7 @@ public class Stubs {
         System.out.println("data extracting...");
         startTime = System.nanoTime();
         DataExtraction de = new DataExtraction(classes, instances, arrayDataPayload, packedSwitchPayload, sparseSwitchPayload, staticConstructor, constStrings, new HashSet<Integer>(),
-                false, null, null, null);
+                false, null, null, null, null);
         de.collectData(classDefs);
         endTime = System.nanoTime();
         System.out.println("done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
