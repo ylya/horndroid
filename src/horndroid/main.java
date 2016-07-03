@@ -55,6 +55,7 @@ public class main {
         options.addOption("o", true, "timeout (default 30 min)");
         options.addOption("l", false, "stop after fisrt leak found");
         options.addOption("s", false, "flow sensitive heap only for the objects created in the method that contains a call to a sink");
+        options.addOption("m", false, "another (old) treatment for the unknown methods");
     }
     public static void main(String[] args) {
         parseCommandLine(args);
@@ -272,7 +273,11 @@ public class main {
             case 'l':
                 hornDroidOptions.tillFirstLeak = true;
                 break;
+            case 'm':
+                hornDroidOptions.oldUnknown = true;
+                break;
             }
+            
         }
         if (otherArgs.length != 3) {
             usage();
@@ -316,5 +321,6 @@ public class main {
         System.out.println("-o timeout (default 30 min)");
         System.out.println("-l stop after fisrt leak found");
         System.out.println("-s flow sensitive heap only for the objects created in the method that contains a call to a sink");
+        System.out.println("-m another (old) treatment for the unknown methods");
     }
 }

@@ -1388,7 +1388,7 @@ public class FSInstructionAnalysis{
         		}
         		else{
         		    if (!computeStub(false, referenceString)){
-        		        this.invokeNotKnown(false, referenceStringClass, referenceString);
+        		        this.invokeNotKnownNew(false, referenceStringClass, referenceString);
         		    }
         		}
         }
@@ -1403,7 +1403,7 @@ public class FSInstructionAnalysis{
         		}
         		else{
         		    if (!computeStub(true, referenceString)){
-        		        this.invokeNotKnown(true, referenceStringClass, referenceString);
+        		        this.invokeNotKnownNew(true, referenceStringClass, referenceString);
         		    }
         		}
         }
@@ -1418,7 +1418,7 @@ public class FSInstructionAnalysis{
         		}
         		else{
         		    if (!computeStub(false, referenceString)){
-        		        this.invokeNotKnown(false, referenceStringClass, referenceString);
+        		        this.invokeNotKnownNew(false, referenceStringClass, referenceString);
         		    }
         		}
         }
@@ -1433,7 +1433,7 @@ public class FSInstructionAnalysis{
         		}
         		else{
         		    if (!computeStub(true, referenceString)){
-        	            this.invokeNotKnown(true, referenceStringClass, referenceString);
+        	            this.invokeNotKnownNew(true, referenceStringClass, referenceString);
         	        }
         		}
         }
@@ -1455,7 +1455,7 @@ public class FSInstructionAnalysis{
         		}
         		else{
         		    if (!computeStub(false, referenceString)){
-        	            this.invokeNotKnown(false, referenceStringClass, referenceString);
+        	            this.invokeNotKnownNew(false, referenceStringClass, referenceString);
         	        }
         		}
         }
@@ -1470,7 +1470,7 @@ public class FSInstructionAnalysis{
         		}
         		else{
         		    if (!computeStub(true, referenceString)){
-        	            this.invokeNotKnown(true, referenceStringClass, referenceString);
+        	            this.invokeNotKnownNew(true, referenceStringClass, referenceString);
         	        }
         		}
         }
@@ -1523,7 +1523,7 @@ public class FSInstructionAnalysis{
             			}
             		}else{
             		    if (!computeStub(false, referenceString)){
-            	            this.invokeNotKnown(false, referenceStringClass, referenceString);
+            	            this.invokeNotKnownNew(false, referenceStringClass, referenceString);
             	        }
             		}
             	}else{
@@ -1532,7 +1532,7 @@ public class FSInstructionAnalysis{
             			this.invoke(dispatchResult, false, null);
             		}else{
             		    if (!computeStub(false, referenceString)){
-            	            this.invokeNotKnown(false, referenceStringClass, referenceString);
+            	            this.invokeNotKnownNew(false, referenceStringClass, referenceString);
             	        }
             		}
             	}
@@ -1547,7 +1547,7 @@ public class FSInstructionAnalysis{
         		}
         		else{
         		    if (!computeStub(true, referenceString)){
-        	            this.invokeNotKnown(true, referenceStringClass, referenceString);
+        	            this.invokeNotKnownNew(true, referenceStringClass, referenceString);
         	        }
         		}
         }
@@ -1561,7 +1561,7 @@ public class FSInstructionAnalysis{
             	}
             	else{
             	    if (!computeStub(false, referenceString)){
-                        this.invokeNotKnown(false, referenceStringClass, referenceString);
+                        this.invokeNotKnownNew(false, referenceStringClass, referenceString);
                     }
             	}
         }
@@ -1575,7 +1575,7 @@ public class FSInstructionAnalysis{
         		}
         		else{
         		    if (!computeStub(true, referenceString)){
-        	            this.invokeNotKnown(true, referenceStringClass, referenceString);
+        	            this.invokeNotKnownNew(true, referenceStringClass, referenceString);
         	        }
         		}
         }
@@ -4264,13 +4264,12 @@ public class FSInstructionAnalysis{
                     return null;
             }
         }
-    }
-
-
+    }    
+   
     /*
      * Advances pc with a top values for the return value (if exists)
      */
-    private void invokeNotKnown(final Boolean range, final String invClass, final String invMethod){
+    private void invokeNotKnownNew(final Boolean range, final String invClass, final String invMethod){
         System.err.println("Not known implementation: " + invClass + " " +  invMethod);
         // we add queries when calling manualStub(...)
         /*if (analysis.isSink(className,methodName,invClass.hashCode(), invMethod.hashCode())){

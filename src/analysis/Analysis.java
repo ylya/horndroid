@@ -183,6 +183,9 @@ public class Analysis {
     public boolean optionArrays(){
         return options.arrays;
     }
+    public boolean optionOldUnknown(){
+        return options.oldUnknown;
+    }
     public boolean optionVerbose(){
         return options.verboseResults;
     }

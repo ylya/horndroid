@@ -15,4 +15,5 @@ public class options {
     public int timeout = 30;
     public boolean tillFirstLeak = false;
     public boolean sensIfHasSink = false;
+    public boolean oldUnknown = false;
 }

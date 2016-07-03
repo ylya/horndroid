@@ -143,16 +143,11 @@ public class InstructionAnalysis {
         if ((options.debug)){
             BoolExpr h = z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
             for (int i = 0; i < numRegLoc; i++){
+                BoolExpr h1 = z3engine.and(var.getL(i),h);
                 BoolExpr h2 = z3engine.and(var.getL(i),h);
                 BoolExpr h3 = z3engine.and(var.getB(i),h);
                 
-                /*BoolExpr h1 = z3engine.and(
-                        h,
-                        z3engine.eq(
-                                var.getL(5),
-                                z3engine.mkTrue()
-                                ));*/
-                Z3Query q1 = new Z3Query(h,i,QUERY_TYPE.STANDARD_REACH,className,methodName,Integer.toString(codeAddress));
+                Z3Query q1 = new Z3Query(h1,i,QUERY_TYPE.STANDARD_REACH,className,methodName,Integer.toString(codeAddress));
                 Z3Query q2 = new Z3Query(h2,i,QUERY_TYPE.STANDARD_HIGH,className,methodName,Integer.toString(codeAddress));
                 Z3Query q3 = new Z3Query(h3,i,QUERY_TYPE.STANDARD_BLOCK,className,methodName,Integer.toString(codeAddress));
                 z3engine.addQueryDebug(q1);
@@ -1053,7 +1048,14 @@ public class InstructionAnalysis {
                 this.invoke(dispatchResult, false, referenceReg);
             }
             else{
-                this.invokeNotKnown(false, referenceStringClass, referenceString);
+                if (!computeStub(false, referenceString)){
+                    if (analysis.optionOldUnknown()){
+                        this.invokeNotKnown(false, referenceStringClass, referenceString);
+                    }
+                    else{
+                        this.invokeNotKnownNew(false, referenceStringClass, referenceString);
+                    }
+                }
             }
         }
         break;
@@ -1066,7 +1068,14 @@ public class InstructionAnalysis {
                 this.invoke(dispatchResult, true, referenceReg);
             }
             else{
-                this.invokeNotKnown(true, referenceStringClass, referenceString);
+                if (!computeStub(true, referenceString)){
+                    if (analysis.optionOldUnknown()){
+                        this.invokeNotKnown(true, referenceStringClass, referenceString);
+                    }
+                    else{
+                        this.invokeNotKnownNew(true, referenceStringClass, referenceString);
+                    }
+                }
             }
         }
         break;
@@ -1085,7 +1094,14 @@ public class InstructionAnalysis {
                 this.invoke(dispatchResult, false, referenceReg);
             }
             else{
-                this.invokeNotKnown(false, referenceStringClass, referenceString);
+                if (!computeStub(false, referenceString)){
+                    if (analysis.optionOldUnknown()){
+                        this.invokeNotKnown(false, referenceStringClass, referenceString);
+                    }
+                    else{
+                        this.invokeNotKnownNew(false, referenceStringClass, referenceString);
+                    }
+                }
             }
         }
         break;
@@ -1097,7 +1113,14 @@ public class InstructionAnalysis {
                 this.invoke(dispatchResult, true, referenceReg);
             }
             else{
-                this.invokeNotKnown(true, referenceStringClass, referenceString);
+                if (!computeStub(true, referenceString)){
+                    if (analysis.optionOldUnknown()){
+                        this.invokeNotKnown(true, referenceStringClass, referenceString);
+                    }
+                    else{
+                        this.invokeNotKnownNew(true, referenceStringClass, referenceString);
+                    }
+                }
             }
         }
         break;
@@ -1109,7 +1132,14 @@ public class InstructionAnalysis {
                 this.invoke(dispatchResult, false, referenceReg);
             }
             else{
-                this.invokeNotKnown(false, referenceStringClass, referenceString);
+                if (!computeStub(false, referenceString)){
+                    if (analysis.optionOldUnknown()){
+                        this.invokeNotKnown(false, referenceStringClass, referenceString);
+                    }
+                    else{
+                        this.invokeNotKnownNew(false, referenceStringClass, referenceString);
+                    }
+                }
             }
         }
         break;
@@ -1121,7 +1151,14 @@ public class InstructionAnalysis {
                 this.invoke(dispatchResult, true, referenceReg);
             }
             else{
-                this.invokeNotKnown(true, referenceStringClass, referenceString);
+                if (!computeStub(true, referenceString)){
+                    if (analysis.optionOldUnknown()){
+                        this.invokeNotKnown(true, referenceStringClass, referenceString);
+                    }
+                    else{
+                        this.invokeNotKnownNew(true, referenceStringClass, referenceString);
+                    }
+                }
             }
         }
         break;
@@ -1168,7 +1205,14 @@ public class InstructionAnalysis {
                 }
               }
               else{
-                this.invokeNotKnown(false, referenceStringClass, referenceString);
+                  if (!computeStub(false, referenceString)){
+                      if (analysis.optionOldUnknown()){
+                          this.invokeNotKnown(false, referenceStringClass, referenceString);
+                      }
+                      else{
+                          this.invokeNotKnownNew(false, referenceStringClass, referenceString);
+                      }
+                  }  
               }
               break;
             }     
@@ -1180,7 +1224,14 @@ public class InstructionAnalysis {
                 this.invoke(dispatchResult, false, null);
             }
             else{
-                this.invokeNotKnown(false, referenceStringClass, referenceString);
+                if (!computeStub(false, referenceString)){
+                    if (analysis.optionOldUnknown()){
+                        this.invokeNotKnown(false, referenceStringClass, referenceString);
+                    }
+                    else{
+                        this.invokeNotKnownNew(false, referenceStringClass, referenceString);
+                    }
+                }
             }
         break;
         case INVOKE_DIRECT_RANGE:
@@ -1189,7 +1240,14 @@ public class InstructionAnalysis {
                 this.invoke(dispatchResult, true, null);
             }
             else{
-                this.invokeNotKnown(true, referenceStringClass, referenceString);
+                if (!computeStub(true, referenceString)){
+                    if (analysis.optionOldUnknown()){
+                        this.invokeNotKnown(true, referenceStringClass, referenceString);
+                    }
+                    else{
+                        this.invokeNotKnownNew(true, referenceStringClass, referenceString);
+                    }
+                }
             }
         break;
         case INVOKE_STATIC:
@@ -1199,7 +1257,14 @@ public class InstructionAnalysis {
                 this.invoke(dispatchResult, false, null);
             }
             else{
-                this.invokeNotKnown(false, referenceStringClass, referenceString);
+                if (!computeStub(false, referenceString)){
+                    if (analysis.optionOldUnknown()){
+                        this.invokeNotKnown(false, referenceStringClass, referenceString);
+                    }
+                    else{
+                        this.invokeNotKnownNew(false, referenceStringClass, referenceString);
+                    }
+                }
             }
         }
         break;
@@ -1211,669 +1276,1150 @@ public class InstructionAnalysis {
                 this.invoke(dispatchResult, true, null);
             }
             else{
-                this.invokeNotKnown(true, referenceStringClass, referenceString);
+                if (!computeStub(true, referenceString)){
+                    if (analysis.optionOldUnknown()){
+                        this.invokeNotKnown(true, referenceStringClass, referenceString);
+                    }
+                    else{
+                        this.invokeNotKnownNew(true, referenceStringClass, referenceString);
+                    }
+                }
             }
         }
         break;
 
         case NEG_INT://((short)0x7b, "neg-int", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-
-            BitVecExpr bv = z3engine.bvneg(regB(), Type.INT);
+            BitVecExpr bv;
+            if (analysis.getSize() == 64) {
+                bv = z3engine.bvneg(regB(), Type.INT);
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
         case NEG_LONG://((short)0x7d, "neg-long", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvneg(regB(), Type.LONG);
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
         case NEG_FLOAT://((short)0x7f, "neg-float", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvneg(regB(), Type.FLOAT);
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
         case NEG_DOUBLE:
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvneg(regB(), Type.DOUBLE);
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;//((short)0x80, "neg-double", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
 
 
         case NOT_INT://((short)0x7c, "not-int", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvnot(regB(), Type.INT);
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
         case NOT_LONG://((short)0x7e, "not-long", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvnot(regB(), Type.LONG);
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
 
         case INT_TO_LONG://((short)0x81, "int-to-long", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.toLong(z3engine.toInt((regB())));
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
         case INT_TO_FLOAT://((short)0x82, "int-to-float", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.uOpIntToFloat(regB());
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
         case INT_TO_DOUBLE://((short)0x83, "int-to-double", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.uOpIntToDouble(regB());
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
         case LONG_TO_INT://((short)0x84, "long-to-int", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.toLong(z3engine.toInt((regB())));
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
         case LONG_TO_FLOAT://((short)0x85, "long-to-float", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.uOpLongToFloat(regB());
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
         case LONG_TO_DOUBLE://((short)0x86, "long-to-double", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.uOpLongToDouble(regB());
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
         case FLOAT_TO_INT://((short)0x87, "float-to-int", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.floatRoundToInt(regB());
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
         case FLOAT_TO_LONG://((short)0x88, "float-to-long", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.floatRoundToLong(regB());
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
         case FLOAT_TO_DOUBLE://((short)0x89, "float-to-double", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.floatToDouble(regB());
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;        
         case DOUBLE_TO_INT://((short)0x8a, "double-to-int", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.doubleRoundToInt(regB());
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
         case DOUBLE_TO_LONG://((short)0x8b, "double-to-long", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.floatRoundToLong(regB());
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
         case DOUBLE_TO_FLOAT://((short)0x8c, "double-to-float", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.doubleToFloat(regB());
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
         case INT_TO_BYTE://((short)0x8d, "int-to-byte", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.intToByte(regB());
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
         case INT_TO_CHAR://((short)0x8e, "int-to-char", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.intToChar(regB());
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
         case INT_TO_SHORT://((short)0x8f, "int-to-short", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.intToShort(regB());
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
 
         case ADD_INT://((short)0x90, "add-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvadd(
                     regB(),
                     regC(),Type.INT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
         case ADD_LONG://((short)0x9b, "add-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvadd(
                     regB(),
                     regC(),Type.LONG
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
         case ADD_FLOAT://((short)0xa6, "add-float", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvadd(
                     regB(),
                     regC(),Type.FLOAT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
         case ADD_DOUBLE://((short)0xab, "add-double", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvadd(
                     regB(),
                     regC(),Type.DOUBLE
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
 
-        case RSUB_INT://((short)0xd1, "rsub-int", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
-            bv = z3engine.bvsub(
-                    regB(),
-                    regA(), Type.INT
-                    );
-            this.binaryOp(bv);
-            break;
+        
         case SUB_INT://((short)0x91, "sub-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvsub(
                     regB(),
                     regC(), Type.INT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
         case SUB_LONG://((short)0x9c, "sub-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvsub(
                     regB(),
                     regC(), Type.LONG
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
         case SUB_FLOAT://((short)0xa7, "sub-float", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvsub(
                     regB(),
                     regC(), Type.FLOAT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
         case SUB_DOUBLE://((short)0xac, "sub-double", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvsub(
                     regB(),
                     regC(), Type.DOUBLE
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
 
         case MUL_INT://((short)0x92, "mul-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvmul(
                     regB(),
                     regC(),Type.INT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
         case MUL_LONG://((short)0x9d, "mul-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvmul(
                     regB(),
                     regC(),Type.LONG
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
         case MUL_FLOAT://((short)0xa8, "mul-float", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvmul(
                     regB(),
                     regC(),Type.FLOAT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
         case MUL_DOUBLE://((short)0xad, "mul-double", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvmul(
                     regB(),
                     regC(),Type.DOUBLE
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
 
         case DIV_INT://((short)0x93, "div-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvdiv(
                     regB(),
                     regC(),Type.INT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
         case DIV_LONG://((short)0x9e, "div-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvdiv(
                     regB(),
                     regC(),Type.LONG
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
         case DIV_FLOAT://((short)0xa9, "div-float", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvdiv(
                     regB(),
                     regC(),Type.FLOAT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
         case DIV_DOUBLE://((short)0xae, "div-double", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvdiv(
                     regB(),
                     regC(),Type.DOUBLE
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
 
         case REM_INT://((short)0x94, "rem-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvrem(
                     regB(),
                     regC(),Type.INT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
         case REM_LONG://((short)0x9f, "rem-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvrem(
                     regB(),
                     regC(),Type.LONG
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
         case REM_FLOAT://((short)0xaa, "rem-float", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvrem(
                     regB(),
                     regC(),Type.FLOAT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
         case REM_DOUBLE://((short)0xaf, "rem-double", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvrem(
                     regB(),
                     regC(),Type.DOUBLE
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
 
         case AND_INT://((short)0x95, "and-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvand(
                     regB(),
                     regC(),Type.INT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
         case AND_LONG://((short)0xa0, "and-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvand(
                     regB(),
                     regC(),Type.LONG
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
 
         case OR_INT://((short)0x96, "or-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvor(
                     regB(),
                     regC(),Type.INT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
         case OR_LONG://((short)0xa1, "or-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvor(
                     regB(),
                     regC(),Type.LONG
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
 
         case XOR_INT://((short)0x97, "xor-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvxor(
                     regB(),
                     regC(),Type.INT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
         case XOR_LONG://((short)0xa2, "xor-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvxor(
                     regB(),
                     regC(),Type.LONG
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
 
         case SHL_INT://((short)0x98, "shl-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvshl(
                     regB(),
                     regC(), Type.INT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
         case SHL_LONG://((short)0xa3, "shl-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvshl(
                     regB(),
                     regC(), Type.LONG
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
 
         case SHR_LONG://((short)0xa4, "shr-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvashr(
                     regB(),
                     regC(), Type.LONG
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
         case SHR_INT://((short)0x99, "shr-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvashr(
                     regB(),
                     regC(), Type.INT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
 
         case USHR_INT://((short)0x9a, "ushr-int", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvlshr(
                     regB(),
                     regC(), Type.INT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
         case USHR_LONG://((short)0xa5, "ushr-long", ReferenceType.NONE, Format.Format23x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvlshr(
                     regB(),
                     regC(), Type.LONG
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOpC(bv);
             break;
 
         case ADD_INT_2ADDR://((short)0xb0, "add-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvadd(
                     regA(),
                     regB(),Type.INT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
         case ADD_LONG_2ADDR://((short)0xc0, "and-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvadd(
                     regA(),
                     regB(),Type.LONG
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
         case ADD_FLOAT_2ADDR://((short)0xc6, "add-float/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvadd(
                     regA(),
                     regB(),Type.FLOAT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;        
         case ADD_DOUBLE_2ADDR://((short)0xcb, "add-double/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvadd(
                     regA(),
                     regB(),Type.DOUBLE
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
 
         case SUB_INT_2ADDR://((short)0xb1, "sub-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvsub(
                     regA(),
                     regB(),Type.INT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
         case SUB_LONG_2ADDR://((short)0xbc, "sub-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvsub(
                     regA(),
                     regB(),Type.LONG
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
         case SUB_FLOAT_2ADDR://((short)0xc7, "sub-float/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvsub(
                     regA(),
                     regB(),Type.FLOAT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
         case SUB_DOUBLE_2ADDR://((short)0xcc, "sub-double/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvsub(
                     regA(),
                     regB(),Type.DOUBLE
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
 
         case MUL_INT_2ADDR://((short)0xb2, "mul-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvmul(
                     regA(),
                     regB(),Type.INT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
         case MUL_LONG_2ADDR://((short)0xbd, "mul-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvmul(
                     regA(),
                     regB(),Type.LONG
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
         case MUL_FLOAT_2ADDR://((short)0xc8, "mul-float/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvmul(
                     regA(),
                     regB(),Type.FLOAT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
         case MUL_DOUBLE_2ADDR://((short)0xcd, "mul-double/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvmul(
                     regA(),
                     regB(),Type.DOUBLE
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
 
         case DIV_INT_2ADDR://((short)0xb3, "div-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvdiv(
                     regA(),
                     regB(),Type.INT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
         case DIV_LONG_2ADDR://((short)0xbe, "div-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvdiv(
                     regA(),
                     regB(),Type.LONG
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
         case DIV_FLOAT_2ADDR://((short)0xc9, "div-float/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvdiv(
                     regA(),
                     regB(),Type.FLOAT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
         case DIV_DOUBLE_2ADDR://((short)0xce, "div-double/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvdiv(
                     regA(),
                     regB(),Type.DOUBLE
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
 
         case REM_INT_2ADDR://((short)0xb4, "rem-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvrem(
                     regA(),
                     regB(),Type.INT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
         case REM_LONG_2ADDR://((short)0xbf, "rem-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvrem(
                     regA(),
                     regB(),Type.LONG
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
         case REM_FLOAT_2ADDR://((short)0xca, "rem-float/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvrem(
                     regA(),
                     regB(),Type.FLOAT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
         case REM_DOUBLE_2ADDR://((short)0xcf, "rem-double/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvrem(
                     regA(),
                     regB(),Type.DOUBLE
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
 
         case AND_INT_2ADDR://((short)0xb5, "and-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvand(
                     regA(),
                     regB(), Type.INT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
         case AND_LONG_2ADDR://((short)0xbb, "add-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvand(
                     regA(),
                     regB(), Type.LONG
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
 
         case OR_INT_2ADDR://((short)0xb6, "or-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvor(
                     regA(),
                     regB(), Type.INT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
         case OR_LONG_2ADDR://((short)0xc1, "or-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvor(
                     regA(),
                     regB(), Type.LONG
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
 
         case XOR_INT_2ADDR://((short)0xb7, "xor-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvxor(
                     regA(),
                     regB(), Type.INT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
         case XOR_LONG_2ADDR://((short)0xc2, "xor-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvxor(
                     regA(),
                     regB(), Type.LONG
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
 
         case SHL_INT_2ADDR://((short)0xb8, "shl-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvshl(
                     regA(),
                     regB(), Type.INT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
         case SHL_LONG_2ADDR://((short)0xc3, "shl-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvshl(
                     regA(),
                     regB(), Type.LONG
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
 
         case SHR_INT_2ADDR://((short)0xb9, "shr-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvashr(
                     regA(),
                     regB(), Type.INT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
         case SHR_LONG_2ADDR://((short)0xc4, "shr-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvashr(
                     regA(),
                     regB(), Type.LONG
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
 
         case USHR_INT_2ADDR://((short)0xba, "ushr-int/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvlshr(
                     regA(),
                     regB(), Type.INT
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
         case USHR_LONG_2ADDR://((short)0xc5, "ushr-long/2addr", ReferenceType.NONE, Format.Format12x, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvlshr(
                     regA(),
                     regB(), Type.LONG
                     );
+            }
+            else{
+                bv = null;
+            }
             this.binaryOp(bv);
             break;
 
         case ADD_INT_LIT16://((short)0xd0, "add-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case ADD_INT_LIT8://((short)0xd8, "add-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvadd(
                     regB(),
                     z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
                     Type.INT);
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
 
         case MUL_INT_LIT16://((short)0xd2, "mul-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case MUL_INT_LIT8://((short)0xda, "mul-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvmul(
                     regB(),
                     z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
                     Type.INT);
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
 
         case DIV_INT_LIT16://((short)0xd3, "div-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case DIV_INT_LIT8://((short)0xdb, "div-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvdiv(
                     regB(),
                     z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
                     Type.INT);
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
 
         case REM_INT_LIT16://((short)0xd4, "rem-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case REM_INT_LIT8://((short)0xdc, "rem-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvrem(
                     regB(),
                     z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
                     Type.INT);
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
 
         case AND_INT_LIT16://((short)0xd5, "and-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case AND_INT_LIT8://((short)0xdd, "and-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvand(
                     regB(),
                     z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
                     Type.INT);
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
 
         case OR_INT_LIT16://((short)0xd6, "or-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case OR_INT_LIT8://((short)0xde, "or-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvor(
                     regB(),
                     z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
                     Type.INT);
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
 
         case XOR_INT_LIT16://((short)0xd7, "xor-int/lit16", ReferenceType.NONE, Format.Format22s, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
         case XOR_INT_LIT8://((short)0xdf, "xor-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvxor(
                     regB(),
                     z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
                     Type.INT);
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
-
+        case RSUB_INT:
         case RSUB_INT_LIT8://((short)0xd9, "rsub-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvsub(
                     z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
                     regB(),
                     Type.INT);
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
 
         case SHL_INT_LIT8://((short)0xe0, "shl-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvshl(
                     regB(),
                     z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
                     Type.INT);
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
 
         case SHR_INT_LIT8://((short)0xe1, "shr-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvashr(
                     regB(),
                     z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
                     Type.INT);
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
 
         case USHR_INT_LIT8://((short)0xe2, "ushr-int/lit8", ReferenceType.NONE, Format.Format22b, Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER),
+            if (analysis.getSize() == 64) {
             bv = z3engine.bvlshr(
                     regB(),
                     z3engine.mkBitVector(((WideLiteralInstruction)instruction).getWideLiteral(), size),
                     Type.INT);
+            }
+            else{
+                bv = null;
+            }
             this.unaryOp(bv);
             break;
 
@@ -2238,283 +2784,579 @@ public class InstructionAnalysis {
     }
 
 
-    //TODO
-    private boolean processIntent(final Z3Engine z3engine, final int ci, final int mi, final int numParLoc, final int numRegLoc, final int nextCode, final int c, final int m, final String shortMethodName,
-            final int size){
-        
-        //http://developer.android.com/reference/android/content/Intent.html
-        
-        BoolExpr h2, b2;
-        Map<Integer, Boolean> fields = Collections.synchronizedMap(new HashMap <Integer, Boolean>());
-
-       /* 
-        * Specify the exact class to be called (for an explicit intent)
-        */
-        
-        if  (c == ("Landroid/content/Intent;".hashCode()) &&
-                ("setComponent(Landroid/content/ComponentName;)Landroid/content/Intent;".hashCode()) == m){
-            if (this.instruction instanceof FiveRegisterInstruction
-                    ||  this.instruction instanceof RegisterRangeInstruction ) {
-
-                int registerC, registerD;
-                if(this.instruction instanceof FiveRegisterInstruction){
-                    registerC = ((FiveRegisterInstruction) instruction).getRegisterC();
-                    registerD = ((FiveRegisterInstruction) instruction).getRegisterD();
-                } else {
-                    registerC = ((RegisterRangeInstruction) instruction).getStartRegister();
-                    registerD = ((RegisterRangeInstruction) instruction).getStartRegister() + 1;
-                }
-                /*
-                 * HI predicate is the same as H but with a smaller arity as it does not contain any field information 
-                 * (we are field-incensitive for intents).
-                 * When intent is created the exact class might not be known, it is specified then by calling setComponent method,
-                 * it replaces the original class ("cn") by the one spcified in the method call (registerD)
-                 */
-                h2 = z3engine.and(
-                        z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                        z3engine.hiPred(
-                                var.getCn(), var.getV(registerC), var.getVal(), var.getLf(), var.getBf())
-                        );
-                b2 = z3engine.hiPred(
-                        var.getV(registerD), var.getV(registerC), var.getVal(), var.getLf(), var.getBf());
-               
-                
-                z3engine.addRule(z3engine.implies(h2, b2), null);
-                /*
-                 * the result of the setComponent will be a new version of the intent which is stored in the same registerC, where it was before
-                 */
-                h = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                regUpdate.put(registerC, var.getV(registerC));
-                regUpdateL.put(registerC, var.getL(registerC));
-                regUpdateB.put(registerC, var.getB(registerC));
-                b = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                
-               
-                buildRule();
-                
-                
-                return true;
-            }
+    private boolean simpleSkip(final int c){
+        if (c == ("Ljava/lang/Object;".hashCode()) && ("<init>()V".hashCode() == referenceIntIndex)){
+            return true;
         }
-       /*
-        * Create a new Intent (class is known, in Ljava/lang/Class;) aka (newintent r_d c')_pp
-        */
-        if  (c == ("Landroid/content/Intent;".hashCode()) &&
-                ("<init>(Landroid/content/Context;Ljava/lang/Class;)V".hashCode()) == m){
-            final int instanceNum = analysis.getInstNum(ci, mi, codeAddress);
-            if (this.instruction instanceof FiveRegisterInstruction
-                    ||  this.instruction instanceof RegisterRangeInstruction ) {
-
-                int registerC, //r_d
-                    registerE; //c'
-                if(this.instruction instanceof FiveRegisterInstruction){
-                    registerC = ((FiveRegisterInstruction) instruction).getRegisterC();
-                    registerE = ((FiveRegisterInstruction) instruction).getRegisterE();
-                } else {
-                    registerC = ((RegisterRangeInstruction) instruction).getStartRegister();
-                    registerE = ((RegisterRangeInstruction) instruction).getStartRegister() + 2;
-                }
-               /*
-                * Put a new intent instance of the type c' on the heap
-                */
-                h2 = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                b2 = z3engine.hiPred(
-                        var.getV(registerE), z3engine.mkBitVector(instanceNum, size), z3engine.mkBitVector(0, size), z3engine.mkFalse(), z3engine.mkFalse());
-                z3engine.addRule(z3engine.implies(h2, b2), null);
-                /*
-                 * Put a refence to the intent into r_d
-                 */
-                h = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                regUpdate.put(registerC, z3engine.mkBitVector(instanceNum, size));
-                regUpdateL.put(registerC, z3engine.mkFalse());
-                regUpdateB.put(registerC, z3engine.mkTrue());
-                b = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                buildRule();
-
-                regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
-                
-               /*
-                * Put default values for all fields of the intent
-                */
-                fields = analysis.getClassFields("Landroid/content/Intent;", instanceNum);
-                if (fields != null)
-                    for (Map.Entry<Integer, Boolean> fieldN : fields.entrySet()){
-                        BoolExpr h12 = z3engine.rPred(Utils.Dec(ci), Utils.Dec(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                        BoolExpr b12 = z3engine.hPred(
-                                z3engine.mkBitVector("Landroid/content/Intent;".hashCode(), size),
-                                z3engine.mkBitVector(instanceNum, size), z3engine.mkBitVector(fieldN.getKey(), size),
-                                z3engine.mkBitVector(0, size), z3engine.mkFalse(), z3engine.mkBool(fieldN.getValue()));
-                        z3engine.addRule(z3engine.implies(h12, b12), null);
-                    }
-
-                return true;
-            }
+        if (c == ("Ljava/util/HashMap;".hashCode()) && ("<init>()V".hashCode() == referenceIntIndex)){
+            return true;
         }
-        //TODO: this case looks like the previous one - merge?
+        if ((c == ("Landroid/app/Activity;".hashCode())) && 
+                (("<init>()V".hashCode() == referenceIntIndex))){
+            return true;
+        }
+        if ((c == ("Landroid/app/Activity;".hashCode())) && 
+                (("onCreate(Landroid/os/Bundle;)V".hashCode() == referenceIntIndex))){
+            return true;
+        }
+        if ((c == ("Landroid/app/Activity;".hashCode())) && 
+                (("setContentView(I)V".hashCode() == referenceIntIndex))){
+            return true;
+        }
+        if ((c == ("Landroid/telephony/SmsManager;".hashCode())) && 
+                (("sendTextMessage(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Landroid/app/PendingIntent;Landroid/app/PendingIntent;)V".hashCode() == referenceIntIndex))){
+            return true;
+        }
+        if ((c == ("Ljava/util/LinkedList;".hashCode())) && 
+                (("<init>()V".hashCode() == referenceIntIndex))){
+            return true;
+        }
+        if ((c == ("Landroid/support/v4/app/Fragment;".hashCode())) && 
+                (("<init>()V".hashCode() == referenceIntIndex))){
+            return true;
+        }
+        if ((c == ("Landroid/view/MenuInflater;".hashCode())) && 
+                (("inflate(ILandroid/view/Menu;)V".hashCode() == referenceIntIndex))){
+            return true;
+        }
+        if ((c == ("Landroid/support/v7/app/ActionBarActivity;".hashCode())) && 
+                (("<init>()V".hashCode() == referenceIntIndex))){
+            return true;
+        }
+        if ((c == ("Landroid/support/v7/app/ActionBarActivity;".hashCode())) && 
+                (("setContentView(I)V".hashCode() == referenceIntIndex))){
+            return true;
+        }
+        if ((c == ("Landroid/support/v7/app/ActionBarActivity;".hashCode())) && 
+                (("onCreate(Landroid/os/Bundle;)V".hashCode() == referenceIntIndex))){
+            return true;
+        }
+        if (analysis.getGeneralClass(c) instanceof DalvikClass){
+            return simpleSkip(((DalvikClass) analysis.getGeneralClass(c)).getSuperClass().getType().hashCode());
+        }
+        return false;
+    }
+        
+    private boolean manualStub(final int cCall){
+        int size = analysis.getSize();
+        boolean flag = false;
+        // sources
+        if ((cCall == ("Landroid/telephony/TelephonyManager;".hashCode())) && 
+                ("getSimSerialNumber()Ljava/lang/String;".hashCode() == referenceIntIndex)){
+            flag = true;
+        }
+        if ((cCall == ("Landroid/telephony/TelephonyManager;".hashCode())) && 
+                ("getDeviceId()Ljava/lang/String;".hashCode() == referenceIntIndex)){
+            flag = true;
+        }
+        if (flag){
+            buildH();
+            instanceNum = analysis.getInstNum(c, m, codeAddress);
+            regUpdate.put(numRegLoc, z3engine.mkBitVector(instanceNum, size));
+            regUpdateL.put(numRegLoc, z3engine.mkTrue());
+            regUpdateB.put(numRegLoc, z3engine.mkTrue());
+            buildB();
+            buildRule();
+            return true;
+        }
+        // returning primitive
+        if ((cCall == ("Landroid/support/v4/app/FragmentTransaction;".hashCode())) && 
+                ("commit()I".hashCode() == referenceIntIndex)){
+            flag = true;
+        }
+        if ((cCall == ("Landroid/view/MenuItem;".hashCode())) && 
+                ("getItemId()I".hashCode() == referenceIntIndex)){
+            flag = true;
+        }
+        if ((cCall == ("Landroid/support/v7/app/ActionBarActivity;".hashCode())) && 
+                ("onOptionsItemSelected(Landroid/view/MenuItem;)Z".hashCode() == referenceIntIndex)){
+            flag = true;
+        }
+        if ((cCall == ("Ljava/lang/Math;".hashCode())) && 
+                ("random()D".hashCode() == referenceIntIndex)){
+            flag = true;
+        }
+        if ((cCall == ("Ljava/lang/String;".hashCode())) && 
+                ("length()I".hashCode() == referenceIntIndex)){
+            flag = true;
+        }
+        if (flag){
+            buildH();
+            regUpdate.put(numRegLoc, var.getF());
+            regUpdateL.put(numRegLoc, z3engine.mkFalse());
+            regUpdateB.put(numRegLoc, z3engine.mkFalse());
+            buildB();
+            buildRule();
+            return true;
+        }
+        // returning object
+        if (cCall == "Landroid/app/Activity;".hashCode() && 
+                "getSystemService(Ljava/lang/String;)Ljava/lang/Object;".hashCode() == referenceIntIndex){
+            flag = true;
+        }
+        if (cCall == "Landroid/telephony/SmsManager;".hashCode() && 
+                "getDefault()Landroid/telephony/SmsManager;".hashCode() == referenceIntIndex){
+            flag = true;
+        }
+        if (cCall == "Landroid/support/v7/app/ActionBarActivity;".hashCode() && 
+                "getSupportFragmentManager()Landroid/support/v4/app/FragmentManager;".hashCode() == referenceIntIndex){
+            flag = true;
+        }
+        if (cCall == "Landroid/support/v7/app/ActionBarActivity;".hashCode() && 
+                "getSystemService(Ljava/lang/String;)Ljava/lang/Object;".hashCode() == referenceIntIndex){
+            flag = true;
+        }
+        if (cCall == "Landroid/support/v7/app/ActionBarActivity;".hashCode() && 
+                "getMenuInflater()Landroid/view/MenuInflater;".hashCode() == referenceIntIndex){
+            flag = true;
+        }
+        if (cCall == "Landroid/view/LayoutInflater;".hashCode() && 
+                "inflate(ILandroid/view/ViewGroup;Z)Landroid/view/View;".hashCode() == referenceIntIndex){
+            flag = true;
+        }
+        if (cCall == "Landroid/support/v4/app/FragmentManager;".hashCode() && 
+                "beginTransaction()Landroid/support/v4/app/FragmentTransaction;".hashCode() == referenceIntIndex){
+            flag = true;
+        }
+        if (cCall == "Landroid/support/v4/app/FragmentTransaction;".hashCode() && 
+                "add(ILandroid/support/v4/app/Fragment;)Landroid/support/v4/app/FragmentTransaction;".hashCode() == referenceIntIndex){
+            flag = true;
+        }
+        if (flag){
+            instanceNum = analysis.getInstNum(c, m, codeAddress);
+            buildH();
+            //update the register receiving the pointer to the newly created object
+            regUpdate.put(numRegLoc, z3engine.mkBitVector(instanceNum, size));
+            regUpdateL.put(numRegLoc, z3engine.mkFalse());
+            regUpdateB.put(numRegLoc, z3engine.mkTrue());
+            buildB();
+            buildRule();
+
+            regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
+
+            
+            buildH();
+            b = z3engine.hPred(z3engine.mkBitVector(returnType.hashCode(), size),
+            z3engine.mkBitVector(instanceNum, size),
+            z3engine.mkBitVector(32, size), z3engine.mkBitVector(32, size),
+            z3engine.mkFalse(), z3engine.mkFalse());
+            buildRule();
+            return true;
+        }
+        
+        //////////////////////
         /*
-         * Create a new Intent (class is known, in Ljava/lang/String;) aka (newintent r_d c')_pp
-         */
-        if  (c == ("Landroid/content/Intent;".hashCode()) &&
-                ("<init>(Ljava/lang/String;)V".hashCode()) == m){
-            final int instanceNum = analysis.getInstNum(ci, mi, codeAddress);
-            if (this.instruction instanceof FiveRegisterInstruction
-                    ||  this.instruction instanceof RegisterRangeInstruction ) {
+        if (cCall == ("Ljava/lang/String;".hashCode())
+                && ("getChars(II[CI)V"
+                        .hashCode()) == referenceIntIndex) {
+            int registerC = ((FiveRegisterInstruction) instruction) // string
+                    .getRegisterC();
+            int registerF = ((FiveRegisterInstruction) instruction) // array
+                    .getRegisterF();
+            buildH();
+            b = z3engine.hPred(
+                    var.getVal(),
+                    var.getV(registerF), var.getF(),
+                    var.getFpp(), var.getH(registerC),
+                    z3engine.mkTrue());
+            buildRule();
+            buildH();
+            buildB();
+            buildRule();
+            return true;
+        }*/
+        /////////////////////
+        if (cCall == ("Ljava/util/Map;".hashCode())
+                && ("put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"
+                        .hashCode()) == referenceIntIndex) {
+            int registerC, registerD, registerE;
+            if (this.instruction instanceof FiveRegisterInstruction) {
+                registerC = ((FiveRegisterInstruction) instruction)
+                        .getRegisterC();
+                registerD = ((FiveRegisterInstruction) instruction)
+                        .getRegisterD();
+                registerE = ((FiveRegisterInstruction) instruction)
+                        .getRegisterE();
+            } else {
+                registerC = ((RegisterRangeInstruction) instruction)
+                        .getStartRegister();
+                registerD = ((RegisterRangeInstruction) instruction)
+                        .getStartRegister() + 1;
+                registerE = ((RegisterRangeInstruction) instruction)
+                        .getStartRegister() + 2;
+            }
+            buildH();
+            b = z3engine.hPred(
+                    z3engine.mkBitVector("Ljava/util/Map;".hashCode(), size),
+                    var.getV(registerC), var.getV(registerD),
+                    var.getV(registerE), var.getL(registerE),
+                    var.getB(registerE));
+            buildRule();
+            buildH();
+            buildB();
+            buildRule();
+            return true;
+        }
+        if (cCall == ("Ljava/util/Map;".hashCode())
+                && ("get(Ljava/lang/Object;)Ljava/lang/Object;".hashCode()) == referenceIntIndex) {
 
-                int registerC, //r_d
-                    registerE; //c'
+            int registerC, registerD;
+            if (this.instruction instanceof FiveRegisterInstruction) {
+                registerC = ((FiveRegisterInstruction) instruction)
+                        .getRegisterC();
+                registerD = ((FiveRegisterInstruction) instruction)
+                        .getRegisterD();
+            } else {
+                registerC = ((RegisterRangeInstruction) instruction)
+                        .getStartRegister();
+                registerD = ((RegisterRangeInstruction) instruction)
+                        .getStartRegister() + 1;
+            }
+            buildH();
+            BoolExpr h2 = z3engine.and(h, z3engine.hPred(
+                    z3engine.mkBitVector("Ljava/util/Map;".hashCode(), size),
+                    var.getV(registerC), var.getV(registerD), var.getF(),
+                    var.getLf(), var.getBf()));
+            regUpdate.put(numRegLoc, var.getF());
+            regUpdateL.put(numRegLoc, var.getLf());
+            regUpdateB.put(numRegLoc, var.getBf());
+            buildB();
+            z3engine.addRule(z3engine.implies(h2, b), null);
+            return true;
+        }
+        if (cCall == ("Ljava/util/LinkedList;".hashCode())
+                && ("add(Ljava/lang/Object;)Z"
+                        .hashCode()) == referenceIntIndex) {
+            int registerC, registerD;
+            if (this.instruction instanceof FiveRegisterInstruction) {
+                registerC = ((FiveRegisterInstruction) instruction)
+                        .getRegisterC();
+                registerD = ((FiveRegisterInstruction) instruction)
+                        .getRegisterD();
+            } else {
+                registerC = ((RegisterRangeInstruction) instruction)
+                        .getStartRegister();
+                registerD = ((RegisterRangeInstruction) instruction)
+                        .getStartRegister() + 1;
+            }
+            buildH();
+            b = z3engine.hPred(
+                    z3engine.mkBitVector("Ljava/util/LinkedList;".hashCode(), size),
+                    var.getV(registerC), 
+                    var.getF(), //field insensitive for the moment
+                    var.getV(registerD), var.getL(registerD),
+                    var.getB(registerD));
+            buildRule();
+            buildH();
+            buildB();
+            buildRule();
+            return true;
+        }
+        if (cCall == ("Ljava/util/LinkedList;".hashCode())
+                && ("get(I)Ljava/lang/Object;".hashCode()) == referenceIntIndex) {
+
+            int registerC, registerD;
+            if (this.instruction instanceof FiveRegisterInstruction) {
+                registerC = ((FiveRegisterInstruction) instruction)
+                        .getRegisterC();
+                registerD = ((FiveRegisterInstruction) instruction)
+                        .getRegisterD();
+            } else {
+                registerC = ((RegisterRangeInstruction) instruction)
+                        .getStartRegister();
+                registerD = ((RegisterRangeInstruction) instruction)
+                        .getStartRegister() + 1;
+            }
+            buildH();
+            BoolExpr h2 = z3engine.and(h, z3engine.hPred(
+                    z3engine.mkBitVector("Ljava/util/LinkedList;".hashCode(), size),
+                    var.getV(registerC), var.getV(registerD), var.getF(),
+                    var.getLf(), var.getBf()));
+            regUpdate.put(numRegLoc, var.getF());
+            regUpdateL.put(numRegLoc, var.getLf());
+            regUpdateB.put(numRegLoc, var.getBf());
+            buildB();
+            z3engine.addRule(z3engine.implies(h2, b), null);
+            return true;
+        }
+        if (cCall == ("Ljava/util/List;".hashCode())
+                && ("add(Ljava/lang/Object;)Z"
+                        .hashCode()) == referenceIntIndex) {
+            int registerC, registerD;
+            if (this.instruction instanceof FiveRegisterInstruction) {
+                registerC = ((FiveRegisterInstruction) instruction)
+                        .getRegisterC();
+                registerD = ((FiveRegisterInstruction) instruction)
+                        .getRegisterD();
+            } else {
+                registerC = ((RegisterRangeInstruction) instruction)
+                        .getStartRegister();
+                registerD = ((RegisterRangeInstruction) instruction)
+                        .getStartRegister() + 1;
+            }
+            buildH();
+            b = z3engine.hPred(
+                    z3engine.mkBitVector("Ljava/util/LinkedList;".hashCode(), size),
+                    var.getV(registerC), 
+                    var.getF(), //field insensitive for the moment
+                    var.getV(registerD), var.getL(registerD),
+                    var.getB(registerD));
+            buildRule();
+            buildH();
+            buildB();
+            buildRule();
+            return true;
+        }
+        if (cCall == ("Ljava/util/List;".hashCode())
+                && ("get(I)Ljava/lang/Object;".hashCode()) == referenceIntIndex) {
+
+            int registerC, registerD;
+            if (this.instruction instanceof FiveRegisterInstruction) {
+                registerC = ((FiveRegisterInstruction) instruction)
+                        .getRegisterC();
+                registerD = ((FiveRegisterInstruction) instruction)
+                        .getRegisterD();
+            } else {
+                registerC = ((RegisterRangeInstruction) instruction)
+                        .getStartRegister();
+                registerD = ((RegisterRangeInstruction) instruction)
+                        .getStartRegister() + 1;
+            }
+            buildH();
+            BoolExpr h2 = z3engine.and(h, z3engine.hPred(
+                    z3engine.mkBitVector("Ljava/util/LinkedList;".hashCode(), size),
+                    var.getV(registerC), var.getV(registerD), var.getF(),
+                    var.getLf(), var.getBf()));
+            regUpdate.put(numRegLoc, var.getF());
+            regUpdateL.put(numRegLoc, var.getLf());
+            regUpdateB.put(numRegLoc, var.getBf());
+            buildB();
+            z3engine.addRule(z3engine.implies(h2, b), null);
+            return true;
+        }
+        if (analysis.getGeneralClass(cCall) instanceof DalvikClass){
+            return manualStub(((DalvikClass) analysis.getGeneralClass(cCall)).getSuperClass().getType().hashCode());
+        }
+        return false;
+    }
+
+    private boolean computeStub(boolean range, final String invMethod){
+        if (analysis.isSink(className,methodName,referenceClassIndex, referenceIntIndex)){
+            if (range) {
+                addQueryRange(z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
+                        className, methodName, Integer.toString(codeAddress), invMethod, analysis.optionVerbose());
+            }else{
+                addQuery(z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
+                        className, methodName, Integer.toString(codeAddress), invMethod, analysis.optionVerbose());
+            }
+        }
+        final int size = analysis.getSize();
+        int registerC, // r_d
+        registerE, // c'
+        registerD; // r_i
+        BitVecExpr typec = null;
+        
+        /*
+         * For some methods we do nothing
+         */
+        /*if (simpleSkip(referenceClassIndex)){
+            buildH();
+            buildB();
+            buildRule();
+            return true;
+        }*/
+        
+        /*
+         * For some methods wehave manual stubs
+         */
+        
+        if (manualStub(referenceClassIndex)){
+            return true;
+        }
+
+        if (referenceClassIndex == ("Landroid/content/Intent;".hashCode())
+                && (("<init>(Landroid/content/Context;Ljava/lang/Class;)V"
+                        .hashCode() == referenceIntIndex) || ("<init>(Ljava/lang/String;)V"
+                        .hashCode() == referenceIntIndex) || ("<init>()V".hashCode()) == referenceIntIndex)) {
+            
+            if (!("<init>()V".hashCode() == referenceIntIndex)){
+                /*
+                 * Create a new Intent (class is known, in Ljava/lang/Class;) aka
+                 * (newintent r_d c')_pp
+                 */
+                if (this.instruction instanceof FiveRegisterInstruction) {
+                    registerC = ((FiveRegisterInstruction) instruction)
+                            .getRegisterC();
+                    registerE = ((FiveRegisterInstruction) instruction)
+                            .getRegisterE();
+                } else {
+                    registerC = ((RegisterRangeInstruction) instruction)
+                            .getStartRegister();
+                    registerE = ((RegisterRangeInstruction) instruction)
+                            .getStartRegister() + 2;
+                }
+                // type c' is known
+                typec = var.getV(registerE);
+            }else{
+                /*
+                 * Create a new Intent (class is not known, unbounded variable f) aka (newintent r_d ?)_pp
+                 */
                 if(this.instruction instanceof FiveRegisterInstruction){
                     registerC = ((FiveRegisterInstruction) instruction).getRegisterC();
-                    registerE = ((FiveRegisterInstruction) instruction).getRegisterE();
                 } else {
                     registerC = ((RegisterRangeInstruction) instruction).getStartRegister();
-                    registerE = ((RegisterRangeInstruction) instruction).getStartRegister() + 2;
                 }
+                // type c' is not known
+                typec = var.getF();
+            }
+
+            final int instanceNum = analysis.getInstNum(c, m, codeAddress);
+            if (this.instruction instanceof FiveRegisterInstruction
+                    || this.instruction instanceof RegisterRangeInstruction) {
+
+         
                 /*
                  * Put a new intent instance of the type c' on the heap
                  */
-                h2 = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                b2 = z3engine.hiPred(
-                        var.getV(registerE), z3engine.mkBitVector(instanceNum, size), z3engine.mkBitVector(0, size), z3engine.mkFalse(), z3engine.mkFalse());
-                z3engine.addRule(z3engine.implies(h2, b2), null);
-               /*
-                * Put a refence to the intent into r_d
-                */
-                h = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
+                buildH();
+                b = z3engine.hiPred(typec,
+                        z3engine.mkBitVector(instanceNum, size),
+                        z3engine.mkBitVector(0, size), z3engine.mkFalse(),
+                        z3engine.mkFalse());
+                z3engine.addRule(z3engine.implies(h, b), null);
+                /*
+                 * Put a reference to the intent into r_d
+                 */
+
+                buildH();
+                // update the register receiving the pointer to the newly
+                // created object
                 regUpdate.put(registerC, z3engine.mkBitVector(instanceNum, size));
                 regUpdateL.put(registerC, z3engine.mkFalse());
                 regUpdateB.put(registerC, z3engine.mkTrue());
-                b = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
+                buildB();
                 buildRule();
 
-                regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
+                regUpdate.clear();
+                regUpdateL.clear();
+                regUpdateB.clear();
+
                 /*
                  * Put default values for all fields of the intent
                  */
-                fields = analysis.getClassFields("Landroid/content/Intent;", instanceNum);
+                final Map<Integer, Boolean> fields = analysis.getClassFields(
+                        "Landroid/content/Intent;", instanceNum);
                 if (fields != null)
-                    for (Map.Entry<Integer, Boolean> fieldN : fields.entrySet()){
-                        BoolExpr h12 = z3engine.rPred(Utils.Dec(ci), Utils.Dec(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                        BoolExpr b12 = z3engine.hPred(
-                                z3engine.mkBitVector("Landroid/content/Intent;".hashCode(), size), z3engine.mkBitVector(instanceNum, size), z3engine.mkBitVector(fieldN.getKey(), size), z3engine.mkBitVector(0, size), z3engine.mkFalse(), z3engine.mkBool(fieldN.getValue()));
-                        z3engine.addRule(z3engine.implies(h12, b12), null);
+                    for (Map.Entry<Integer, Boolean> fieldN : fields.entrySet()) {
+                        buildH();
+                        b = z3engine.hPred(
+                                z3engine.mkBitVector(referenceIntIndex, size),
+                                z3engine.mkBitVector(instanceNum, size),
+                                z3engine.mkBitVector(fieldN.getKey(), size),
+                                z3engine.mkBitVector(0, size),
+                                z3engine.mkFalse(),
+                                z3engine.mkBool(fieldN.getValue()));
+                        buildRule();
+                    }else {
+                        buildH();
+                        b = z3engine.hPred(
+                                z3engine.mkBitVector(referenceIntIndex, size),
+                                z3engine.mkBitVector(instanceNum, size),
+                                var.getF(), z3engine.mkBitVector(0, size),
+                                z3engine.mkFalse(), var.getBf());
+                        buildRule();
                     }
+
+                if (analysis.hasStaticConstructor(referenceClassIndex)) {
+                    // h = z3engine.rPred(classIndex, methodIndex, codeAddress,
+                    // regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH,
+                    // regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+                    int staticConstNum = "<clinit>()V".hashCode();
+                    DalvikMethod dmc = analysis.getExactMethod(
+                            referenceIntIndex, staticConstNum);
+
+                    b = z3engine.rPred(Integer.toString(referenceIntIndex),
+                            Integer.toString(staticConstNum), 0, regUpdate,
+                            regUpdateL, regUpdateB, dmc.getNumArg(),
+                            dmc.getNumReg());
+                    z3engine.addRule(b, null);
+                }
 
                 return true;
             }
         }
         /*
-         * Create a new Intent (class is not known, unbounded variable f) aka (newintent r_d ?)_pp
+         * Start an activity referenced in specified register aka
+         * (start-activity r_i)_pp
          */
-        if  (c == ("Landroid/content/Intent;".hashCode()) &&
-                ("<init>()V".hashCode()) == m){
-            final int instanceNum = analysis.getInstNum(ci, mi, codeAddress);
+        if (("startActivity(Landroid/content/Intent;)V".hashCode() == referenceIntIndex)
+                || referenceString.contains("startActivityForResult")) {
             if (this.instruction instanceof FiveRegisterInstruction
-                    ||  this.instruction instanceof RegisterRangeInstruction ) {
+                    || this.instruction instanceof RegisterRangeInstruction) {
 
-                int registerC; // r_d
-                if(this.instruction instanceof FiveRegisterInstruction){
-                    registerC = ((FiveRegisterInstruction) instruction).getRegisterC();
+                if (this.instruction instanceof FiveRegisterInstruction) {
+                    registerD = ((FiveRegisterInstruction) instruction)
+                            .getRegisterD();
                 } else {
-                    registerC = ((RegisterRangeInstruction) instruction).getStartRegister();
+                    registerD = ((RegisterRangeInstruction) instruction)
+                            .getStartRegister() + 1;
                 }
                 /*
-                 * Put a new intent instance of the unknown type f on the heap
+                 * Take a reference from r_i (R) and if there is an intent on the
+                 * heap referenced by it (HI) start an activity I
                  */
-                h2 = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                b2 = z3engine.hiPred(
-                        var.getF(), z3engine.mkBitVector(instanceNum, size),
-                        z3engine.mkBitVector(0, size), z3engine.mkFalse(), z3engine.mkFalse());
-                z3engine.addRule(z3engine.implies(h2, b2), null);
-                /*
-                 * Put a refence to the intent into r_d
-                 */
-                h = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                regUpdate.put(registerC, z3engine.mkBitVector(instanceNum, size));
-                regUpdateL.put(registerC, z3engine.mkFalse());
-                regUpdateB.put(registerC, z3engine.mkTrue());
-                b = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
+                buildH();
+                buildB();
                 buildRule();
-
-                regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
+                BoolExpr h2 = z3engine.and(h, z3engine.hiPred(var.getCn(),
+                        var.getV(registerD), var.getVal(), var.getLf(),
+                        var.getBf()));
+                b = z3engine.iPred(var.getCn(),
+                        z3engine.mkBitVector(referenceClassIndex, size), var.getVal(),
+                        var.getLf(), var.getBf());
+                z3engine.addRule(z3engine.implies(h2, b), null);
+                                
                 /*
-                 * Put default values for all fields of the intent
+                 * Act rule interpretation In the first rule instead of using I
+                 * predicate we use the same premise as was used for it's
+                 * inference //TODO: this is sound due to the logical cut, but
+                 * we better check
                  */
-                fields = analysis.getClassFields("Landroid/content/Intent;", instanceNum);
-                if (fields != null)
-                    for (Map.Entry<Integer, Boolean> fieldN : fields.entrySet()){
-                        BoolExpr h12 = z3engine.rPred(Utils.Dec(ci), Utils.Dec(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                        BoolExpr b12 = z3engine.hPred(
-                                z3engine.mkBitVector("Landroid/content/Intent;".hashCode(), size), z3engine.mkBitVector(instanceNum, size), z3engine.mkBitVector(fieldN.getKey(), size), z3engine.mkBitVector(0, size), z3engine.mkFalse(), z3engine.mkBool(fieldN.getValue()));
-                        z3engine.addRule(z3engine.implies(h12, b12), null);
-                    }
-                return true;
-            }
-        }
-       /*
-        * Start an activity referenced in specified register aka (start-activity r_i)_pp
-        */
-        if (("startActivity(Landroid/content/Intent;)V".hashCode() == m) || shortMethodName.contains("startActivityForResult")){
-            if (this.instruction instanceof FiveRegisterInstruction
-                    ||  this.instruction instanceof RegisterRangeInstruction ) {
-
-                int registerD; // r_i
-                if(this.instruction instanceof FiveRegisterInstruction){
-                    registerD = ((FiveRegisterInstruction) instruction).getRegisterD();
-                } else {
-                    registerD = ((RegisterRangeInstruction) instruction).getStartRegister() + 1;
-                }
-               /*
-                * Take a refence from r_i (R) and if there is an intent on the heap refeneced by it (HI) start an activity I
-                */
-                h = z3engine.and(
-                        z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                        z3engine.hiPred(
-                                var.getCn(), var.getV(registerD), var.getVal(), var.getLf(), var.getBf())
-                        );
-                b = z3engine.iPred(
-                        var.getCn(), z3engine.mkBitVector(c, size), var.getVal(), var.getLf(), var.getBf());
-                buildRule();
-                // Go to the next pc with the intact register values
-                h2 = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                b2 = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                z3engine.addRule(z3engine.implies(h2, b2), null);
-                
-                
-               /*
-                * Act rule interpretation
-                * In the first rule instead of using I predicate we use the same premice as was used for it's inference
-                //TODO: this is sound due to the logical cut, but we better check 
-                */
-               /*
-                * before cup, creates a rule for HI(in(c), _) inference
-                */
-                BoolExpr h3 = z3engine.and(
-                        z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                        z3engine.hiPred(
-                                var.getCn(), var.getV(registerD), var.getVal(), var.getLf(), var.getBf())
-                        );
-                //TODO: there are better ways of computing fresh in(c)
-                final BitVecExpr inC = z3engine.mkBitVector((Utils.Dec(registerD) + Utils.Dec(c)).hashCode(), size); // in(c) = r_i + c
-                BoolExpr b3 = z3engine.hiPred(var.getCn(), inC, var.getVal(), var.getLf(), var.getBf());
+                /*
+                 * before cup, creates a rule for HI(in(c), _) inference
+                 */
+                BoolExpr h3 = z3engine.and(h, z3engine.hiPred(var.getCn(),
+                        var.getV(registerD), var.getVal(), var.getLf(),
+                        var.getBf()));
+                // TODO: there are better ways of computing fresh in(c)
+                final BitVecExpr inC = z3engine.mkBitVector(
+                        (Utils.Dec(registerD) + Utils.Dec(c)).hashCode(), size); // in(c)
+                                                                                 // =
+                                                                                 // r_i
+                                                                                 // +
+                                                                                 // c
+                BoolExpr b3 = z3engine.hiPred(var.getCn(), inC,
+                        var.getVal(), var.getLf(), var.getBf());
                 z3engine.addRule(z3engine.implies(h3, b3), null);
-               /*
-                * after cup, addd default values to the (parent) and (intent) fields of the current intent as specified in the rule
-                * (finished) field is ommitied due to the fact that it's values is oveapproximated in the anlysis and treated alwaus as {true, false}
-                */
-                BoolExpr h4 = z3engine.and(
-                        z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                        z3engine.hiPred(
-                                var.getCn(), var.getV(registerD), var.getVal(), var.getLf(), var.getBf())
-                        );
-                BoolExpr b4 = z3engine.hPred(
-                        var.getCn(), var.getCn() , z3engine.mkBitVector("parent".hashCode(), size), z3engine.mkBitVector(c, size),
-                        z3engine.mkFalse(), z3engine.mkTrue());
+                /*
+                 * after cup, add default values to the (parent) and (intent)
+                 * fields of the current intent as specified in the rule
+                 * (finished) field is omitted due to the fact that it's values
+                 * is over-approximated in the analysis and treated always as
+                 * {true, false}
+                 */
+                BoolExpr h4 = z3engine.and(h, z3engine.hiPred(var.getCn(),
+                        var.getV(registerD), var.getVal(), var.getLf(),
+                        var.getBf()));
+                BoolExpr b4 = z3engine.hPred(var.getCn(), var.getCn(),
+                        z3engine.mkBitVector("parent".hashCode(), size),
+                        z3engine.mkBitVector(c, size), z3engine.mkFalse(),
+                        z3engine.mkTrue());
                 z3engine.addRule(z3engine.implies(h4, b4), null);
 
-                BoolExpr h5 = z3engine.and(
-                        z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                        z3engine.hiPred(var.getCn(), var.getV(registerD), var.getVal(), var.getLf(), var.getBf())
-                        );
+                BoolExpr h5 = z3engine.and(h, z3engine.hiPred(var.getCn(),
+                        var.getV(registerD), var.getVal(), var.getLf(),
+                        var.getBf()));
                 BoolExpr b5 = z3engine.hPred(var.getCn(), var.getCn(),
                         z3engine.mkBitVector("intent".hashCode(), size), inC,
                         z3engine.mkFalse(), z3engine.mkTrue());
@@ -2523,168 +3365,216 @@ public class InstructionAnalysis {
                 return true;
             }
         }
-       /*
-        * Put informaton in the intent object with refence in r_i aka (put-extra r_i r_k k_j)_pp
-        * note: r_k is ignore, vield insensitivity
-        */
-        if (shortMethodName.contains((String) "putExtra") && c == ("Landroid/content/Intent;".hashCode())){
-            if (this.instruction instanceof FiveRegisterInstruction){
-                FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
-                h = z3engine.and(
-                        z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                        z3engine.hiPred(
-                                var.getCn(), 
-                                var.getV(instruction.getRegisterC()), // r_i 
-                                var.getVal(), var.getLf(), var.getBf())
-                        );
-                b = z3engine.hiPred(var.getCn(), var.getV(instruction.getRegisterC()),
-                        var.getV(instruction.getRegisterE()), // r_j
-                        var.getL(instruction.getRegisterE()), 
-                        var.getB(instruction.getRegisterE()));
+
+        /*
+         * Specify the exact class to be called (for an explicit intent)
+         */
+
+        if (referenceClassIndex == ("Landroid/content/Intent;".hashCode())
+                && ("setComponent(Landroid/content/ComponentName;)Landroid/content/Intent;"
+                        .hashCode()) == referenceIntIndex) {
+            if (this.instruction instanceof FiveRegisterInstruction
+                    || this.instruction instanceof RegisterRangeInstruction) {
+
+                if (this.instruction instanceof FiveRegisterInstruction) {
+                    registerC = ((FiveRegisterInstruction) instruction)
+                            .getRegisterC();
+                    registerD = ((FiveRegisterInstruction) instruction)
+                            .getRegisterD();
+                } else {
+                    registerC = ((RegisterRangeInstruction) instruction)
+                            .getStartRegister();
+                    registerD = ((RegisterRangeInstruction) instruction)
+                            .getStartRegister() + 1;
+                }
+                /*
+                 * HI predicate is the same as H but with a smaller arity as it
+                 * does not contain any field information (we are
+                 * field-insensitive for intents). When intent is created the
+                 * exact class might not be known, it is specified then by
+                 * calling setComponent method, it replaces the original class
+                 * ("cn") by the one specified in the method call (registerD)
+                 */
+                buildH();
+                BoolExpr h2 = z3engine.and(h, z3engine
+                        .hiPred(var.getCn(), var.getV(registerC), var.getVal(),
+                                var.getLf(), var.getBf()));
+                b = z3engine.hiPred(var.getV(registerD), var.getV(registerC),
+                       var.getVal(), var.getLf(), var.getBf());
+
+                z3engine.addRule(z3engine.implies(h2, b), null);
+                /*
+                 * the result of the setComponent will be a new version of the
+                 * intent which is stored in the same registerC, where it was
+                 * before
+                 */
+                
+                regUpdate.put(registerC, var.getV(registerC));
+                regUpdateL.put(registerC, var.getL(registerC));
+                regUpdateB.put(registerC, var.getB(registerC));           
+                buildB();
+
                 buildRule();
-               /*
-                * Go to the next pc with the same register values, but raise the label of r_i to the (l_i join l_j)
-                */
-                h2 = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                regUpdateL.put(instruction.getRegisterC(), z3engine.or(var.getL(instruction.getRegisterC()), var.getL(instruction.getRegisterE())));
-                b2 = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                z3engine.addRule(z3engine.implies(h2, b2), null);
+
                 return true;
             }
         }
-       /*
-        * getAction returns a string which shows what to do with a data recieved from the intent
-        * e.g.,     ACTION_VIEW content://contacts/people/1 -- Display information about the person whose identifier is "1".
-        *           ACTION_DIAL content://contacts/people/1 -- Display the phone dialer with the person filled in.
-        * as the reselut is always public (originates from the specification), we explicitly specify for it the low security label here
-        */
-        if  (c == ("Landroid/content/Intent;".hashCode()) &&
-                ("getAction()Ljava/lang/String;".hashCode()) == m){
-            h = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
+
+        /*
+         * Put information in the intent object with reference in r_i aka
+         * (put-extra r_i r_k k_j)_pp note: r_k is ignore, field insensitivity
+         */
+        /*if (referenceString.contains((String) "putExtra")
+                && referenceClassIndex == ("Landroid/content/Intent;".hashCode())) {
+            if (this.instruction instanceof FiveRegisterInstruction) {
+                FiveRegisterInstruction instruction = (FiveRegisterInstruction) this.instruction;
+                buildH();
+                BoolExpr h2= z3engine.and(h, z3engine
+                        .hiPred(var.getCn(),
+                                var.getV(instruction.getRegisterC()), // r_i
+                                var.getVal(), var.getLf(), var.getBf()));
+                b = z3engine.hiPred(
+                        var.getCn(),
+                        var.getV(instruction.getRegisterC()),
+                        var.getV(instruction.getRegisterE()), // r_j
+                        var.getH(instruction.getRegisterE()),
+                        z3engine.mkTrue());
+                z3engine.addRule(z3engine.implies(h2, b), null);
+                /*
+                 * Go to the next pc with the same register values, but raise
+                 * the label of r_i to the (l_i join l_j)
+                 */
+         /*       buildH();
+                regUpH.put(instruction.getRegisterC(), z3engine.or(var.getH(instruction.getRegisterC()),
+                        var.getH(instruction.getRegisterE())));
+                buildB();
+                z3engine.addRule(z3engine.implies(h2, b), null);
+                return true;
+            }
+        }*/
+        /*
+         * getAction returns a string which shows what to do with a data
+         * received from the intent e.g., ACTION_VIEW
+         * content://contacts/people/1 -- Display information about the person
+         * whose identifier is "1". ACTION_DIAL content://contacts/people/1 --
+         * Display the phone dialer with the person filled in. as the result is
+         * always public (originates from the specification), we explicitly
+         * specify for it the low security label here
+         */
+        if (referenceClassIndex == ("Landroid/content/Intent;".hashCode())
+                && ("getAction()Ljava/lang/String;".hashCode()) == referenceIntIndex) {
+            buildH();
+            
             regUpdate.put(numRegLoc, var.getVal());
             regUpdateL.put(numRegLoc, z3engine.mkFalse());
-            regUpdateB.put(numRegLoc, var.getBf()); //TODO: should it be true? Strings are objects
-            b = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
+            regUpdateB.put(numRegLoc, z3engine.mkTrue());
+            buildB();
             buildRule();
             return true;
         }
-       /*
-        * Get informaton from the intent object with refence in r_i aka (get-extra r_i r_k \tau)_pp
-        * some of get are sources
-        */
-        //TODO: Might be getters missing
-        if (shortMethodName.contains((String) "get") && c == ("Landroid/content/Intent;".hashCode())){
-            //////////////////////////////////////////////////////
-            //TODO: delete this?
+        /*
+         * Get information from the intent object with reference in r_i aka
+         * (get-extra r_i r_k \tau)_pp some of get are sources
+         */
+        // TODO: Might be getters missing
+        if (referenceString.contains((String) "get")
+                && c == ("Landroid/content/Intent;".hashCode())) {
+            // ////////////////////////////////////////////////////
+            // TODO: delete this?
             if (this.instruction instanceof FiveRegisterInstruction
-                    ||  this.instruction instanceof RegisterRangeInstruction ) {
-            //////////////////////////////////////////////////////
-                int registerC; // r_i
-                if(this.instruction instanceof FiveRegisterInstruction){
-                    registerC = ((FiveRegisterInstruction) instruction).getRegisterC();
+                    || this.instruction instanceof RegisterRangeInstruction) {
+                // ////////////////////////////////////////////////////
+                // registerC ~ r_i
+                if (this.instruction instanceof FiveRegisterInstruction) {
+                    registerC = ((FiveRegisterInstruction) instruction)
+                            .getRegisterC();
                 } else {
-                    registerC = ((RegisterRangeInstruction) instruction).getStartRegister();
+                    registerC = ((RegisterRangeInstruction) instruction)
+                            .getStartRegister();
                 }
 
-                if (analysis.isSourceBis(c, m)){
+                if (analysis.isSourceBis(c, m)) {
                     // if getter is source - get the (top?) high value
-                    //TODO; Check why hig value is top and not extracted from the heap, might be a mistake
-                    h = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                    regUpdate.put(numRegLoc, var.getVal());
-                    regUpdateL.put(numRegLoc, z3engine.mkTrue());
-                    regUpdateB.put(numRegLoc, var.getBf());
-                    b = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
+                    // TODO; Check why high value is top and not extracted from
+                    // the heap, might be a mistake
+                    buildH();
+                    
+                    regUpdate.put(registerC, var.getVal());
+                    regUpdateL.put(registerC, z3engine.mkTrue());
+                    regUpdateB.put(registerC, z3engine.mkTrue());
+                    buildB();
                     buildRule();
                 } else {
-                    // getter is not source - extract values from all fields of the intent, r_k ignored, field-insensitivity
-                    h = z3engine.and(
-                            z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                            z3engine.hiPred(
-                                    var.getCn(), var.getV(registerC), var.getVal(), var.getLf(), var.getBf())
-                            );
+                    // getter is not source - extract values from all fields of
+                    // the intent, r_k ignored, field-insensitivity
+                    buildH();
+                    h = z3engine.and(h,
+                            z3engine.hiPred(var.getCn(), var.getV(registerC),
+                                    var.getVal(), var.getLf(), var.getBf()));
+                    
                     regUpdate.put(numRegLoc, var.getVal());
                     regUpdateL.put(numRegLoc, var.getLf());
-                    regUpdateB.put(numRegLoc, var.getBf());
-                    b = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
+                    regUpdateB.put(numRegLoc, z3engine.mkTrue()); 
+
+                    buildB();
                     buildRule();
                 }
-            } 
-            /////////////////////////
-            //TODO: the else branch seems to make no sence, as the function call is either FiveRegister or Range isntruction
-            else {
-                if (analysis.isSourceBis(c, m)){
-                    h = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                    regUpdate.put(numRegLoc, var.getVal());
-                    regUpdateL.put(numRegLoc, z3engine.mkTrue());
-                    regUpdateB.put(numRegLoc, var.getBf());
-                    b = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                    buildRule();
-                } else {
-                    h = z3engine.and(
-                            z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                            z3engine.hiPred(var.getCn(), var.getF(), var.getVal(), var.getLf(), var.getBf())
-                            );
-                    regUpdate.put(numRegLoc, var.getVal());
-                    regUpdateL.put(numRegLoc, var.getLf());
-                    regUpdateB.put(numRegLoc, var.getBf());
-                    b = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                    buildRule();
-                }
-                
-             //////////////////////////
                 return true;
             }
         }
-       /*
-        * Stores the registerE as the result of the current activity to the field (result)
-        * This value will be afteron extracted by Res rule
-        */
-        if (m ==  "setResult(ILandroid/content/Intent;)V".hashCode()){
+        /*
+         * Stores the registerE as the result of the current activity to the
+         * field (result) This value will be afteron extracted by Res rule
+         */
+        if (referenceIntIndex == "setResult(ILandroid/content/Intent;)V".hashCode()) {
             if (this.instruction instanceof FiveRegisterInstruction
-                    ||  this.instruction instanceof RegisterRangeInstruction ) {
+                    || this.instruction instanceof RegisterRangeInstruction) {
 
-                int registerE; // reference to resulting intent
-                if(this.instruction instanceof FiveRegisterInstruction){
-                    registerE = ((FiveRegisterInstruction) instruction).getRegisterE();
+                // registerE ~ reference to resulting intent
+                if (this.instruction instanceof FiveRegisterInstruction) {
+                    registerE = ((FiveRegisterInstruction) instruction)
+                            .getRegisterE();
                 } else {
-                    registerE = ((RegisterRangeInstruction) instruction).getStartRegister() + 2;
+                    registerE = ((RegisterRangeInstruction) instruction)
+                            .getStartRegister() + 2;
                 }
+                buildH();
+                BoolExpr h2 = z3engine.and(h, z3engine.hiPred(var.getCn(), var.getV(registerE), var.getVal(),
+                                var.getLf(), var.getBf()));
+                b = z3engine.hPred(z3engine.mkBitVector(c, size),
+                        z3engine.mkBitVector(c, size),
+                        z3engine.mkBitVector("result".hashCode(), size),
+                        var.getV(registerE), var.getL(registerE),
+                        var.getB(registerE));
+                z3engine.addRule(z3engine.implies(h2, b), null);
 
-                h = z3engine.and(
-                        z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                        z3engine.hiPred(
-                                var.getCn(), var.getV(registerE), var.getVal(), var.getLf(), var.getBf())
-                        );
-                b = z3engine.hPred(
-                        z3engine.mkBitVector(c, size), z3engine.mkBitVector(c, size), z3engine.mkBitVector("result".hashCode(), size),
-                        var.getV(registerE), var.getL(registerE), var.getB(registerE));
+                // Propagate the register values to the next pc
+                buildH();
+                buildB();
                 buildRule();
-                
-                //Progate the register values to the next pc
-                h2 = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                b2 = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-                z3engine.addRule(z3engine.implies(h2, b2), null);
                 return true;
             }
         }
-       /*
-        * Return the intent that started this activity
-        //TODO: Currently, we check that the current activity was started and return as a result (top)
-                This should be sound, but it is not precise enough
-        */
-        if (m ==  "getIntent()Landroid/content/Intent;".hashCode()){
-            h = z3engine.and(
-                    z3engine.rPred(Integer.toString(ci), Integer.toString(mi), codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                    z3engine.hPred(z3engine.mkBitVector(c, size), z3engine.mkBitVector(c, size), 
-                            z3engine.mkBitVector("intent".hashCode(), size), var.getVal(), var.getLf(), var.getBf())
-                    );
+        /*
+         * Return the intent that started this activity //TODO: Currently, we
+         * check that the current activity was started and return as a result
+         * (top) This should be sound, but it is not precise enough
+         */
+        if (referenceIntIndex == "getIntent()Landroid/content/Intent;".hashCode()) {
+            buildH();
+            BoolExpr h2 = z3engine.and(h, z3engine.hPred(
+                    z3engine.mkBitVector(c, size),
+                    z3engine.mkBitVector(c, size),
+                    z3engine.mkBitVector("intent".hashCode(), size),
+                    var.getVal(), var.getLf(), var.getBf()));
             regUpdate.put(numRegLoc, var.getVal());
-            regUpdateL.put(numRegLoc, var.getLf());
-            regUpdateB.put(numRegLoc, var.getBf());
-            b = z3engine.rPred(Integer.toString(ci), Integer.toString(mi), nextCode, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc);
-            buildRule();
+            regUpdateL.put(numRegLoc,  var.getLf());
+            regUpdateB.put(numRegLoc, z3engine.mkTrue()); 
+            buildB();
+            z3engine.addRule(z3engine.implies(h2, b), null);
             return true;
         }
+
         return false;
     }
     
@@ -2773,7 +3663,7 @@ public class InstructionAnalysis {
      * Advances pc with a top values for the return value (if exists)
      */
     private void invokeNotKnown(final Boolean range, final String invClass, final String invMethod){
-        if (analysis.isSink(className,methodName,invClass.hashCode(), invMethod.hashCode())){
+        /*if (analysis.isSink(className,methodName,invClass.hashCode(), invMethod.hashCode())){
             if (range) {
                 addQueryRange(z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                         className, methodName, Integer.toString(codeAddress), invMethod, analysis.optionVerbose());
@@ -2781,7 +3671,7 @@ public class InstructionAnalysis {
                 addQuery(z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
                         className, methodName, Integer.toString(codeAddress), invMethod, analysis.optionVerbose());
             }
-        }
+        }*/
         
         BoolExpr joinLabel = null;
         boolean returnsRef = false;
@@ -2804,8 +3694,61 @@ public class InstructionAnalysis {
        /*
         *  If an unknown method has a reference as an argument, let the top value and the label join be dereferenced
         */
+        int numRegInInstr;
+        if (range){
+            RegisterRangeInstruction instruction = (RegisterRangeInstruction)this.instruction;
+            numRegInInstr = instruction.getRegisterCount();
+        }
+        else{
+            FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
+            numRegInInstr = instruction.getRegisterCount();
+        }
         
-        int i = 1;
+        int regOffset = numRegInInstr - parameterTypes.size();
+        
+        if (!((regOffset == 0) || (regOffset == 1))){
+            System.err.println("Wrong offset for the parameters in the unknown method call!");
+        }
+        
+        if (regOffset == 1){
+            buildH();
+            /*
+             * we should bind Cn and F
+             */
+            b = z3engine.hPred(var.getCn(), 
+                    var.getV(getRegisterNumber(range, 1))
+                    ,var.getF(), var.getFpp(),
+                    joinLabel, var.getBf());
+            buildRule();
+            
+            h = z3engine.and(
+                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
+                    z3engine.eq(var.getB(getRegisterNumber(range, 1)), z3engine.mkTrue()),
+                    z3engine.taintPred(var.getV(getRegisterNumber(range, 1)), var.getLf())
+                    );
+           /*
+            * we should bind Cn and F
+            */
+            b = z3engine.hPred(var.getCn(), 
+                    var.getV(getRegisterNumber(range, 1))
+                    ,var.getF(), var.getFpp(),
+                    var.getLf(), var.getBf());
+            buildRule();
+            
+            h = z3engine.and(
+                    z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
+                    z3engine.eq(var.getB(getRegisterNumber(range, 1)), z3engine.mkTrue()),
+                    z3engine.taintPred(var.getV(getRegisterNumber(range, 1)), var.getLf())
+                    );
+            b = z3engine.hPred(z3engine.mkBitVector("anything".hashCode(), analysis.getSize()), 
+                    z3engine.mkBitVector("anything".hashCode(), analysis.getSize())
+                    ,var.getF(), var.getFpp(),
+                    var.getLf(), var.getBf());
+            buildRule();
+        }
+        
+        
+        int i = 1 + regOffset;
         
         for (final CharSequence type : parameterTypes) {
             if (type.toString().contains(";") || type.toString().contains("]")) {
@@ -2944,6 +3887,326 @@ public class InstructionAnalysis {
             }
         }  
     }
+    
+    /*
+     * Return a BoolExpr which is true if at least one of the arguments of the invoked method is a local pointer
+     * This is for instruction with less than five registers
+     */
+    private BoolExpr localInArguments(){
+        FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
+        final int regCount = instruction.getRegisterCount();
+        switch (regCount) {
+            case 1:
+                return z3engine.getVars().getL(instruction.getRegisterC());
+            case 2:
+                return z3engine.or(z3engine.getVars().getL(instruction.getRegisterC()),
+                                    z3engine.getVars().getL(instruction.getRegisterD()));
+            case 3:
+                return z3engine.or(z3engine.getVars().getL(instruction.getRegisterC()),
+                                    z3engine.getVars().getL(instruction.getRegisterD()),
+                                    z3engine.getVars().getL(instruction.getRegisterE()));
+            case 4:
+                return z3engine.or(z3engine.getVars().getL(instruction.getRegisterC()),
+                                    z3engine.getVars().getL(instruction.getRegisterD()),
+                                    z3engine.getVars().getL(instruction.getRegisterE()),
+                                    z3engine.getVars().getL(instruction.getRegisterF()));
+
+            case 5:
+                return z3engine.or(z3engine.getVars().getL(instruction.getRegisterC()),
+                                    z3engine.getVars().getL(instruction.getRegisterD()),
+                                    z3engine.getVars().getL(instruction.getRegisterE()),
+                                    z3engine.getVars().getL(instruction.getRegisterF()),
+                                    z3engine.getVars().getL(instruction.getRegisterG()));
+            default:
+                return z3engine.mkFalse();
+        }
+    }
+
+    /*
+     * Return a BoolExpr which is true if at least one of the arguments of the invoked method is a local pointer
+     * This is for instruction with strictly more than five registers
+     */
+    private BoolExpr localInArgumentsRange(){
+        RegisterRangeInstruction instruction = (RegisterRangeInstruction)this.instruction;
+        int regCount = instruction.getRegisterCount();
+        int startRegister = instruction.getStartRegister();
+        int endRegister   =   startRegister+regCount-1;
+
+        BoolExpr labels = z3engine.mkFalse();
+        for(int reg = startRegister; reg <= endRegister; reg++){
+            labels = z3engine.or(
+                    labels, z3engine.getVars().getL(reg)
+            );
+        }
+        return labels;
+    }
+    
+    
+    /*
+     * Advances pc with a top values for the return value (if exists)
+     */
+    private void invokeNotKnownNew(final Boolean range, final String invClass, final String invMethod){
+        System.err.println("Not known implementation: " + invClass + " " +  invMethod);
+        // we add queries when calling manualStub(...)
+        /*if (analysis.isSink(className,methodName,invClass.hashCode(), invMethod.hashCode())){
+            if (range) {
+                addQueryRange(z3engine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
+                        className, methodName, Integer.toString(codeAddress), invMethod, analysis.optionVerbose());
+            }else{
+                addQuery(z3engine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
+                        className, methodName, Integer.toString(codeAddress), invMethod, analysis.optionVerbose());
+            }
+        }*/
+        
+        BoolExpr joinLabel = null;
+        boolean returnsRef = false;
+        if (callReturns){
+            if (returnType.contains(";") || returnType.contains("]")){
+                returnsRef = true;
+            }
+            joinLabel = analysis.isSource(className,methodName,invClass.hashCode(), invMethod.hashCode()) 
+                    ? z3engine.mkTrue() : null;
+        }
+        
+        // Tells us whether one of the argument of the invoked function is a local pointer
+        BoolExpr argumentsLocal = null;
+        if (range){
+            argumentsLocal = localInArgumentsRange();
+        }else{
+            argumentsLocal = localInArguments();
+        }
+        
+       
+        // If we call a sink the join label will high, o.w. the label is the join of the label of arguments 
+        
+        
+        if (joinLabel == null){
+            joinLabel = range ? getLabelsRange() : getLabels();
+        }
+        
+       
+        //  If an unknown method has a reference as an argument, let the top value and the label join be dereferenced
+        
+
+        regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
+        
+        int numRegInInstr;
+        if (range){
+            RegisterRangeInstruction instruction = (RegisterRangeInstruction)this.instruction;
+            numRegInInstr = instruction.getRegisterCount();
+        }
+        else{
+            FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
+            numRegInInstr = instruction.getRegisterCount();
+        }
+        
+        int regOffset = numRegInInstr - parameterTypes.size();
+        
+        if (!((regOffset == 0) || (regOffset == 1))){
+            System.err.println("Wrong offset for the parameters in the unknown method call!");
+        }
+        
+        if (regOffset == 1){
+         // place taint from a primitive arguments to the ref
+            buildH();
+            h = z3engine.and(
+                    h,
+                    var.getB(getRegisterNumber(range, 1))
+                    );
+            b = z3engine.hPred(var.getCn(), 
+                    var.getV(getRegisterNumber(range, 1))
+                    ,var.getF(), var.getFpp(),
+                    joinLabel, var.getBf());
+            buildRule();
+
+            buildH();
+            h = z3engine.and(
+                    h,
+                    var.getB(getRegisterNumber(range, 1)),
+                    z3engine.taintPred(var.getV(getRegisterNumber(range, 1)), var.getLf())
+                    );
+            b = z3engine.hPred(var.getCn(), 
+                    var.getV(getRegisterNumber(range, 1))
+                    ,var.getF(), var.getFpp(),
+                    var.getLf(), var.getBf());
+            buildRule();
+
+            buildH();
+            h = z3engine.and(
+                    h,
+                    var.getB(getRegisterNumber(range, 1)),
+                    z3engine.taintPred(var.getV(getRegisterNumber(range, 1)), var.getLf())
+                    );
+            b = z3engine.hPred(z3engine.mkBitVector("anything".hashCode(), analysis.getSize()), 
+                    z3engine.mkBitVector("anything".hashCode(), analysis.getSize())
+                    ,var.getF(), var.getFpp(),
+                    var.getLf(), var.getBf());
+            buildRule();
+            
+            //reach case
+            buildH();
+            h = z3engine.and(
+                    h,
+                    var.getB(getRegisterNumber(range, 1)),
+                    z3engine.taintPred(var.getV(getRegisterNumber(range, 1)), var.getLf()),
+                    z3engine.reachPred(var.getV(getRegisterNumber(range, 1)), var.getVfp())
+                    );
+            b = z3engine.hPred(var.getCn(), 
+                    var.getVfp()
+                    ,var.getF(), var.getFpp(),
+                    var.getLf(), var.getBf());
+            buildRule();
+        }
+        
+        {
+            int i = 1 + regOffset;
+
+            for (final CharSequence type : parameterTypes) {
+                if (type.toString().contains(";") || type.toString().contains("]")) {
+
+                    // place taint from a primitive arguments to the ref
+                    buildH();
+                    h = z3engine.and(
+                            h,
+                            var.getB(getRegisterNumber(range, i))
+                            );
+                    b = z3engine.hPred(var.getCn(), 
+                            var.getV(getRegisterNumber(range, i))
+                            ,var.getF(), var.getFpp(),
+                            joinLabel, var.getBf());
+                    buildRule();
+
+                    buildH();
+                    h = z3engine.and(
+                            h,
+                            var.getB(getRegisterNumber(range, i)),
+                            z3engine.taintPred(var.getV(getRegisterNumber(range, i)), var.getLf())
+                            );
+                    b = z3engine.hPred(var.getCn(), 
+                            var.getV(getRegisterNumber(range, i))
+                            ,var.getF(), var.getFpp(),
+                            var.getLf(), var.getBf());
+                    buildRule();
+
+                    buildH();
+                    h = z3engine.and(
+                            h,
+                            var.getB(getRegisterNumber(range, i)),
+                            z3engine.taintPred(var.getV(getRegisterNumber(range, i)), var.getLf())
+                            );
+                    b = z3engine.hPred(z3engine.mkBitVector("anything".hashCode(), analysis.getSize()), 
+                            z3engine.mkBitVector("anything".hashCode(), analysis.getSize())
+                            ,var.getF(), var.getFpp(),
+                            var.getLf(), var.getBf());
+                    buildRule();
+                    
+                    //reach case
+                    buildH();
+                    h = z3engine.and(
+                            h,
+                            var.getB(getRegisterNumber(range, i)),
+                            z3engine.taintPred(var.getV(getRegisterNumber(range, i)), var.getLf()),
+                            z3engine.reachPred(var.getV(getRegisterNumber(range, i)), var.getVfp())
+                            );
+                    b = z3engine.hPred(var.getCn(), 
+                            var.getVfp()
+                            ,var.getF(), var.getFpp(),
+                            var.getLf(), var.getBf());
+                    buildRule();
+
+                }
+                i = i + 1;
+            }
+        }
+       
+        // Case 1: method does not return
+        
+        
+        if (!callReturns){
+            buildH();
+            buildB();
+            buildRule();
+        }
+        
+        
+         // Case 2: method returns
+         
+        BoolExpr returnIsGlobal = null;
+        if (returnsRef){
+            returnIsGlobal = z3engine.mkTrue();
+        }else{
+            returnIsGlobal = z3engine.mkFalse();
+        }
+        
+        if (callReturns){
+            /*
+             *  If one of the arguments is a local pointer then we lift
+             */
+            buildH();
+            h = z3engine.and(h,argumentsLocal);
+            
+            // We set the returned value
+            regUpdate.put(numRegLoc, var.getF());
+            regUpdateL.put(numRegLoc, joinLabel);
+            regUpdateB.put(numRegLoc, returnIsGlobal);
+
+            
+            buildB();
+            buildRule();
+
+            regUpdate.clear(); regUpdateL.clear(); regUpdateB.clear();
+        }
+        
+        // If the method returns a pointer, then a corresponding heap fact should be created
+
+
+        if (callReturns && returnsRef) {
+            // place taint from a primitive arguments to the ref
+            buildH();
+            b = z3engine.hPred(z3engine.mkBitVector("anything".hashCode(), analysis.getSize()), 
+                    z3engine.mkBitVector("anything".hashCode(), analysis.getSize()),
+                    var.getF(), var.getFpp(),
+                    joinLabel, var.getBf());
+            buildRule();
+
+            {
+                int i = 1;
+                for (final CharSequence type : parameterTypes) {
+                    if (type.toString().contains(";") || type.toString().contains("]")) {
+
+                        buildH();
+                        h = z3engine.and(
+                                h,
+                                var.getB(getRegisterNumber(range, i)),
+                                z3engine.taintPred(var.getV(getRegisterNumber(range, i)), var.getLf())
+                                );
+                        b = z3engine.hPred(z3engine.mkBitVector("anything".hashCode(), analysis.getSize()), 
+                                z3engine.mkBitVector("anything".hashCode(), analysis.getSize())
+                                ,var.getF(), var.getFpp(),
+                                var.getLf(), var.getBf());
+                        buildRule();
+                    }
+                }
+            }
+            
+            
+            //TODO: all static constructor, for all classes, should be called
+            if (analysis.hasStaticConstructor(referenceIntIndex)){
+                int staticConstNum = "<clinit>()V".hashCode();
+                DalvikMethod dmc = analysis.getExactMethod(referenceIntIndex, staticConstNum);
+                for (int j = 0; j < dmc.getNumArg() + dmc.getNumReg() + 1; j++){
+                    regUpdate.put(j, z3engine.mkBitVector(0, analysis.getSize()));
+                    
+                }
+                b = z3engine.rPred(Integer.toString(referenceIntIndex), Integer.toString(staticConstNum), 0, regUpdate, regUpdateL, regUpdateB,
+                        dmc.getNumArg(), dmc.getNumReg());
+                z3engine.addRule(b, null);
+            }
+        }  
+    }
+    
+    
+    
     /*
      * Direct invocation of a method, whose implementation is either a dalvik implementation
      * or a stub

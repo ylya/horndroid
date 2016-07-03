@@ -8,7 +8,7 @@ import com.microsoft.z3.*;
 public class Z3Function {
 
     // Function
-    private final FuncDecl h, hi, i, s, ta;
+    private final FuncDecl h, hi, i, s, ta, ra;
 
     public Z3Function(Context ctx, int bvSize) throws Z3Exception {
 //        out.println("(declare-rel H (bv64 bv64 bv64 bv64 Bool Bool) interval_relation bound_relation)");
@@ -25,6 +25,7 @@ public class Z3Function {
         this.s = ctx.mkFuncDecl("S", new Sort[]{integer, integer, bv64, bool, bool}, bool);
         
         this.ta = ctx.mkFuncDecl("TA", new Sort[]{bv64, bool}, bool); //used for computing taint on the connected component on the heap
+        this.ra = ctx.mkFuncDecl("RA", new Sort[]{bv64, bv64}, bool); //used for computing the connected component of the heap element
     }
 
     public FuncDecl getH() {
@@ -45,5 +46,8 @@ public class Z3Function {
     
     public FuncDecl getTaint(){
         return ta;
+    }
+    public FuncDecl getReach(){
+        return ra;
     }
 }
