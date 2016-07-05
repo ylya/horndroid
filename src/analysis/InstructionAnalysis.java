@@ -2839,7 +2839,7 @@ public class InstructionAnalysis {
         
     private boolean manualStub(final int cCall){
         int size = analysis.getSize();
-        boolean flag = false;
+        /*boolean flag = false;
         // sources
         if ((cCall == ("Landroid/telephony/TelephonyManager;".hashCode())) && 
                 ("getSimSerialNumber()Ljava/lang/String;".hashCode() == referenceIntIndex)){
@@ -2942,7 +2942,7 @@ public class InstructionAnalysis {
             z3engine.mkFalse(), z3engine.mkFalse());
             buildRule();
             return true;
-        }
+        }*/
         
         //////////////////////
         /*

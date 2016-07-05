@@ -11,6 +11,7 @@ import Dalvik.DalvikMethod;
 import debugging.QUERY_TYPE;
 import horndroid.options;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -132,13 +133,14 @@ public class FSInstructionAnalysis{
         regUpLHCL.clear();
         regUpLHCG.clear();
         regUpLHCF.clear();
-        
+        if (!analysis.optionNotFlowSens()){
         for (int i = 0; i < analysis.getLocalHeapSize(); i++){
             regUpLHCV.put(i, fsvar.getLHCV(i));
             regUpLHCH.put(i, fsvar.getLHCH(i));
             regUpLHCL.put(i, fsvar.getLHCL(i));
             regUpLHCG.put(i, fsvar.getLHCG(i));
             regUpLHCF.put(i, fsvar.getLHCF(i));
+        }
         }
     }
     
@@ -202,6 +204,7 @@ public class FSInstructionAnalysis{
                    fsengine.addQueryDebug(q3);
                }
            }
+           if (!analysis.optionNotFlowSens()){
            for (int i = 0; i < analysis.getLocalHeapNumberEntries(); i++){
                 int instanceNumber = analysis.getInstanceNumFromReverse(i);
                 int lhoffset = fsengine.getOffset(instanceNumber);
@@ -226,6 +229,7 @@ public class FSInstructionAnalysis{
                     }
                 }
             }
+           }
         }
 
         
@@ -434,7 +438,7 @@ public class FSInstructionAnalysis{
         case NEW_INSTANCE:
 
         	//special treatment for the "global by default objects"
-        	if (globalByDefault(dispatch, referenceIntIndex) || ((!analysis.checkMethodHasSink(makeCMHash(c,m))) && analysis.optionFlowSensIfSink())){
+        	if (globalByDefault(dispatch, referenceIntIndex) || ((!analysis.checkMethodHasSink(makeCMHash(c,m))) && analysis.optionFlowSensIfSink()) || analysis.optionNotFlowSens()){
         		instanceNum = analysis.getInstNum(ci, mi, codeAddress);
         		buildH();
         		//update the register receiving the pointer to the newly created object
@@ -467,6 +471,34 @@ public class FSInstructionAnalysis{
         					fsengine.mkFalse(), fsvar.getBf());
         			buildRule();
         		}
+        		
+        		if (analysis.hasStaticConstructor(referenceIntIndex)){
+                    //h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
+                    int staticConstNum = "<clinit>()V".hashCode();
+                    DalvikMethod dmc = analysis.getExactMethod(referenceIntIndex, staticConstNum);
+
+                    for (int i = 0; i < dmc.getNumArg() + dmc.getNumReg() + 1; i++){
+                        regUpV.put(i, fsengine.mkBitVector(0, size));
+                        regUpLHH.put(i, fsengine.mkFalse());
+                        regUpL.put(i, fsengine.mkFalse());
+                        regUpG.put(i, fsengine.mkFalse());
+                    }
+                    
+                    if (!analysis.optionNotFlowSens()){
+                    for (int i = 0; i < analysis.getLocalHeapSize(); i++){                    
+                        regUpLHV.put(i, fsengine.mkBitVector(0, size));
+                        regUpLHH.put(i, fsengine.mkFalse());
+                        regUpLHL.put(i, fsengine.mkFalse());
+                        regUpLHG.put(i, fsengine.mkFalse());
+                        regUpLHF.put(i, fsengine.mkFalse());
+                    }
+                    }
+                    b = fsengine.rPred(Integer.toString(referenceIntIndex), Integer.toString(staticConstNum), 0, regUpV, regUpH, regUpL, regUpG,regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF,
+                            dmc.getNumArg(), dmc.getNumReg());
+                    fsengine.addRule(b, null);
+                }
+        		
+        		
         	}else if (referenceIntIndex == "Landroid/content/Intent;".hashCode()){
         		buildH();
         		buildB();
@@ -655,7 +687,9 @@ public class FSInstructionAnalysis{
                     buildRule();
                     //if the register contains a local heap pointer, lift
                     hh = fsengine.and(h,fsvar.getL(instructionA.getRegisterG()));
+                    if (!analysis.optionNotFlowSens()){
                     this.liftIfLocal(hh,u);
+                    }
                 case 4:
                     b = fsengine.hPred( fsengine.mkBitVector(referenceIntIndex, size),
                             fsengine.mkBitVector(instanceNum, size),
@@ -666,7 +700,9 @@ public class FSInstructionAnalysis{
                     buildRule();
                     //if the register contains a local heap pointer, lift
                     hh = fsengine.and(h,fsvar.getL(instructionA.getRegisterF()));
+                    if (!analysis.optionNotFlowSens()){
                     this.liftIfLocal(hh,u);
+                    }
                 case 3:
                     b = fsengine.hPred( fsengine.mkBitVector(referenceIntIndex, size),
                             fsengine.mkBitVector(instanceNum, size),
@@ -677,7 +713,9 @@ public class FSInstructionAnalysis{
                     buildRule();
                     //if the register contains a local heap pointer, lift
                     hh = fsengine.and(h,fsvar.getL(instructionA.getRegisterE()));
+                    if (!analysis.optionNotFlowSens()){
                     this.liftIfLocal(hh,u);
+                    }
                 case 2:
                     b = fsengine.hPred( fsengine.mkBitVector(referenceIntIndex, size),
                             fsengine.mkBitVector(instanceNum, size),
@@ -688,7 +726,9 @@ public class FSInstructionAnalysis{
                     buildRule();
                     //if the register contains a local heap pointer, lift
                     hh = fsengine.and(h,fsvar.getL(instructionA.getRegisterD()));
+                    if (!analysis.optionNotFlowSens()){
                     this.liftIfLocal(hh,u);
+                    }
                 case 1:
                     b = fsengine.hPred( fsengine.mkBitVector(referenceIntIndex, size),
                             fsengine.mkBitVector(instanceNum, size),
@@ -699,7 +739,9 @@ public class FSInstructionAnalysis{
                     buildRule();
                     //if the register contains a local heap pointer, lift
                     hh = fsengine.and(h,fsvar.getL(instructionA.getRegisterC()));
+                    if (!analysis.optionNotFlowSens()){
                     this.liftIfLocal(hh,u);
+                    }
                 }
             } else {
                 switch(regCount){
@@ -713,7 +755,9 @@ public class FSInstructionAnalysis{
                     buildRule();
                     //if the register contains a local heap pointer, lift
                     hh = fsengine.and(h,fsvar.getL(instructionA.getRegisterG()));
+                    if (!analysis.optionNotFlowSens()){
                     this.liftIfLocal(hh,u);
+                    }
                 case 4:
                     b = fsengine.hPred( fsengine.mkBitVector(referenceIntIndex, size),
                             fsengine.mkBitVector(instanceNum, size),
@@ -724,7 +768,9 @@ public class FSInstructionAnalysis{
                     buildRule();
                     //if the register contains a local heap pointer, lift
                     hh = fsengine.and(h,fsvar.getL(instructionA.getRegisterF()));
+                    if (!analysis.optionNotFlowSens()){
                     this.liftIfLocal(hh,u);
+                    }
                 case 3:
                     b = fsengine.hPred( fsengine.mkBitVector(referenceIntIndex, size),
                             fsengine.mkBitVector(instanceNum, size),
@@ -735,7 +781,9 @@ public class FSInstructionAnalysis{
                     buildRule();
                     //if the register contains a local heap pointer, lift
                     hh = fsengine.and(h,fsvar.getL(instructionA.getRegisterE()));
+                    if (!analysis.optionNotFlowSens()){
                     this.liftIfLocal(hh,u);
+                    }
                 case 2:
                     b = fsengine.hPred( fsengine.mkBitVector(referenceIntIndex, size),
                             fsengine.mkBitVector(instanceNum, size),
@@ -746,7 +794,9 @@ public class FSInstructionAnalysis{
                     buildRule();
                     //if the register contains a local heap pointer, lift
                     hh = fsengine.and(h,fsvar.getL(instructionA.getRegisterD()));
+                    if (!analysis.optionNotFlowSens()){
                     this.liftIfLocal(hh,u);
+                    }
                 case 1:
                     b = fsengine.hPred( fsengine.mkBitVector(referenceIntIndex, size),
                             fsengine.mkBitVector(instanceNum, size),
@@ -757,7 +807,9 @@ public class FSInstructionAnalysis{
                     buildRule();
                     //if the register contains a local heap pointer, lift
                     hh = fsengine.and(h,fsvar.getL(instructionA.getRegisterC()));
+                    if (!analysis.optionNotFlowSens()){
                     this.liftIfLocal(hh,u);
+                    }
                 }
             }          
         }
@@ -795,7 +847,9 @@ public class FSInstructionAnalysis{
                 buildRule();
                 //if the register contains a local heap pointer, lift
                 BoolExpr hh = fsengine.and(h,fsvar.getL(reg));
+                if (!analysis.optionNotFlowSens()){
                 this.liftIfLocal(hh,u);
+                }
                 if (analysis.optionArrays()) cr++;
             }
         }
@@ -1091,7 +1145,7 @@ public class FSInstructionAnalysis{
         					fsvar.getVal(), fsvar.getLval(), fsvar.getBval()),
         			h
         			);
-
+        	
         	regUpV.put(registerA(), fsvar.getVal());
         	regUpH.put(registerA(), fsvar.getLval());
         	regUpL.put(registerA(), fsengine.mkFalse());
@@ -1122,19 +1176,46 @@ public class FSInstructionAnalysis{
         case APUT_CHAR://((short)0x50, "aput-char", ReferenceType.NONE, Format.Format23x, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
         case APUT_SHORT:
         {
-            buildH();
-            /*
-            regUpH.put(((TwoRegisterInstruction)instruction).getRegisterB(),
-                    fsengine.or(
-                            fsvar.getH(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            fsvar.getH(((OneRegisterInstruction)instruction).getRegisterA())
-                            )
-                    );
-             */
-            buildB();
-            buildRule();
+            if (analysis.optionMerginPointers()){
+                buildH();
+                
+                regUpH.put(((TwoRegisterInstruction)instruction).getRegisterB(),
+                        fsengine.or(
+                                fsvar.getH(((TwoRegisterInstruction)instruction).getRegisterB()),
+                                fsvar.getH(((OneRegisterInstruction)instruction).getRegisterA())
+                                )
+                        );
+                
+                buildB();
+                buildRule();
 
-            regUpH.clear();
+                regUpH.clear();
+                if (instruction.getOpcode().name().equals("APUT_OBJECT")){
+                    buildH();
+                    b = fsengine.reachPredP(fsvar.getV(registerB()), fsvar.getV(registerA()), 
+                            fsengine.or(
+                            fsvar.getH(registerB()),
+                            fsvar.getH(registerA())
+                            ));
+                    buildRule();
+                }
+            }
+            else{
+                buildH();
+                /*
+                regUpH.put(((TwoRegisterInstruction)instruction).getRegisterB(),
+                        fsengine.or(
+                                fsvar.getH(((TwoRegisterInstruction)instruction).getRegisterB()),
+                                fsvar.getH(((OneRegisterInstruction)instruction).getRegisterA())
+                                )
+                        );
+                 */
+                buildB();
+                buildRule();
+
+                //regUpH.clear();
+            }
+            
 
             h = fsengine.and(
                     fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
@@ -1161,7 +1242,9 @@ public class FSInstructionAnalysis{
                     fsengine.eq(fsvar.getL(((OneRegisterInstruction)instruction).getRegisterA()), fsengine.mkTrue()),
                     fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc)
                     );
+            if (!analysis.optionNotFlowSens()){
             this.liftIfLocal(h, null);
+            }
             break;
 
         }
@@ -1233,22 +1316,51 @@ public class FSInstructionAnalysis{
         case IPUT_CHAR://((short)0x5e, "iput-char", ReferenceType.FIELD, Format.Format22c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
         case IPUT_SHORT:
         {
-          //object on the global heap: propagate R
-            h = fsengine.and(
-                    fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
-                    fsvar.getG(((TwoRegisterInstruction)instruction).getRegisterB()));
-            /*
-            regUpH.put(((TwoRegisterInstruction)instruction).getRegisterB(),
-                    fsengine.or(
-                            fsvar.getH(((TwoRegisterInstruction)instruction).getRegisterB()),
-                            fsvar.getH(((OneRegisterInstruction)instruction).getRegisterA())
-                            )
-                    );
-            */
-            buildB();
-            buildRule();
-           
-           // regUpH.clear();
+            if (analysis.optionMerginPointers()){
+              //object on the global heap: propagate R
+                h = fsengine.and(
+                        fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
+                        fsvar.getG(((TwoRegisterInstruction)instruction).getRegisterB()));
+                
+                regUpH.put(((TwoRegisterInstruction)instruction).getRegisterB(),
+                        fsengine.or(
+                                fsvar.getH(registerB()),
+                                fsvar.getH(registerA())
+                                )
+                        );
+                buildB();
+                buildRule();
+               
+                regUpH.clear();
+                if (instruction.getOpcode().name().equals("IPUT_OBJECT")){
+                    buildH();
+                    b = fsengine.reachPredP(fsvar.getV(registerB()), fsvar.getV(registerA()), 
+                            fsengine.or(
+                            fsvar.getH(registerB()),
+                            fsvar.getH(registerA())
+                            ));
+                    buildRule();
+                }
+            }
+            else{
+              //object on the global heap: propagate R
+                h = fsengine.and(
+                        fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
+                        fsvar.getG(((TwoRegisterInstruction)instruction).getRegisterB()));
+                /*
+                regUpH.put(((TwoRegisterInstruction)instruction).getRegisterB(),
+                        fsengine.or(
+                                fsvar.getH(((TwoRegisterInstruction)instruction).getRegisterB()),
+                                fsvar.getH(((OneRegisterInstruction)instruction).getRegisterA())
+                                )
+                        );
+                */
+                buildB();
+                buildRule();
+               
+               // regUpH.clear();
+            }
+          
 
             //object on the global heap: update the global heap
             h = fsengine.and(
@@ -1276,8 +1388,9 @@ public class FSInstructionAnalysis{
                     fsengine.eq(fsvar.getL(((OneRegisterInstruction)instruction).getRegisterA()),fsengine.mkTrue()),
                     fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc)
                     );
+            if (!analysis.optionNotFlowSens()){
             this.liftIfLocal(h, null);
-            
+            }
             //object is on the local heap: update the local heap
             for (int allocationPoint : analysis.getAllocationPoints()){
                 //we do not generate rules if class of the object allocated at 'allocationPoint' has no entry for the field allocated by the dalvik instruction
@@ -1373,7 +1486,9 @@ public class FSInstructionAnalysis{
             BoolExpr h2 = fsengine.and(
                     h,
                     fsengine.eq(fsvar.getL(registerA()), fsengine.mkTrue()));
+            if (!analysis.optionNotFlowSens()){
             this.liftIfLocal(h2, null);
+            }
         }
         break;//((short)0x6d, "sput-short", ReferenceType.FIELD, Format.Format21c, Opcode.CAN_THROW | Opcode.CAN_CONTINUE),
 
@@ -1388,7 +1503,17 @@ public class FSInstructionAnalysis{
         		}
         		else{
         		    if (!computeStub(false, referenceString)){
-        		        this.invokeNotKnownNew(false, referenceStringClass, referenceString);
+        		        if (analysis.optionSkipUnknown()){
+        		            this.skipUnknown(false, referenceStringClass, referenceString);
+        		        }
+        		        else{
+        		        if (analysis.optionMerginPointers()){
+        		            this.invokeNotKnown(false, referenceStringClass, referenceString); 
+        		        }
+        		        else{
+                            this.invokeNotKnownNew(false, referenceStringClass, referenceString);  
+        		        }
+        		        }
         		    }
         		}
         }
@@ -1403,7 +1528,17 @@ public class FSInstructionAnalysis{
         		}
         		else{
         		    if (!computeStub(true, referenceString)){
-        		        this.invokeNotKnownNew(true, referenceStringClass, referenceString);
+        		        if (analysis.optionSkipUnknown()){
+                            this.skipUnknown(true, referenceStringClass, referenceString);
+                        }
+                        else{
+        		        if (analysis.optionMerginPointers()){
+        		            this.invokeNotKnown(true, referenceStringClass, referenceString);
+        		        }
+        		        else{
+        		            this.invokeNotKnownNew(true, referenceStringClass, referenceString); 
+        		        }
+                        }
         		    }
         		}
         }
@@ -1418,7 +1553,17 @@ public class FSInstructionAnalysis{
         		}
         		else{
         		    if (!computeStub(false, referenceString)){
-        		        this.invokeNotKnownNew(false, referenceStringClass, referenceString);
+        		        if (analysis.optionSkipUnknown()){
+                            this.skipUnknown(false, referenceStringClass, referenceString);
+                        }
+                        else{
+        		        if (analysis.optionMerginPointers()){
+        		            this.invokeNotKnown(false, referenceStringClass, referenceString);
+        		        }
+        		        else{
+        		            this.invokeNotKnownNew(false, referenceStringClass, referenceString);
+        		        }
+                        }
         		    }
         		}
         }
@@ -1433,7 +1578,17 @@ public class FSInstructionAnalysis{
         		}
         		else{
         		    if (!computeStub(true, referenceString)){
-        	            this.invokeNotKnownNew(true, referenceStringClass, referenceString);
+        		        if (analysis.optionSkipUnknown()){
+                            this.skipUnknown(true, referenceStringClass, referenceString);
+                        }
+                        else{
+        		        if (analysis.optionMerginPointers()){
+                            this.invokeNotKnown(true, referenceStringClass, referenceString);
+        		        }
+        		        else{
+                            this.invokeNotKnownNew(true, referenceStringClass, referenceString);
+        		        }
+                        }
         	        }
         		}
         }
@@ -1455,7 +1610,17 @@ public class FSInstructionAnalysis{
         		}
         		else{
         		    if (!computeStub(false, referenceString)){
-        	            this.invokeNotKnownNew(false, referenceStringClass, referenceString);
+        		        if (analysis.optionSkipUnknown()){
+                            this.skipUnknown(false, referenceStringClass, referenceString);
+                        }
+                        else{
+        		        if (analysis.optionMerginPointers()){
+                            this.invokeNotKnown(false, referenceStringClass, referenceString);
+        		        }
+        		        else{
+                            this.invokeNotKnownNew(false, referenceStringClass, referenceString); 
+        		        }
+                        }
         	        }
         		}
         }
@@ -1470,7 +1635,17 @@ public class FSInstructionAnalysis{
         		}
         		else{
         		    if (!computeStub(true, referenceString)){
-        	            this.invokeNotKnownNew(true, referenceStringClass, referenceString);
+        		        if (analysis.optionSkipUnknown()){
+                            this.skipUnknown(true, referenceStringClass, referenceString);
+                        }
+                        else{
+        		        if (analysis.optionMerginPointers()){
+                            this.invokeNotKnown(true, referenceStringClass, referenceString);
+        		        }
+        		        else{
+                            this.invokeNotKnownNew(true, referenceStringClass, referenceString);
+        		        }
+                        }
         	        }
         		}
         }
@@ -1523,7 +1698,17 @@ public class FSInstructionAnalysis{
             			}
             		}else{
             		    if (!computeStub(false, referenceString)){
-            	            this.invokeNotKnownNew(false, referenceStringClass, referenceString);
+            		        if (analysis.optionSkipUnknown()){
+                                this.skipUnknown(false, referenceStringClass, referenceString);
+                            }
+                            else{
+            		        if (analysis.optionMerginPointers()){
+                                this.invokeNotKnown(false, referenceStringClass, referenceString);
+            		        }
+            		        else{
+                                this.invokeNotKnownNew(false, referenceStringClass, referenceString);
+            		        }
+                            }
             	        }
             		}
             	}else{
@@ -1532,7 +1717,17 @@ public class FSInstructionAnalysis{
             			this.invoke(dispatchResult, false, null);
             		}else{
             		    if (!computeStub(false, referenceString)){
-            	            this.invokeNotKnownNew(false, referenceStringClass, referenceString);
+            		        if (analysis.optionSkipUnknown()){
+                                this.skipUnknown(false, referenceStringClass, referenceString);
+                            }
+                            else{
+            		        if (analysis.optionMerginPointers()){
+                                this.invokeNotKnown(false, referenceStringClass, referenceString);
+            		        }
+            		        else{
+                                this.invokeNotKnownNew(false, referenceStringClass, referenceString);
+            		        }
+                            }
             	        }
             		}
             	}
@@ -1547,7 +1742,17 @@ public class FSInstructionAnalysis{
         		}
         		else{
         		    if (!computeStub(true, referenceString)){
-        	            this.invokeNotKnownNew(true, referenceStringClass, referenceString);
+        		        if (analysis.optionSkipUnknown()){
+                            this.skipUnknown(true, referenceStringClass, referenceString);
+                        }
+                        else{
+        		        if (analysis.optionMerginPointers()){
+                            this.invokeNotKnown(true, referenceStringClass, referenceString);
+        		        }
+        		        else{
+                            this.invokeNotKnownNew(true, referenceStringClass, referenceString);
+        		        }
+                        }
         	        }
         		}
         }
@@ -1561,7 +1766,17 @@ public class FSInstructionAnalysis{
             	}
             	else{
             	    if (!computeStub(false, referenceString)){
-                        this.invokeNotKnownNew(false, referenceStringClass, referenceString);
+            	        if (analysis.optionSkipUnknown()){
+                            this.skipUnknown(false, referenceStringClass, referenceString);
+                        }
+                        else{
+            	        if (analysis.optionMerginPointers()){
+                            this.invokeNotKnown(false, referenceStringClass, referenceString);
+            	        }
+            	        else{
+                            this.invokeNotKnownNew(false, referenceStringClass, referenceString);
+            	        }
+                        }
                     }
             	}
         }
@@ -1575,7 +1790,17 @@ public class FSInstructionAnalysis{
         		}
         		else{
         		    if (!computeStub(true, referenceString)){
-        	            this.invokeNotKnownNew(true, referenceStringClass, referenceString);
+        		        if (analysis.optionSkipUnknown()){
+                            this.skipUnknown(true, referenceStringClass, referenceString);
+                        }
+                        else{
+        		        if (analysis.optionMerginPointers()){
+                            this.invokeNotKnown(true, referenceStringClass, referenceString);
+        		        }
+        		        else{
+                            this.invokeNotKnownNew(true, referenceStringClass, referenceString);
+        		        }
+                        }   
         	        }
         		}
         }
@@ -2900,6 +3125,18 @@ public class FSInstructionAnalysis{
             String d = "Test if register " + Integer.toString(reg) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             fsengine.addQuery(new Z3Query(q, d, verboseOption, className, methodName, pc, sinkName));
         }
+        if (analysis.optionMerginPointers()){
+            for (int reg = startRegister; reg <= endRegister; reg++ ){
+                BoolExpr q = fsengine.and(
+                        p,
+                        fsengine.smashPredP(fsvar.getV(reg), fsvar.getFpp(), fsengine.mkTrue()),
+                        fsengine.or(fsengine.eq(fsvar.getG(reg), fsengine.mkTrue()), fsengine.eq(fsvar.getL(reg), fsengine.mkTrue()))
+                        );
+                String d = "[SMASH] Test if register " + Integer.toString(reg) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                fsengine.addQuery(new Z3Query(q, d, verboseOption, className, methodName, pc, sinkName));
+            }  
+        }
+        else{
         for (int reg = startRegister; reg <= endRegister; reg++ ){
             BoolExpr q = fsengine.and(
                     p,
@@ -2908,6 +3145,7 @@ public class FSInstructionAnalysis{
                     );
             String d = "[REF] Test if register " + Integer.toString(reg) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             fsengine.addQuery(new Z3Query(q, d, verboseOption, className, methodName, pc, sinkName));
+        }
         }
     }
 
@@ -2924,13 +3162,25 @@ public class FSInstructionAnalysis{
                     );
             String d5 = "Test if register " + Integer.toString(instruction.getRegisterG()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             fsengine.addQuery(new Z3Query(q5, d5, verboseResults, className, methodName, pc, sinkName));
-            q5 = fsengine.and(
-                    p,
-                    fsengine.taintPred(fsvar.getV(instruction.getRegisterG()), fsengine.mkTrue())
-                    ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterG()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterG()), fsengine.mkTrue()))
-                    );
-            d5 = "[REF] Test if register " + Integer.toString(instruction.getRegisterG()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
-            fsengine.addQuery(new Z3Query(q5, d5, verboseResults, className, methodName, pc, sinkName));
+            if (analysis.optionMerginPointers()){
+                q5 = fsengine.and(
+                        p,
+                        fsengine.smashPredP(fsvar.getFpp(), fsvar.getV(instruction.getRegisterG()), fsengine.mkTrue())
+                        ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterG()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterG()), fsengine.mkTrue()))
+                        );
+                d5 = "[SMASH] Test if register " + Integer.toString(instruction.getRegisterG()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                fsengine.addQuery(new Z3Query(q5, d5, verboseResults, className, methodName, pc, sinkName));
+            }
+            else{
+                q5 = fsengine.and(
+                        p,
+                        fsengine.taintPred(fsvar.getV(instruction.getRegisterG()), fsengine.mkTrue())
+                        ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterG()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterG()), fsengine.mkTrue()))
+                        );
+                d5 = "[REF] Test if register " + Integer.toString(instruction.getRegisterG()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                fsengine.addQuery(new Z3Query(q5, d5, verboseResults, className, methodName, pc, sinkName));  
+            }
+            
         case 4:
             BoolExpr q4 = fsengine.and(
                     p,
@@ -2939,13 +3189,25 @@ public class FSInstructionAnalysis{
                     );
             String d4 = "Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             fsengine.addQuery(new Z3Query(q4, d4, verboseResults, className, methodName, pc, sinkName));
-            q4 = fsengine.and(
-                    p,
-                    fsengine.taintPred(fsvar.getV(instruction.getRegisterF()), fsengine.mkTrue())
-                    ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterF()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterF()), fsengine.mkTrue()))
-                    );
-            d4 = "[REF] Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
-            fsengine.addQuery(new Z3Query(q4, d4, verboseResults, className, methodName, pc, sinkName));
+            if (analysis.optionMerginPointers()){
+                q4 = fsengine.and(
+                        p,
+                        fsengine.smashPredP(fsvar.getFpp(), fsvar.getV(instruction.getRegisterF()), fsengine.mkTrue())
+                        ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterF()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterF()), fsengine.mkTrue()))
+                        );
+                d4 = "[SMASH] Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                fsengine.addQuery(new Z3Query(q4, d4, verboseResults, className, methodName, pc, sinkName)); 
+            }
+            else{
+                q4 = fsengine.and(
+                        p,
+                        fsengine.taintPred(fsvar.getV(instruction.getRegisterF()), fsengine.mkTrue())
+                        ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterF()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterF()), fsengine.mkTrue()))
+                        );
+                d4 = "[REF] Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                fsengine.addQuery(new Z3Query(q4, d4, verboseResults, className, methodName, pc, sinkName));  
+            }
+            
         case 3:
             BoolExpr q3 = fsengine.and(
                     p,
@@ -2954,13 +3216,25 @@ public class FSInstructionAnalysis{
                     );
             String d3 = "Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             fsengine.addQuery(new Z3Query(q3, d3, verboseResults, className, methodName, pc, sinkName));
-            q3 = fsengine.and(
-                    p,
-                    fsengine.taintPred(fsvar.getV(instruction.getRegisterE()), fsengine.mkTrue())
-                    ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterE()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterE()), fsengine.mkTrue()))
-                    );
-            d3 = "[REF] Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
-            fsengine.addQuery(new Z3Query(q3, d3, verboseResults, className, methodName, pc, sinkName));
+            if (analysis.optionMerginPointers()){
+                q3 = fsengine.and(
+                        p,
+                        fsengine.smashPredP(fsvar.getFpp(), fsvar.getV(instruction.getRegisterE()), fsengine.mkTrue())
+                        ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterE()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterE()), fsengine.mkTrue()))
+                        );
+                d3 = "[SMASH] Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                fsengine.addQuery(new Z3Query(q3, d3, verboseResults, className, methodName, pc, sinkName));
+            }
+            else{
+                q3 = fsengine.and(
+                        p,
+                        fsengine.taintPred(fsvar.getV(instruction.getRegisterE()), fsengine.mkTrue())
+                        ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterE()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterE()), fsengine.mkTrue()))
+                        );
+                d3 = "[REF] Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                fsengine.addQuery(new Z3Query(q3, d3, verboseResults, className, methodName, pc, sinkName));  
+            }
+
         case 2:
             BoolExpr q2 = fsengine.and(
                     p,
@@ -2969,13 +3243,25 @@ public class FSInstructionAnalysis{
                     );
             String d2 = "Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             fsengine.addQuery(new Z3Query(q2, d2, verboseResults, className, methodName, pc, sinkName));
-            q2 = fsengine.and(
-                    p,
-                    fsengine.taintPred(fsvar.getV(instruction.getRegisterD()), fsengine.mkTrue())
-                    ,fsengine.eq(fsengine.or(fsvar.getG(instruction.getRegisterD()), fsvar.getL(instruction.getRegisterD())), fsengine.mkTrue())
-                    );
-            d2 = "[REF] Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
-            fsengine.addQuery(new Z3Query(q2, d2, verboseResults, className, methodName, pc, sinkName));
+            if (analysis.optionMerginPointers()){
+                q2 = fsengine.and(
+                        p,
+                        fsengine.smashPredP(fsvar.getFpp(), fsvar.getV(instruction.getRegisterD()), fsengine.mkTrue())
+                        ,fsengine.eq(fsengine.or(fsvar.getG(instruction.getRegisterD()), fsvar.getL(instruction.getRegisterD())), fsengine.mkTrue())
+                        );
+                d2 = "[SMASH] Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                fsengine.addQuery(new Z3Query(q2, d2, verboseResults, className, methodName, pc, sinkName));
+            }
+            else{
+                q2 = fsengine.and(
+                        p,
+                        fsengine.taintPred(fsvar.getV(instruction.getRegisterD()), fsengine.mkTrue())
+                        ,fsengine.eq(fsengine.or(fsvar.getG(instruction.getRegisterD()), fsvar.getL(instruction.getRegisterD())), fsengine.mkTrue())
+                        );
+                d2 = "[REF] Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                fsengine.addQuery(new Z3Query(q2, d2, verboseResults, className, methodName, pc, sinkName));  
+            }
+            
         case 1:
             BoolExpr q1 = fsengine.and(
                     p,
@@ -2984,13 +3270,24 @@ public class FSInstructionAnalysis{
                     );
             String d1 = "Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
             fsengine.addQuery(new Z3Query(q1, d1, verboseResults, className, methodName, pc, sinkName));
-            q1 = fsengine.and(
-                    p,
-                    fsengine.taintPred(fsvar.getV(instruction.getRegisterC()), fsengine.mkTrue())
-                    ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterC()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterC()), fsengine.mkTrue()))
-                    );
-            d1 = "[REF] Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
-            fsengine.addQuery(new Z3Query(q1, d1, verboseResults, className, methodName, pc, sinkName));
+            if (analysis.optionMerginPointers()){
+                q1 = fsengine.and(
+                        p,
+                        fsengine.smashPredP(fsvar.getFpp(), fsvar.getV(instruction.getRegisterC()), fsengine.mkTrue())
+                        ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterC()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterC()), fsengine.mkTrue()))
+                        );
+                d1 = "[SMASH] Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                fsengine.addQuery(new Z3Query(q1, d1, verboseResults, className, methodName, pc, sinkName));
+            }
+            else{
+                q1 = fsengine.and(
+                        p,
+                        fsengine.taintPred(fsvar.getV(instruction.getRegisterC()), fsengine.mkTrue())
+                        ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterC()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterC()), fsengine.mkTrue()))
+                        );
+                d1 = "[REF] Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                fsengine.addQuery(new Z3Query(q1, d1, verboseResults, className, methodName, pc, sinkName));
+            }
         }
     }
  
@@ -4264,7 +4561,304 @@ public class FSInstructionAnalysis{
                     return null;
             }
         }
-    }    
+    }
+    
+    private void mergePointers(int reg1, int reg2, BoolExpr joinLabel){        
+        buildH();
+        b = fsengine.smashPredP(fsvar.getV(reg1), fsvar.getV(reg2), joinLabel);
+        buildRule();
+        
+        BoolExpr h2 =
+              fsengine.and(
+                      h,
+                      fsengine.reachPredP(fsvar.getVal(), fsvar.getV(reg1), fsvar.getLf())
+                      ); 
+        b = fsengine.smashPredP(fsvar.getVal(), fsvar.getV(reg1), fsengine.or(fsvar.getLf(), joinLabel));
+        h2 =
+                fsengine.and(
+                        h,
+                        fsengine.reachPredP(fsvar.getVal(), fsvar.getV(reg2), fsvar.getLf())
+                        ); 
+          b = fsengine.smashPredP(fsvar.getVal(), fsvar.getV(reg2), fsengine.or(fsvar.getLf(), joinLabel));
+        
+        fsengine.addRule(fsengine.implies(h2,  b), null);
+    }
+    
+    private void skipUnknown(final Boolean range, final String invClass, final String invMethod){
+        BoolExpr joinLabel = null;
+        boolean returnsRef = false;
+        if (callReturns){
+            if (returnType.contains(";") || returnType.contains("[")){
+                returnsRef = true;
+            }
+            joinLabel = analysis.isSource(className,methodName,invClass.hashCode(), invMethod.hashCode()) 
+                    ? fsengine.mkTrue() : null;
+        }
+        
+       /*
+        * If we call a sink the join label will high, o.w. the label is the join of the label of arguments 
+        */
+        
+        if (joinLabel == null){
+            joinLabel = range ? getLabelsRange() : getLabels();
+        }
+                        
+       /*
+        * Case 1: method does not return: no change to the labels
+        */
+        
+        if (!callReturns){
+            buildH();
+            buildB();
+            buildRule();
+        }
+        
+        /*
+         * Case 2: method returns primitive: result label is the join
+         */
+        
+        if (callReturns && !returnsRef){
+            buildH();
+            regUpV.put(numRegLoc, fsvar.getF());
+            regUpH.put(numRegLoc, joinLabel);
+            regUpL.put(numRegLoc, fsengine.mkFalse());
+            regUpG.put(numRegLoc, fsengine.mkFalse());
+            buildB();
+            buildRule();
+        }
+        
+        /*
+         * Case 3: method returns reference: result label is the join, create an object on the heap
+         */
+        
+        if (callReturns && returnsRef) {
+            buildH();
+
+            instanceNum = analysis.getInstNum(c, m, codeAddress);
+            regUpV.put(numRegLoc,
+                    fsengine.mkBitVector(instanceNum, analysis.getSize()));
+            regUpH.put(numRegLoc, joinLabel);
+            regUpL.put(numRegLoc, fsengine.mkFalse());
+            regUpG.put(numRegLoc, fsengine.mkTrue());
+            buildB();
+            buildRule();
+            
+            regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
+
+            
+                buildH();
+                b = fsengine.hPred(
+                        fsengine.mkBitVector(referenceIntIndex,
+                                analysis.getSize()),
+                        fsengine.mkBitVector(instanceNum, analysis.getSize()),
+                        fsvar.getF(),
+                        fsvar.getFpp(),
+                        joinLabel, fsvar.getBf());
+                buildRule();         
+
+            regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
+
+        }  
+    }
+    
+    /*
+     * Advances pc with a top values for the return value (if exists)
+     */
+    private void invokeNotKnown(final Boolean range, final String invClass, final String invMethod){
+        /*if (analysis.isSink(className,methodName,invClass.hashCode(), invMethod.hashCode())){
+            if (range) {
+                addQueryRange(z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
+                        className, methodName, Integer.toString(codeAddress), invMethod, analysis.optionVerbose());
+            }else{
+                addQuery(z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
+                        className, methodName, Integer.toString(codeAddress), invMethod, analysis.optionVerbose());
+            }
+        }*/
+        
+        BoolExpr joinLabel = null;
+        boolean returnsRef = false;
+        if (callReturns){
+            if (returnType.contains(";") || returnType.contains("[")){
+                returnsRef = true;
+            }
+            joinLabel = analysis.isSource(className,methodName,invClass.hashCode(), invMethod.hashCode()) 
+                    ? fsengine.mkTrue() : null;
+        }
+        
+       /*
+        * If we call a sink the join label will high, o.w. the label is the join of the label of arguments 
+        */
+        
+        if (joinLabel == null){
+            joinLabel = range ? getLabelsRange() : getLabels();
+        }
+        
+       /*
+        *  If an unknown method has a reference as an argument, let the top value and the label join be dereferenced
+        */
+        int numRegInInstr;
+        if (range){
+            RegisterRangeInstruction instruction = (RegisterRangeInstruction)this.instruction;
+            numRegInInstr = instruction.getRegisterCount();
+        }
+        else{
+            FiveRegisterInstruction instruction = (FiveRegisterInstruction)this.instruction;
+            numRegInInstr = instruction.getRegisterCount();
+        }
+        
+        int regOffset = numRegInInstr - parameterTypes.size();
+        
+        if (!((regOffset == 0) || (regOffset == 1))){
+            System.err.println("Wrong offset for the parameters in the unknown method call!");
+        }
+        
+        int i = 1 + regOffset;
+        if (regOffset == 1){
+            if (!analysis.optionNotFlowSens()){
+              //lift the local heap if the value moved was a local pointer and the object was on the global heap
+                h = fsengine.and(
+                        fsengine.eq(fsvar.getG(getRegisterNumber(range, 1)),fsengine.mkTrue()),
+                        fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc)
+                        );
+            this.liftIfLocal(h, null);
+            }
+            for (final CharSequence type : parameterTypes) {
+                if (type.toString().contains(";") || type.toString().contains("[")) {
+                    mergePointers(getRegisterNumber(range, 1), getRegisterNumber(range, i), joinLabel);
+                }
+                i = i + 1;
+            }
+        }
+        
+        
+        i = 1 + regOffset;
+        int j = 1 + regOffset;
+        
+        for (final CharSequence type : parameterTypes) {
+            if (!analysis.optionNotFlowSens()){
+                //lift the local heap if the value moved was a local pointer and the object was on the global heap
+                  h = fsengine.and(
+                          fsengine.eq(fsvar.getG(getRegisterNumber(range, i)),fsengine.mkTrue()),
+                          fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc)
+                          );
+              this.liftIfLocal(h, null);
+              }
+            for (final CharSequence type2 : parameterTypes) {
+                if (j <= i){
+                    j = j + 1;
+                    if (j >= parameterTypes.size()){
+                        break;
+                    }
+                    else{
+                        continue;
+                    }
+                }
+                if (
+                        (type.toString().contains(";") || type.toString().contains("["))
+                        &&
+                        (type2.toString().contains(";") || type2.toString().contains("["))
+                        ) {
+                    mergePointers(getRegisterNumber(range, i), getRegisterNumber(range, j), joinLabel);
+                }
+                j = j + 1;
+            }
+            i = i + 1;
+        }
+                
+       /*
+        * Case 1: method does not return: no change to the labels
+        */
+        
+        if (!callReturns){
+            buildH();
+            buildB();
+            buildRule();
+        }
+        
+        /*
+         * Case 2: method returns primitive: result label is the join
+         */
+        
+        if (callReturns && !returnsRef){
+            buildH();
+            regUpV.put(numRegLoc, fsvar.getF());
+            regUpH.put(numRegLoc, joinLabel);
+            regUpL.put(numRegLoc, fsengine.mkFalse());
+            regUpG.put(numRegLoc, fsengine.mkFalse());
+            buildB();
+            buildRule();
+        }
+        
+        /*
+         * Case 3: method returns reference: result label is the join, create an object on the heap
+         */
+        
+        if (callReturns && returnsRef) {
+            buildH();
+
+            instanceNum = analysis.getInstNum(c, m, codeAddress);
+            regUpV.put(numRegLoc,
+                    fsengine.mkBitVector(instanceNum, analysis.getSize()));
+            regUpH.put(numRegLoc, joinLabel);
+            regUpL.put(numRegLoc, fsengine.mkFalse());
+            regUpG.put(numRegLoc, fsengine.mkTrue());
+            buildB();
+            buildRule();
+            
+            regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
+
+            Map<Integer, Boolean> fields = Collections
+                    .synchronizedMap(new HashMap<Integer, Boolean>());
+            fields = analysis.getClassFields(referenceString, instanceNum);
+            if (fields != null)
+                for (Map.Entry<Integer, Boolean> fieldN : fields.entrySet()) {
+                    buildH();
+                    b = fsengine.hPred(
+                            fsengine.mkBitVector(referenceIntIndex,
+                                    analysis.getSize()),
+                            fsengine.mkBitVector(instanceNum,
+                                    analysis.getSize()),
+                            fsengine.mkBitVector(fieldN.getKey(),
+                                    analysis.getSize()),
+                            fsvar.getF(),
+                            joinLabel,
+                            fsengine.mkBool(fieldN.getValue()));
+                    buildRule();
+                }
+            else {
+                buildH();
+                b = fsengine.hPred(
+                        fsengine.mkBitVector(referenceIntIndex,
+                                analysis.getSize()),
+                        fsengine.mkBitVector(instanceNum, analysis.getSize()),
+                        fsvar.getF(),
+                        fsvar.getFpp(),
+                        joinLabel, fsvar.getBf());
+                buildRule();         
+            }
+
+            regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
+
+            if (analysis.hasStaticConstructor(referenceIntIndex)) {
+                int staticConstNum = "<clinit>()V".hashCode();
+                DalvikMethod dmc;
+                dmc = analysis
+                        .getExactMethod(referenceIntIndex, staticConstNum);
+                if (dmc != null) {
+                    buildH();
+                    b = fsengine.rPred(Integer.toString(referenceIntIndex),
+                            Integer.toString(staticConstNum), 0, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF,
+                            dmc.getNumArg(),
+                            dmc.getNumReg());
+                    buildRule();
+                } else {
+                    System.err
+                            .println("Static constructor implementation not found for the class: "
+                                    + referenceStringClass);
+                }
+            }
+        }  
+    }
    
     /*
      * Advances pc with a top values for the return value (if exists)
@@ -4285,7 +4879,7 @@ public class FSInstructionAnalysis{
         BoolExpr joinLabel = null;
         boolean returnsRef = false;
         if (callReturns){
-            if (returnType.contains(";") || returnType.contains("]")){
+            if (returnType.contains(";") || returnType.contains("[")){
                 returnsRef = true;
             }
             joinLabel = analysis.isSource(className,methodName,invClass.hashCode(), invMethod.hashCode()) 
@@ -4394,7 +4988,7 @@ public class FSInstructionAnalysis{
         	int i = 1 + regOffset;
 
         	for (final CharSequence type : parameterTypes) {
-        		if (type.toString().contains(";") || type.toString().contains("]")) {
+        		if (type.toString().contains(";") || type.toString().contains("[")) {
 
         			// place taint from a primitive arguments to the ref
         			buildH();
@@ -4466,6 +5060,7 @@ public class FSInstructionAnalysis{
                 regUpL.put(j,fsengine.mkFalse());
             }
         	//Reset the local heap
+            if (!analysis.optionNotFlowSens()){
         	for (int j = 0; j < analysis.getLocalHeapSize();j++) {
         		regUpLHV.put(j,fsengine.mkBitVector(0, analysis.getSize()));
         		regUpLHH.put(j,fsengine.mkFalse());
@@ -4473,6 +5068,7 @@ public class FSInstructionAnalysis{
         		regUpLHG.put(j,fsengine.mkFalse());
         		regUpLHF.put(j,fsengine.mkTrue());
         	}
+            }
             buildB();
             buildRule();
             
@@ -4516,12 +5112,14 @@ public class FSInstructionAnalysis{
         	regUpG.put(numRegLoc, returnIsGlobal);
 
         	//Reset the local heap
+        	if (!analysis.optionNotFlowSens()){
         	for (int j = 0; j < analysis.getLocalHeapSize();j++) {
         		regUpLHV.put(j,fsengine.mkBitVector(0, analysis.getSize()));
         		regUpLHH.put(j,fsengine.mkFalse());
         		regUpLHL.put(j,fsengine.mkFalse());
         		regUpLHG.put(j,fsengine.mkFalse());
         		regUpLHF.put(j,fsengine.mkTrue());
+        	}
         	}
         	buildB();
         	buildRule();
@@ -4549,7 +5147,7 @@ public class FSInstructionAnalysis{
         	{
         		int i = 1;
         		for (final CharSequence type : parameterTypes) {
-        			if (type.toString().contains(";") || type.toString().contains("]")) {
+        			if (type.toString().contains(";") || type.toString().contains("[")) {
 
         				/*
         				 *  If one of the arguments is a local pointer then we lift
@@ -4569,6 +5167,7 @@ public class FSInstructionAnalysis{
         				}
 
         				//Reset the local heap
+        				if (!analysis.optionNotFlowSens()){
         				for (int j = 0; j < analysis.getLocalHeapSize();j++) {
         					regUpLHV.put(j,fsengine.mkBitVector(0, analysis.getSize()));
         					regUpLHH.put(j,fsengine.mkFalse());
@@ -4576,7 +5175,7 @@ public class FSInstructionAnalysis{
         					regUpLHG.put(j,fsengine.mkFalse());
         					regUpLHF.put(j,fsengine.mkTrue());
         				}
-
+        				}
         				// We set the returned value
         				regUpV.put(numRegLoc, fsvar.getF());
         				regUpH.put(numRegLoc, fsvar.getLf());
@@ -4632,7 +5231,7 @@ public class FSInstructionAnalysis{
         	{
         		int i = 1;
         		for (final CharSequence type : parameterTypes) {
-        			if (type.toString().contains(";") || type.toString().contains("]")) {
+        			if (type.toString().contains(";") || type.toString().contains("[")) {
 
         				buildH();
         				h = fsengine.and(
@@ -4791,7 +5390,7 @@ public class FSInstructionAnalysis{
         regUpL = updateRegister(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectL(fsvar), range);
         regUpG = updateRegister(numRegCall, numArgCall,BoolExpr.class, fsvar.getInjectG(fsvar), range);
 
-        
+        if (!analysis.optionNotFlowSens()){
         for (int i = 0; i < analysis.getLocalHeapSize(); i++){
             if (forceLifting){
                 regUpLHV.put(i, fsengine.mkBitVector(0, size));
@@ -4808,7 +5407,7 @@ public class FSInstructionAnalysis{
                 regUpLHF.put(i, fsengine.mkFalse());
             }
         }
-
+        }
         b = fsengine.rPredInvok(classInvokedStringName, methodInvokedStringName, 0,
                 regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numArgCall, numRegCall, size);
         buildRule();
@@ -4855,8 +5454,10 @@ public class FSInstructionAnalysis{
             regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
 
             BoolExpr returnLabel = analysis.isSource(className,methodName,cInvoked.getType().hashCode(), mInvoked.getName().hashCode()) ? fsengine.mkTrue() : fsvar.getHrez();
-
-            this.liftLi();
+            
+            if (!analysis.optionNotFlowSens()){
+                this.liftLi();
+            }
 
             if (callReturns) {
                 regUpV.put(numRegLoc, fsvar.getRez());
@@ -4864,11 +5465,11 @@ public class FSInstructionAnalysis{
                 regUpL.put(numRegLoc, fsvar.getLrez());
                 regUpG.put(numRegLoc, fsvar.getGrez());
             }
-
+            if (!analysis.optionNotFlowSens()){
             for (int i = 0; i < analysis.getLocalHeapSize(); i++){
                 regUpLHCF.put(i, fsengine.or(fsvar.getLHF(i), fsvar.getLHCF(i)));
             }
-
+            }
             b = fsengine.rPred(classIndex, methodIndex, nextCode, regUpV, regUpH, regUpL, regUpG, regUpLHCV, regUpLHCH, regUpLHCL, regUpLHCG, regUpLHCF, numParLoc, numRegLoc);
 
             buildRule();

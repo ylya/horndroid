@@ -113,6 +113,25 @@ public class FSEngine extends Z3Clauses{
             BoolExpr hh4_bb4 = mContext.mkImplies(hh4, bb4);
             this.addRule(hh4_bb4, null);
             
+            
+            if (options.pointersMerge){
+                this.declareRel(func.getReachP());
+                this.declareRel(func.getSmashP());
+                //symm
+                hh2 = smashPredP(var.getVal(), var.getVfp(), var.getLf());
+                bb2 = smashPredP(var.getVfp(), var.getVal(), var.getLf());
+                hh2_bb2 = mContext.mkImplies(hh2, bb2);
+                this.addRule(hh2_bb2, null);
+                // step
+                hh4 = mContext.mkAnd(
+                        reachPredP(var.getVal(), var.getVfp(), var.getLf()),
+                        reachPredP(var.getVfp(), var.getFpp(), var.getLfp())
+                        );
+                bb4 = reachPredP(var.getVal(), var.getFpp(), mContext.mkOr(var.getLf(), var.getLfp()));
+                hh4_bb4 = mContext.mkImplies(hh4, bb4);
+                this.addRule(hh4_bb4, null);
+            }
+            
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("FSEngine Failed");
@@ -135,7 +154,16 @@ public class FSEngine extends Z3Clauses{
         this.declareRel(func.getCFilter());
         //func.setLiftLH((this.liftLHDef()));
     }
-
+    public void initializeNFS() {
+        if (this.initialized){
+            throw new RuntimeException("FSEngine Failed: initialized twice");
+        }
+        this.localHeapSize = (Integer) 0;
+        this.allocationPointOffset = new HashMap<Integer,Integer>();
+        this.allocationPointSize = new HashMap<Integer,Integer>();
+        this.var.initialize(0);
+        this.initialized = true;
+    }
 	public Boolean isInitialized() {
         return initialized;
     }
@@ -807,6 +835,22 @@ public class FSEngine extends Z3Clauses{
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Z3Engine Failed: reachPred");
+        }
+    }
+    public BoolExpr reachPredP(BitVecExpr value, BitVecExpr value2, BoolExpr value3) {
+        try {
+            return (BoolExpr) func.getReachP().apply(value, value2, value3);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Z3Engine Failed: reachPredP");
+        }
+    }
+    public BoolExpr smashPredP(BitVecExpr value, BitVecExpr value2, BoolExpr value3) {
+        try {
+            return (BoolExpr) func.getSmashP().apply(value, value2, value3);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Z3Engine Failed: reachPredP");
         }
     }
 }

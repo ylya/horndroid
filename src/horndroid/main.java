@@ -56,6 +56,9 @@ public class main {
         options.addOption("l", false, "stop after fisrt leak found");
         options.addOption("s", false, "flow sensitive heap only for the objects created in the method that contains a call to a sink");
         options.addOption("m", false, "another (old) treatment for the unknown methods");
+        options.addOption("i", false, "flow insensitive analysis");
+        options.addOption("p", false, "merging pointers");
+        options.addOption("g", false, "skip uknown methods");
     }
     public static void main(String[] args) {
         parseCommandLine(args);
@@ -276,6 +279,15 @@ public class main {
             case 'm':
                 hornDroidOptions.oldUnknown = true;
                 break;
+            case 'i':
+                hornDroidOptions.nfsanalysis = true;
+                break;
+            case 'p':
+                hornDroidOptions.pointersMerge = true;
+                break;
+            case 'g':
+                hornDroidOptions.nopUnknown = true;
+                break;
             }
             
         }
@@ -322,5 +334,8 @@ public class main {
         System.out.println("-l stop after fisrt leak found");
         System.out.println("-s flow sensitive heap only for the objects created in the method that contains a call to a sink");
         System.out.println("-m another (old) treatment for the unknown methods");
+        System.out.println("-i flow insensitive analysis");
+        System.out.println("-p merging pointers");
+        System.out.println("-g skip uknown methods");
     }
 }

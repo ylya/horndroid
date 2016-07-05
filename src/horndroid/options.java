@@ -4,7 +4,7 @@ package horndroid;
 public class options {
 	public boolean arrays = false;
 	public boolean debug = false;
-	public boolean fsanalysis = false;
+	public boolean fsanalysis = true; //now enabled by default
     public boolean verboseResults = false;
     public String outputDirectory = "";
     public int apiLevel = 15;
@@ -16,4 +16,7 @@ public class options {
     public boolean tillFirstLeak = false;
     public boolean sensIfHasSink = false;
     public boolean oldUnknown = false;
+    public boolean nfsanalysis = false;
+    public boolean pointersMerge = false;
+    public boolean nopUnknown = false;
 }

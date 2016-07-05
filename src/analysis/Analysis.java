@@ -186,11 +186,20 @@ public class Analysis {
     public boolean optionOldUnknown(){
         return options.oldUnknown;
     }
+    public boolean optionMerginPointers(){
+        return options.pointersMerge;
+    }
+    public boolean optionSkipUnknown(){
+        return options.nopUnknown;
+    }
     public boolean optionVerbose(){
         return options.verboseResults;
     }
     public boolean optionFlowSensIfSink(){
         return options.sensIfHasSink;
+    }
+    public boolean optionNotFlowSens(){
+        return options.nfsanalysis;
     }
     public Set<ArrayData> getArrayData(){
         return arrayDataPayload;
@@ -577,7 +586,7 @@ public class Analysis {
                 regUpH.put(i, fsengine.mkFalse());
                 regUpL.put(i, fsengine.mkFalse());
             }
-            
+            if (!options.nfsanalysis){
             for (int i = 0; i < this.getLocalHeapSize(); i++){
                 regUpLHV.put(i, fsengine.mkBitVector(0, this.getSize()));
                 regUpLHH.put(i, fsengine.mkFalse());
@@ -585,7 +594,7 @@ public class Analysis {
                 regUpLHG.put(i, fsengine.mkFalse());
                 regUpLHF.put(i, fsengine.mkFalse());
             }
-            
+            }
             BoolExpr h = fsengine.rPred(Integer.toString(classIndex), Integer.toString(methodIndex), 0, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, regCount, numRegCall);
             fsengine.addRule(h, dc.toString() + methodIndex + "zz");
         }else{
@@ -674,6 +683,7 @@ public class Analysis {
                         regUpH.put(i, fsengine.mkFalse());
                     }
                     
+                    if (!options.nfsanalysis){
                     for (int i = 0; i < this.getLocalHeapSize(); i++){
                         regUpLHV.put(i, fsengine.mkBitVector(0, this.getSize()));
                         regUpLHH.put(i, fsengine.mkFalse());
@@ -681,7 +691,7 @@ public class Analysis {
                         regUpLHG.put(i, fsengine.mkFalse());
                         regUpLHF.put(i, fsengine.mkFalse());
                     }
-                    
+                    }
                     BoolExpr b1 = fsengine.iPred(fsengine.mkBitVector(dc.getType().hashCode(), options.bitvectorSize),
                             fsvar.getVfp(),
                             fsvar.getVal(), fsvar.getLf(), fsvar.getBf());
@@ -1179,10 +1189,16 @@ public class Analysis {
         }
         
         // Initialize allocationPointOffset,allocationPointNumbers and allocationPointSize
-        initializeAllocationMapping();
+        if (!options.nfsanalysis){
+            initializeAllocationMapping();
+        }
 
-        if (options.fsanalysis){
-            // Correctly set the corresponding fields in the FSEngine
+        
+        if (options.nfsanalysis){
+            fsengine.initializeNFS();
+        }
+        else{
+         // Correctly set the corresponding fields in the FSEngine
             fsengine.initialize(localHeapSize, allocationPointOffset, allocationPointSize);
 
             // Generates heap handling rules for the flow-sensitive analysis
