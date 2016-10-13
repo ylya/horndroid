@@ -55,6 +55,7 @@ import Dalvik.DalvikMethod;
 import Dalvik.DalvikStaticField;
 import Dalvik.GeneralClass;
 import Dalvik.Instances;
+import Dalvik.Interfaces;
 
 public class DataExtraction {
     final private Map<Integer,GeneralClass> classes;
@@ -69,6 +70,8 @@ public class DataExtraction {
     private Set<CMPair> refSinks;
     final private Set<Integer> methodHasSink;
     
+    private Interfaces interfaces;
+    
     private final Set<Integer> launcherActivities;
     
 
@@ -80,7 +83,8 @@ public class DataExtraction {
              Set<Integer> staticConstructor, Set<ConstString> constStrings, Set<Integer> launcherActivities, final boolean fromApk,
              final SourcesSinks sourcesSinks,
              final Set<CMPair> refSources, final Set<CMPair> refSinks,
-             final Set<Integer> methodHasSink){
+             final Set<Integer> methodHasSink,
+             final Interfaces interfaces){
         this.classes = classes;
         this.instances = instances;
         this.arrayDataPayload = arrayDataPayload;
@@ -95,6 +99,8 @@ public class DataExtraction {
         this.refSources = refSources;
         
         this.methodHasSink = methodHasSink;
+        
+        this.interfaces = interfaces;
     }
     public void putMethodHasSink(int cmHash){
         if (this.methodHasSink != null){
@@ -118,18 +124,6 @@ public class DataExtraction {
                         }
                     }
                 }
-                
-                final Set<GeneralClass> interfaces = cd.getInterfaces();
-                for (final GeneralClass ic: interfaces){
-                    final int interfaceClass = ic.getType().hashCode();
-                    GeneralClass cs = classes.get(interfaceClass);
-                    if (cs instanceof DalvikClass && !(ic instanceof DalvikClass)){
-                        interfaces.remove(ic);
-                        interfaces.add(cs);
-                    }
-                }
-                cd.putInterfaces(interfaces);
-                
                 instances.changeType(cd);
             }
         }
@@ -160,15 +154,15 @@ public class DataExtraction {
     private DalvikClass collectDataFromClass(final Map<Integer,ClassDef> classDefsMap, final ClassDef classDef) {
         final DalvikClass dc = new DalvikClass(classDef.getType());
         dc.putSuperClass(new GeneralClass(classDef.getSuperclass()));
-        final Set<GeneralClass> inter = Collections.newSetFromMap(new ConcurrentHashMap<GeneralClass,Boolean>());
+        //final Set<GeneralClass> inter = Collections.newSetFromMap(new ConcurrentHashMap<GeneralClass,Boolean>());
         for (final String interfaceName: classDef.getInterfaces()){
-            inter.add(new GeneralClass(interfaceName));
+            interfaces.add(interfaceName.hashCode(), dc);
         }
-        dc.putInterfaces(inter);
-
         Set<DalvikField> dalvikFields = collectDataFromFields(classDef, false);
         dalvikFields.addAll(collectDataFromFields(classDef, true));
+        
         dc.putFields(dalvikFields);
+        
         Set<DalvikMethod> dalvikMethods = collectDataFromMethods(classDefsMap, classDef, false); //direct
         dalvikMethods.addAll(collectDataFromMethods(classDefsMap, classDef, true)); //virtual
         dc.putMethods(dalvikMethods);
@@ -207,6 +201,7 @@ public class DataExtraction {
         }
         return dalvikFields;
     }
+
 
     private Set<DalvikMethod> collectDataFromMethods(final Map<Integer,ClassDef> classDefsMap, final ClassDef classDef, final boolean virtual) {
         final Set<DalvikMethod> dalvikMethods = Collections.newSetFromMap(new ConcurrentHashMap<DalvikMethod, Boolean>());
@@ -529,15 +524,6 @@ public class DataExtraction {
             GeneralClass classDef = classes.get(classIndex);
             if (classDef instanceof DalvikClass){
                 DalvikClass cd = (DalvikClass) classDef;
-                for (GeneralClass interfaceClass: cd.getInterfaces()){
-                    final String interfaceNameFormat = interfaceClass.getType().substring(1, interfaceClass.getType().length()-1);
-                    
-                    Boolean boolInterface = sourcesSinks.isSourceSink(interfaceNameFormat, methodNameFormat);
-                    if (boolInterface != null){
-                        return bool;
-                    }
-                }
-
                 if (cd.getSuperClass() != null){
                     return isSourceSink(cd.getSuperClass().getType(), methodName);
                 }

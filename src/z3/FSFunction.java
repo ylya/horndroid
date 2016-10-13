@@ -11,8 +11,8 @@ import com.microsoft.z3.Z3Exception;
 public class FSFunction {
 
     // Function
-    private final FuncDecl h, hi, i, s, ta, ra, rp, sp;
-    private FuncDecl reachLH, cFilter, liftLH;
+    private final FuncDecl h, hi, i, s, ta, ra, j;
+    private FuncDecl reachLH, cFilter;
 
 
     public FSFunction(Context ctx, int bvSize) throws Z3Exception {
@@ -28,8 +28,7 @@ public class FSFunction {
         
         this.ta = ctx.mkFuncDecl("TA", new Sort[]{bv64, bool}, bool); //used for computing taint on the connected component on the heap
         this.ra = ctx.mkFuncDecl("RA", new Sort[]{bv64, bv64}, bool); //used for computing the connected component of the heap element
-        this.rp = ctx.mkFuncDecl("RP", new Sort[]{bv64, bv64, bool}, bool); //used for computing the connected component of the heap element
-        this.sp = ctx.mkFuncDecl("SP", new Sort[]{bv64, bv64, bool}, bool); //used for smashing of two heap elements
+        this.j = ctx.mkFuncDecl("J", new Sort[]{bv64, bool}, bool); //used for computing the join taint of heap elements
     }
 
     public FuncDecl getH() {
@@ -72,10 +71,7 @@ public class FSFunction {
     public FuncDecl getReach(){
         return ra;
     }
-    public FuncDecl getReachP(){
-        return rp;
-    }
-    public FuncDecl getSmashP(){
-        return sp;
+    public FuncDecl getJoin(){
+        return j;
     }
 }

@@ -1,6 +1,7 @@
 package analysis;
 
 import com.google.common.collect.Sets;
+
 import horndroid.options;
 
 import java.io.File;
@@ -25,6 +26,7 @@ import com.google.common.collect.Ordering;
 
 import Dalvik.GeneralClass;
 import Dalvik.Instances;
+import Dalvik.Interfaces;
 
 public class Stubs {
     final private Map<Integer,GeneralClass> classes;
@@ -35,6 +37,7 @@ public class Stubs {
     final private Set<Integer> staticConstructor;
     final private Set<ConstString> constStrings;
     final private options options;
+    final private Interfaces interfaces;
 
     public Stubs(options options){
         //TODO: beautiful definitions like the one for classes
@@ -46,6 +49,7 @@ public class Stubs {
         this.sparseSwitchPayload = Collections.synchronizedSet(new HashSet <SparseSwitch>());
         this.options = options;
         this.staticConstructor = Collections.synchronizedSet(new HashSet<Integer>());
+        this.interfaces = new Interfaces();
     }
     public void process(){
         long startTime, endTime;
@@ -83,7 +87,7 @@ public class Stubs {
         System.out.println("data extracting...");
         startTime = System.nanoTime();
         DataExtraction de = new DataExtraction(classes, instances, arrayDataPayload, packedSwitchPayload, sparseSwitchPayload, staticConstructor, constStrings, new HashSet<Integer>(),
-                false, null, null, null, null);
+                false, null, null, null, null, interfaces);
         de.collectData(classDefs);
         endTime = System.nanoTime();
         System.out.println("done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");

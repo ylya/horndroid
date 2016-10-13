@@ -11,7 +11,6 @@ import java.util.TreeSet;
 public class DalvikClass extends GeneralClass {
 	private GeneralClass superClass;
 	private Set<DalvikClass> childClasses;
-	private Set<GeneralClass> interfaces;
 	private Set<DalvikField> fields;
 	private Map<Integer,DalvikMethod> methods;
 	
@@ -25,12 +24,9 @@ public class DalvikClass extends GeneralClass {
 	public void putChildClass(final DalvikClass childClass){
 		childClasses.add(childClass);
 	}
-	public void putInterfaces(final Set<GeneralClass> interfaces){
-		this.interfaces = interfaces;
-	}
 	public void putFields(final Set<DalvikField> fields){
-		this.fields = fields; 
-	}
+        this.fields = fields; 
+    }
 	public void putMethods(final Set<DalvikMethod> methods){
 		this.methods = new HashMap<Integer,DalvikMethod>();
 		for (DalvikMethod dm : methods){
@@ -52,25 +48,20 @@ public class DalvikClass extends GeneralClass {
 	    }
 		return superClass;
 	}
-
-	
-	public Set<GeneralClass> getInterfaces(){
-		return interfaces;
-	}
 	
 	/*
 	 * Return the fields of the class, always in the same order.
 	 */
 	public Set<DalvikField> getFields(){
-	    if (fields == null) return new HashSet<DalvikField>();
-	    TreeSet<DalvikField> f = new TreeSet<DalvikField>(fields);
-	    if (this.superClass instanceof DalvikClass){
-	        f.addAll(((DalvikClass) this.superClass).getFields());
-	    }
-		return f;
-	}
+        if (fields == null) return new HashSet<DalvikField>();
+        TreeSet<DalvikField> f = new TreeSet<DalvikField>(fields);
+        if (this.superClass instanceof DalvikClass){
+            f.addAll(((DalvikClass) this.superClass).getFields());
+        }
+        return f;
+    }
 	public Set<DalvikField> getExactFields(){
-	    if (fields == null) return new HashSet<DalvikField>();
+        if (fields == null) return new HashSet<DalvikField>();
         return fields;
     }
 	public Collection<DalvikMethod> getMethods(){

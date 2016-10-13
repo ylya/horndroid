@@ -416,5 +416,23 @@ public class FSVariable {
             }
         };
     }
+    
+    public BoolExpr getJoinVar(int i) {
+        try {
+            return (BoolExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP +  5 * i + 5, bool);
+        } catch (Z3Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("getJoinVar");
+        }
+    }
+
+    public VariableInject GetInjectJoinVar(final FSVariable var) {
+        return new VariableInject() {
+            @Override
+            public BoolExpr get(int i) {
+                return var.getJoinVar(i);
+            }
+        };
+    }
 
 }

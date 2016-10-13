@@ -33,7 +33,6 @@ import analysis.Stubs;
 import util.SourceSinkParser;
 import util.SourcesSinks;
 import z3.FSEngine;
-import z3.Z3Engine;
 
 @SuppressWarnings("deprecation")
 public class main {
@@ -43,27 +42,26 @@ public class main {
     private static Option[] clOptions;
     private static String apktoolFolder;
     private static String inputApk;
-    private static String z3Folder;
     static {
         options = new Options();
         options.addOption("q", false, "precise query results");
-        options.addOption("d", true, "print debugging information (argument: integer 1, 2 or 3)");
-        options.addOption("f", false, "flow-sensitive heap");
+        options.addOption("d", true,  "print debugging information (argument: integer 1, 2 or 3)");
         options.addOption("w", false, "sensitive array indexes");
-        options.addOption("n", true, "bitvector size (default 64)");
+        options.addOption("n", true,  "bitvector size (default 64)");
         options.addOption("t", false, "fetch stubs");
-        options.addOption("o", true, "timeout (default 30 min)");
+        options.addOption("o", true,  "timeout per query (default 30 min)");
         options.addOption("l", false, "stop after fisrt leak found");
         options.addOption("s", false, "flow sensitive heap only for the objects created in the method that contains a call to a sink");
         options.addOption("m", false, "another (old) treatment for the unknown methods");
-        options.addOption("i", false, "flow insensitive analysis");
+        options.addOption("i", false, "flow insensitive heap");
         options.addOption("p", false, "merging pointers");
         options.addOption("g", false, "skip uknown methods");
+        options.addOption("r", true,  "number of queries");
     }
     public static void main(String[] args) {
         parseCommandLine(args);
 
-        if (hornDroidOptions.fsanalysis){
+        if (!hornDroidOptions.nfsanalysis){
             System.out.println("Flow Sensitive Analysis on "+ hornDroidOptions.bitvectorSize + " bitvectors size");
         }else{
             System.out.println("Standard Analysis on "+ hornDroidOptions.bitvectorSize + " bitvectors size");
@@ -120,11 +118,10 @@ public class main {
             final String fullPath      = FilenameUtils.getFullPath(file.getPath());
             final String inputApkFileName = FilenameUtils.getFullPath(file.getPath()) + file.getName();
             hornDroidOptions.outputDirectory  = fullPath + shortFilename;
-            final Z3Engine z3engine = new Z3Engine(hornDroidOptions);
             final FSEngine fsengine = new FSEngine(hornDroidOptions);
 
             final ExecutorService instructionExecutorService = Executors.newCachedThreadPool();
-            Analysis analysis = new Analysis(z3engine, fsengine, sourcesSinks, hornDroidOptions, instructionExecutorService, stubs);
+            Analysis analysis = new Analysis(fsengine, sourcesSinks, hornDroidOptions, instructionExecutorService, stubs);
             System.out.println("Analysing " + file.getName());
             startTime = System.nanoTime();
 
@@ -214,11 +211,7 @@ public class main {
 
             System.out.println("Executing all queries...");
             startTime = System.nanoTime();
-
-            if (!hornDroidOptions.fsanalysis)
-                z3engine.executeAllQueries(analysis);
-            else
-                fsengine.executeAllQueries(analysis);
+            fsengine.executeAllQueries(analysis);
             
             endTime = System.nanoTime();
             System.out.println("...done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
@@ -248,9 +241,6 @@ public class main {
             case 'q':
                 hornDroidOptions.verboseResults = true;
                 break;
-            case 'f':
-                hornDroidOptions.fsanalysis = true;
-                break;
             case 'd':
                 {
                     hornDroidOptions.debug = true;
@@ -273,6 +263,9 @@ public class main {
             case 'o':
                 hornDroidOptions.timeout= Integer.parseInt(commandLine.getOptionValue("o"));
                 break;
+            case 'r':
+                hornDroidOptions.maxQueries= Integer.parseInt(commandLine.getOptionValue("r"));
+                break;
             case 'l':
                 hornDroidOptions.tillFirstLeak = true;
                 break;
@@ -291,13 +284,12 @@ public class main {
             }
             
         }
-        if (otherArgs.length != 3) {
+        if (otherArgs.length != 2) {
             usage();
             return;
         }
-        z3Folder = otherArgs[0];
-        apktoolFolder = otherArgs[1];
-        inputApk = otherArgs[2];
+        apktoolFolder = otherArgs[0];
+        inputApk = otherArgs[1];
     }
     private static void getApkFilesInDir(File dir, Set<File> apkFiles) {
         File[] files = dir.listFiles();
@@ -325,7 +317,6 @@ public class main {
         System.out.println("java -jar fs.jar [options] %Z3Home%/bin %apktool%/ <apk-file> | <apk-folder> \n finds leaks in the app");
         System.out.println("options:");
         System.out.println("-q precise query results");
-        System.out.println("-f flow-sensitive heap");
         System.out.println("-d print debugging information (argument: integer 1, 2 or 3)");
         System.out.println("-w sensitive array indexes");
         System.out.println("-n bitvector size (default 64)");
@@ -337,5 +328,6 @@ public class main {
         System.out.println("-i flow insensitive analysis");
         System.out.println("-p merging pointers");
         System.out.println("-g skip uknown methods");
+        System.out.println("-r number of queries");
     }
 }

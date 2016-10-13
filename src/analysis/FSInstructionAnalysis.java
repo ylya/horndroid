@@ -193,7 +193,7 @@ public class FSInstructionAnalysis{
                BoolExpr h1 = fsengine.and(fsvar.getH(i),h);
                BoolExpr h2 = fsengine.and(fsvar.getL(i),h);
                BoolExpr h3 = fsengine.and(fsvar.getG(i),h);
-               Z3Query q1 = new Z3Query(h1,i,QUERY_TYPE.HIGH,className,methodName,Integer.toString(codeAddress));
+               Z3Query q1 = new Z3Query(h,i,QUERY_TYPE.HIGH,className,methodName,Integer.toString(codeAddress));
                Z3Query q2 = new Z3Query(h2,i,QUERY_TYPE.LOCAL,className,methodName,Integer.toString(codeAddress));
                Z3Query q3 = new Z3Query(h3,i,QUERY_TYPE.GLOBAL,className,methodName,Integer.toString(codeAddress));
                fsengine.addQueryDebug(q1);
@@ -204,7 +204,7 @@ public class FSInstructionAnalysis{
                    fsengine.addQueryDebug(q3);
                }
            }
-           if (!analysis.optionNotFlowSens()){
+           /*if (!analysis.optionNotFlowSens()){
            for (int i = 0; i < analysis.getLocalHeapNumberEntries(); i++){
                 int instanceNumber = analysis.getInstanceNumFromReverse(i);
                 int lhoffset = fsengine.getOffset(instanceNumber);
@@ -229,7 +229,7 @@ public class FSInstructionAnalysis{
                     }
                 }
             }
-           }
+           }*/
         }
 
         
@@ -436,10 +436,16 @@ public class FSInstructionAnalysis{
 
 
         case NEW_INSTANCE:
-
         	//special treatment for the "global by default objects"
         	if (globalByDefault(dispatch, referenceIntIndex) || ((!analysis.checkMethodHasSink(makeCMHash(c,m))) && analysis.optionFlowSensIfSink()) || analysis.optionNotFlowSens()){
         		instanceNum = analysis.getInstNum(ci, mi, codeAddress);
+        		
+        		if (analysis.optionMerginPointers()){
+        		    buildH();
+        		    b = fsengine.joinPred(fsengine.mkBitVector(instanceNum, size), fsengine.mkFalse());
+        		    buildRule();
+        		}
+        		
         		buildH();
         		//update the register receiving the pointer to the newly created object
         		regUpV.put(registerA(), fsengine.mkBitVector(instanceNum, size));
@@ -613,6 +619,13 @@ public class FSInstructionAnalysis{
 
         case NEW_ARRAY:
         	instanceNum = analysis.getInstNum(ci, mi, codeAddress);
+        	
+        	if (analysis.optionMerginPointers()){
+                buildH();
+                b = fsengine.joinPred(fsengine.mkBitVector(instanceNum, size), fsengine.mkFalse());
+                buildRule();
+            }
+        	
         	buildH();
         	regUpV.put(registerA(), fsengine.mkBitVector(instanceNum, size));
         	regUpH.put(registerA(), fsengine.mkFalse());
@@ -660,6 +673,13 @@ public class FSInstructionAnalysis{
             FiveRegisterInstruction instructionA = (FiveRegisterInstruction)this.instruction;
             final int regCount = instructionA.getRegisterCount();
             instanceNum = analysis.getInstNum(ci, mi, codeAddress);
+            
+            if (analysis.optionMerginPointers()){
+                buildH();
+                b = fsengine.joinPred(fsengine.mkBitVector(instanceNum, size), fsengine.mkFalse());
+                buildRule();
+            }
+            
             buildH();
             FSSingleRegUpdate u = new FSSingleRegUpdate(numRegLoc,
                     fsengine.mkBitVector(instanceNum, size),
@@ -819,6 +839,13 @@ public class FSInstructionAnalysis{
         case FILLED_NEW_ARRAY_RANGE:
         {
             instanceNum = analysis.getInstNum(ci, mi, codeAddress);
+            
+            if (analysis.optionMerginPointers()){
+                buildH();
+                b = fsengine.joinPred(fsengine.mkBitVector(instanceNum, size), fsengine.mkFalse());
+                buildRule();
+            }
+            
             buildH();
             FSSingleRegUpdate u = new FSSingleRegUpdate(numRegLoc,
                     fsengine.mkBitVector(instanceNum, size),
@@ -1190,15 +1217,17 @@ public class FSInstructionAnalysis{
                 buildRule();
 
                 regUpH.clear();
-                if (instruction.getOpcode().name().equals("APUT_OBJECT")){
+                //if (instruction.getOpcode().name().equals("APUT_OBJECT")){
                     buildH();
-                    b = fsengine.reachPredP(fsvar.getV(registerB()), fsvar.getV(registerA()), 
-                            fsengine.or(
-                            fsvar.getH(registerB()),
-                            fsvar.getH(registerA())
-                            ));
+                    h = fsengine.and(
+                            h,
+                            fsengine.hPred(fsvar.getCn(), fsvar.getV(registerA()), fsvar.getF(), fsvar.getVal(), fsvar.getLf(), fsvar.getBf())
+                            );
+                    b = fsengine.joinPred(fsvar.getV(registerB()), 
+                            fsvar.getLf()
+                            );
                     buildRule();
-                }
+                //}
             }
             else{
                 buildH();
@@ -1332,15 +1361,17 @@ public class FSInstructionAnalysis{
                 buildRule();
                
                 regUpH.clear();
-                if (instruction.getOpcode().name().equals("IPUT_OBJECT")){
+                //if (instruction.getOpcode().name().equals("IPUT_OBJECT")){
                     buildH();
-                    b = fsengine.reachPredP(fsvar.getV(registerB()), fsvar.getV(registerA()), 
-                            fsengine.or(
-                            fsvar.getH(registerB()),
-                            fsvar.getH(registerA())
-                            ));
+                    h = fsengine.and(
+                            h,
+                            fsengine.hPred(fsvar.getCn(), fsvar.getV(registerA()), fsvar.getF(), fsvar.getVal(), fsvar.getLf(), fsvar.getBf())
+                            );
+                    b = fsengine.joinPred(fsvar.getV(registerB()), 
+                            fsvar.getLf()
+                            );
                     buildRule();
-                }
+                //}
             }
             else{
               //object on the global heap: propagate R
@@ -1496,101 +1527,113 @@ public class FSInstructionAnalysis{
         case INVOKE_SUPER:
         {
         	
-        		dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.SUPER);
-        		int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
-        		if (dispatchResult != null){
-        			this.invoke(dispatchResult, false, referenceReg);
-        		}
-        		else{
-        		    if (!computeStub(false, referenceString)){
-        		        if (analysis.optionSkipUnknown()){
-        		            this.skipUnknown(false, referenceStringClass, referenceString);
-        		        }
-        		        else{
-        		        if (analysis.optionMerginPointers()){
-        		            this.invokeNotKnown(false, referenceStringClass, referenceString); 
-        		        }
-        		        else{
-                            this.invokeNotKnownNew(false, referenceStringClass, referenceString);  
-        		        }
-        		        }
-        		    }
-        		}
+            dispatchResult = dispatch.dispatch(referenceClassIndex,
+                    referenceIntIndex, referenceStringClass, referenceString,
+                    CallType.SUPER);
+            int referenceReg = ((FiveRegisterInstruction) this.instruction)
+                    .getRegisterC();
+            if (dispatchResult != null) {
+                this.invoke(dispatchResult, false, referenceReg);
+            } else {
+                if (!computeStub(false, referenceString)) {
+                    if (analysis.optionSkipUnknown()) {
+                        this.skipUnknown(false, referenceStringClass,
+                                referenceString);
+                    } else {
+                        if (analysis.optionMerginPointers()) {
+                            this.invokeNotKnown(false, referenceStringClass,
+                                    referenceString);
+                        } else {
+                            this.invokeNotKnownNew(false, referenceStringClass,
+                                    referenceString);
+                        }
+                    }
+                }
+            }
         }
         break;
 
         case INVOKE_SUPER_RANGE:
         {
-        		dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.SUPER);
-        		int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
-        		if (dispatchResult != null){
-        			this.invoke(dispatchResult, true, referenceReg);
-        		}
-        		else{
-        		    if (!computeStub(true, referenceString)){
-        		        if (analysis.optionSkipUnknown()){
-                            this.skipUnknown(true, referenceStringClass, referenceString);
+            dispatchResult = dispatch.dispatch(referenceClassIndex,
+                    referenceIntIndex, referenceStringClass, referenceString,
+                    CallType.SUPER);
+            int referenceReg = ((RegisterRangeInstruction) this.instruction)
+                    .getStartRegister();
+            if (dispatchResult != null) {
+                this.invoke(dispatchResult, true, referenceReg);
+            } else {
+                if (!computeStub(true, referenceString)) {
+                    if (analysis.optionSkipUnknown()) {
+                        this.skipUnknown(true, referenceStringClass,
+                                referenceString);
+                    } else {
+                        if (analysis.optionMerginPointers()) {
+                            this.invokeNotKnown(true, referenceStringClass,
+                                    referenceString);
+                        } else {
+                            this.invokeNotKnownNew(true, referenceStringClass,
+                                    referenceString);
                         }
-                        else{
-        		        if (analysis.optionMerginPointers()){
-        		            this.invokeNotKnown(true, referenceStringClass, referenceString);
-        		        }
-        		        else{
-        		            this.invokeNotKnownNew(true, referenceStringClass, referenceString); 
-        		        }
-                        }
-        		    }
-        		}
+                    }
+                }
+            }
         }
         break;
 
         case INVOKE_VIRTUAL:
         {
-        		dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.VIRTUAL);
-        		int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
-        		if (dispatchResult != null){
-        			this.invoke(dispatchResult, false, referenceReg);
-        		}
-        		else{
-        		    if (!computeStub(false, referenceString)){
-        		        if (analysis.optionSkipUnknown()){
-                            this.skipUnknown(false, referenceStringClass, referenceString);
+            dispatchResult = dispatch.dispatch(referenceClassIndex,
+                    referenceIntIndex, referenceStringClass, referenceString,
+                    CallType.VIRTUAL);
+            int referenceReg = ((FiveRegisterInstruction) this.instruction)
+                    .getRegisterC();
+            if (dispatchResult != null) {
+                this.invoke(dispatchResult, false, referenceReg);
+            } else {
+                if (!computeStub(false, referenceString)) {
+                    if (analysis.optionSkipUnknown()) {
+                        this.skipUnknown(false, referenceStringClass,
+                                referenceString);
+                    } else {
+                        if (analysis.optionMerginPointers()) {
+                            this.invokeNotKnown(false, referenceStringClass,
+                                    referenceString);
+                        } else {
+                            this.invokeNotKnownNew(false, referenceStringClass,
+                                    referenceString);
                         }
-                        else{
-        		        if (analysis.optionMerginPointers()){
-        		            this.invokeNotKnown(false, referenceStringClass, referenceString);
-        		        }
-        		        else{
-        		            this.invokeNotKnownNew(false, referenceStringClass, referenceString);
-        		        }
-                        }
-        		    }
-        		}
+                    }
+                }
+            }
         }
         break;
 
         case INVOKE_VIRTUAL_RANGE:
         {
-        		dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.VIRTUAL);
-        		int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
-        		if (dispatchResult != null){
-        			this.invoke(dispatchResult, true, referenceReg);
-        		}
-        		else{
-        		    if (!computeStub(true, referenceString)){
-        		        if (analysis.optionSkipUnknown()){
-                            this.skipUnknown(true, referenceStringClass, referenceString);
+            dispatchResult = dispatch.dispatch(referenceClassIndex,
+                    referenceIntIndex, referenceStringClass, referenceString,
+                    CallType.VIRTUAL);
+            int referenceReg = ((RegisterRangeInstruction) this.instruction)
+                    .getStartRegister();
+            if (dispatchResult != null) {
+                this.invoke(dispatchResult, true, referenceReg);
+            } else {
+                if (!computeStub(true, referenceString)) {
+                    if (analysis.optionSkipUnknown()) {
+                        this.skipUnknown(true, referenceStringClass,
+                                referenceString);
+                    } else {
+                        if (analysis.optionMerginPointers()) {
+                            this.invokeNotKnown(true, referenceStringClass,
+                                    referenceString);
+                        } else {
+                            this.invokeNotKnownNew(true, referenceStringClass,
+                                    referenceString);
                         }
-                        else{
-        		        if (analysis.optionMerginPointers()){
-                            this.invokeNotKnown(true, referenceStringClass, referenceString);
-        		        }
-        		        else{
-                            this.invokeNotKnownNew(true, referenceStringClass, referenceString);
-        		        }
-                        }
-        	        }
-        		}
+                    }
+                }
+            }
         }
         break;
 
@@ -1603,51 +1646,57 @@ public class FSInstructionAnalysis{
          */
         case INVOKE_INTERFACE:
         {
-        		dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.INTERFACE);
-        		int referenceReg = ((FiveRegisterInstruction)this.instruction).getRegisterC();
-        		if (dispatchResult != null){
-        			this.invoke(dispatchResult, false, referenceReg);
-        		}
-        		else{
-        		    if (!computeStub(false, referenceString)){
-        		        if (analysis.optionSkipUnknown()){
-                            this.skipUnknown(false, referenceStringClass, referenceString);
+            dispatchResult = dispatch.dispatch(referenceClassIndex,
+                    referenceIntIndex, referenceStringClass, referenceString,
+                    CallType.INTERFACE);
+            int referenceReg = ((FiveRegisterInstruction) this.instruction)
+                    .getRegisterC();
+            if (dispatchResult != null) {
+                this.invoke(dispatchResult, false, referenceReg);
+            } else {
+                if (!computeStub(false, referenceString)) {
+                    if (analysis.optionSkipUnknown()) {
+                        this.skipUnknown(false, referenceStringClass,
+                                referenceString);
+                    } else {
+                        if (analysis.optionMerginPointers()) {
+                            this.invokeNotKnown(false, referenceStringClass,
+                                    referenceString);
+                        } else {
+                            this.invokeNotKnownNew(false, referenceStringClass,
+                                    referenceString);
                         }
-                        else{
-        		        if (analysis.optionMerginPointers()){
-                            this.invokeNotKnown(false, referenceStringClass, referenceString);
-        		        }
-        		        else{
-                            this.invokeNotKnownNew(false, referenceStringClass, referenceString); 
-        		        }
-                        }
-        	        }
-        		}
+                    }
+                }
+            }
         }
         break;
 
         case INVOKE_INTERFACE_RANGE:
         {
-        		dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.INTERFACE);
-        		int referenceReg = ((RegisterRangeInstruction)this.instruction).getStartRegister();
-        		if (dispatchResult != null){
-        			this.invoke(dispatchResult, true, referenceReg);
-        		}
-        		else{
-        		    if (!computeStub(true, referenceString)){
-        		        if (analysis.optionSkipUnknown()){
-                            this.skipUnknown(true, referenceStringClass, referenceString);
+            dispatchResult = dispatch.dispatch(referenceClassIndex,
+                    referenceIntIndex, referenceStringClass, referenceString,
+                    CallType.INTERFACE);
+            int referenceReg = ((RegisterRangeInstruction) this.instruction)
+                    .getStartRegister();
+            if (dispatchResult != null) {
+                this.invoke(dispatchResult, true, referenceReg);
+            } else {
+                if (!computeStub(true, referenceString)) {
+                    if (analysis.optionSkipUnknown()) {
+                        this.skipUnknown(true, referenceStringClass,
+                                referenceString);
+                    } else {
+                        if (analysis.optionMerginPointers()) {
+                            this.invokeNotKnown(true, referenceStringClass,
+                                    referenceString);
+                        } else {
+                            this.invokeNotKnownNew(true, referenceStringClass,
+                                    referenceString);
                         }
-                        else{
-        		        if (analysis.optionMerginPointers()){
-                            this.invokeNotKnown(true, referenceStringClass, referenceString);
-        		        }
-        		        else{
-                            this.invokeNotKnownNew(true, referenceStringClass, referenceString);
-        		        }
-                        }
-        	        }
-        		}
+                    }
+                }
+            }
         }
         break;
         
@@ -1697,38 +1746,40 @@ public class FSInstructionAnalysis{
 
             			}
             		}else{
-            		    if (!computeStub(false, referenceString)){
-            		        if (analysis.optionSkipUnknown()){
-                                this.skipUnknown(false, referenceStringClass, referenceString);
-                            }
-                            else{
-            		        if (analysis.optionMerginPointers()){
-                                this.invokeNotKnown(false, referenceStringClass, referenceString);
+            		    if (!computeStub(false, referenceString)) {
+            		        if (analysis.optionSkipUnknown()) {
+            		            this.skipUnknown(false, referenceStringClass,
+            		                    referenceString);
+            		        } else {
+            		            if (analysis.optionMerginPointers()) {
+            		                this.invokeNotKnown(false,
+            		                        referenceStringClass, referenceString);
+            		            } else {
+            		                this.invokeNotKnownNew(false,
+            		                        referenceStringClass, referenceString);
+            		            }
             		        }
-            		        else{
-                                this.invokeNotKnownNew(false, referenceStringClass, referenceString);
-            		        }
-                            }
-            	        }
+            		    }
             		}
             	}else{
             		dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.DIRECT);
             		if (dispatchResult != null){
             			this.invoke(dispatchResult, false, null);
             		}else{
-            		    if (!computeStub(false, referenceString)){
-            		        if (analysis.optionSkipUnknown()){
-                                this.skipUnknown(false, referenceStringClass, referenceString);
-                            }
-                            else{
-            		        if (analysis.optionMerginPointers()){
-                                this.invokeNotKnown(false, referenceStringClass, referenceString);
+            		    if (!computeStub(false, referenceString)) {
+            		        if (analysis.optionSkipUnknown()) {
+            		            this.skipUnknown(false, referenceStringClass,
+            		                    referenceString);
+            		        } else {
+            		            if (analysis.optionMerginPointers()) {
+            		                this.invokeNotKnown(false,
+            		                        referenceStringClass, referenceString);
+            		            } else {
+            		                this.invokeNotKnownNew(false,
+            		                        referenceStringClass, referenceString);
+            		            }
             		        }
-            		        else{
-                                this.invokeNotKnownNew(false, referenceStringClass, referenceString);
-            		        }
-                            }
-            	        }
+            		    }
             		}
             	}
         }
@@ -1736,73 +1787,79 @@ public class FSInstructionAnalysis{
         
         case INVOKE_DIRECT_RANGE:
         {
-        		dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.DIRECT);
-        		if (dispatchResult != null){
-        			this.invoke(dispatchResult, true, null);
-        		}
-        		else{
-        		    if (!computeStub(true, referenceString)){
-        		        if (analysis.optionSkipUnknown()){
-                            this.skipUnknown(true, referenceStringClass, referenceString);
+            dispatchResult = dispatch.dispatch(referenceClassIndex,
+                    referenceIntIndex, referenceStringClass, referenceString,
+                    CallType.DIRECT);
+            if (dispatchResult != null) {
+                this.invoke(dispatchResult, true, null);
+            } else {
+                if (!computeStub(true, referenceString)) {
+                    if (analysis.optionSkipUnknown()) {
+                        this.skipUnknown(true, referenceStringClass,
+                                referenceString);
+                    } else {
+                        if (analysis.optionMerginPointers()) {
+                            this.invokeNotKnown(true, referenceStringClass,
+                                    referenceString);
+                        } else {
+                            this.invokeNotKnownNew(true, referenceStringClass,
+                                    referenceString);
                         }
-                        else{
-        		        if (analysis.optionMerginPointers()){
-                            this.invokeNotKnown(true, referenceStringClass, referenceString);
-        		        }
-        		        else{
-                            this.invokeNotKnownNew(true, referenceStringClass, referenceString);
-        		        }
-                        }
-        	        }
-        		}
+                    }
+                }
+            }
         }
         break;
         
         case INVOKE_STATIC:
         {
-            	dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.STATIC);
-            	if (dispatchResult != null){
-            		this.invoke(dispatchResult, false, null);
-            	}
-            	else{
-            	    if (!computeStub(false, referenceString)){
-            	        if (analysis.optionSkipUnknown()){
-                            this.skipUnknown(false, referenceStringClass, referenceString);
-                        }
-                        else{
-            	        if (analysis.optionMerginPointers()){
-                            this.invokeNotKnown(false, referenceStringClass, referenceString);
-            	        }
-            	        else{
-                            this.invokeNotKnownNew(false, referenceStringClass, referenceString);
-            	        }
+            dispatchResult = dispatch.dispatch(referenceClassIndex,
+                    referenceIntIndex, referenceStringClass, referenceString,
+                    CallType.STATIC);
+            if (dispatchResult != null) {
+                this.invoke(dispatchResult, false, null);
+            } else {
+                if (!computeStub(false, referenceString)) {
+                    if (analysis.optionSkipUnknown()) {
+                        this.skipUnknown(false, referenceStringClass,
+                                referenceString);
+                    } else {
+                        if (analysis.optionMerginPointers()) {
+                            this.invokeNotKnown(false, referenceStringClass,
+                                    referenceString);
+                        } else {
+                            this.invokeNotKnownNew(false, referenceStringClass,
+                                    referenceString);
                         }
                     }
-            	}
+                }
+            }
         }
         break;
 
         case INVOKE_STATIC_RANGE:
         {
-        		dispatchResult = dispatch.dispatch(referenceClassIndex, referenceIntIndex, referenceStringClass, referenceString, CallType.STATIC);
-        		if (dispatchResult != null){
-        			this.invoke(dispatchResult, true, null);
-        		}
-        		else{
-        		    if (!computeStub(true, referenceString)){
-        		        if (analysis.optionSkipUnknown()){
-                            this.skipUnknown(true, referenceStringClass, referenceString);
+            dispatchResult = dispatch.dispatch(referenceClassIndex,
+                    referenceIntIndex, referenceStringClass, referenceString,
+                    CallType.STATIC);
+            if (dispatchResult != null) {
+                this.invoke(dispatchResult, true, null);
+            } else {
+                if (!computeStub(true, referenceString)) {
+                    if (analysis.optionSkipUnknown()) {
+                        this.skipUnknown(true, referenceStringClass,
+                                referenceString);
+                    } else {
+                        if (analysis.optionMerginPointers()) {
+                            this.invokeNotKnown(true, referenceStringClass,
+                                    referenceString);
+                        } else {
+                            this.invokeNotKnownNew(true, referenceStringClass,
+                                    referenceString);
                         }
-                        else{
-        		        if (analysis.optionMerginPointers()){
-                            this.invokeNotKnown(true, referenceStringClass, referenceString);
-        		        }
-        		        else{
-                            this.invokeNotKnownNew(true, referenceStringClass, referenceString);
-        		        }
-                        }   
-        	        }
-        		}
+                    }
+                }
+            }
         }
         break;
         
@@ -3129,10 +3186,10 @@ public class FSInstructionAnalysis{
             for (int reg = startRegister; reg <= endRegister; reg++ ){
                 BoolExpr q = fsengine.and(
                         p,
-                        fsengine.smashPredP(fsvar.getV(reg), fsvar.getFpp(), fsengine.mkTrue()),
+                        fsengine.joinPred(fsvar.getV(reg), fsengine.mkTrue()),
                         fsengine.or(fsengine.eq(fsvar.getG(reg), fsengine.mkTrue()), fsengine.eq(fsvar.getL(reg), fsengine.mkTrue()))
                         );
-                String d = "[SMASH] Test if register " + Integer.toString(reg) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                String d = "[JOIN] Test if register " + Integer.toString(reg) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
                 fsengine.addQuery(new Z3Query(q, d, verboseOption, className, methodName, pc, sinkName));
             }  
         }
@@ -3165,10 +3222,10 @@ public class FSInstructionAnalysis{
             if (analysis.optionMerginPointers()){
                 q5 = fsengine.and(
                         p,
-                        fsengine.smashPredP(fsvar.getFpp(), fsvar.getV(instruction.getRegisterG()), fsengine.mkTrue())
+                        fsengine.joinPred(fsvar.getV(instruction.getRegisterG()), fsengine.mkTrue())
                         ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterG()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterG()), fsengine.mkTrue()))
                         );
-                d5 = "[SMASH] Test if register " + Integer.toString(instruction.getRegisterG()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                d5 = "[JOIN] Test if register " + Integer.toString(instruction.getRegisterG()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
                 fsengine.addQuery(new Z3Query(q5, d5, verboseResults, className, methodName, pc, sinkName));
             }
             else{
@@ -3192,10 +3249,10 @@ public class FSInstructionAnalysis{
             if (analysis.optionMerginPointers()){
                 q4 = fsengine.and(
                         p,
-                        fsengine.smashPredP(fsvar.getFpp(), fsvar.getV(instruction.getRegisterF()), fsengine.mkTrue())
+                        fsengine.joinPred(fsvar.getV(instruction.getRegisterF()), fsengine.mkTrue())
                         ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterF()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterF()), fsengine.mkTrue()))
                         );
-                d4 = "[SMASH] Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                d4 = "[JOIN] Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
                 fsengine.addQuery(new Z3Query(q4, d4, verboseResults, className, methodName, pc, sinkName)); 
             }
             else{
@@ -3219,10 +3276,10 @@ public class FSInstructionAnalysis{
             if (analysis.optionMerginPointers()){
                 q3 = fsengine.and(
                         p,
-                        fsengine.smashPredP(fsvar.getFpp(), fsvar.getV(instruction.getRegisterE()), fsengine.mkTrue())
+                        fsengine.joinPred(fsvar.getV(instruction.getRegisterE()), fsengine.mkTrue())
                         ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterE()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterE()), fsengine.mkTrue()))
                         );
-                d3 = "[SMASH] Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                d3 = "[JOIN] Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
                 fsengine.addQuery(new Z3Query(q3, d3, verboseResults, className, methodName, pc, sinkName));
             }
             else{
@@ -3246,10 +3303,10 @@ public class FSInstructionAnalysis{
             if (analysis.optionMerginPointers()){
                 q2 = fsengine.and(
                         p,
-                        fsengine.smashPredP(fsvar.getFpp(), fsvar.getV(instruction.getRegisterD()), fsengine.mkTrue())
+                        fsengine.joinPred(fsvar.getV(instruction.getRegisterD()), fsengine.mkTrue())
                         ,fsengine.eq(fsengine.or(fsvar.getG(instruction.getRegisterD()), fsvar.getL(instruction.getRegisterD())), fsengine.mkTrue())
                         );
-                d2 = "[SMASH] Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                d2 = "[JOIN] Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
                 fsengine.addQuery(new Z3Query(q2, d2, verboseResults, className, methodName, pc, sinkName));
             }
             else{
@@ -3273,10 +3330,10 @@ public class FSInstructionAnalysis{
             if (analysis.optionMerginPointers()){
                 q1 = fsengine.and(
                         p,
-                        fsengine.smashPredP(fsvar.getFpp(), fsvar.getV(instruction.getRegisterC()), fsengine.mkTrue())
+                        fsengine.joinPred(fsvar.getV(instruction.getRegisterC()), fsengine.mkTrue())
                         ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterC()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterC()), fsengine.mkTrue()))
                         );
-                d1 = "[SMASH] Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                d1 = "[JOIN] Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
                 fsengine.addQuery(new Z3Query(q1, d1, verboseResults, className, methodName, pc, sinkName));
             }
             else{
@@ -3826,6 +3883,13 @@ public class FSInstructionAnalysis{
             buildH();
             buildB();
             buildRule();
+            
+            //join predicate
+            if (analysis.optionMerginPointers()){
+                buildH();
+                b = fsengine.joinPred(fsvar.getV(registerC), fsvar.getH(registerE));
+                buildRule();
+            }
             return true;
         }
         if (cCall == ("Ljava/util/Map;".hashCode())
@@ -3882,6 +3946,14 @@ public class FSInstructionAnalysis{
             buildH();
             buildB();
             buildRule();
+            
+            //join predicate
+            if (analysis.optionMerginPointers()){
+                buildH();
+                b = fsengine.joinPred(fsvar.getV(registerC), fsvar.getH(registerD));
+                buildRule();
+            }
+            
             return true;
         }
         if (cCall == ("Ljava/util/LinkedList;".hashCode())
@@ -3938,6 +4010,14 @@ public class FSInstructionAnalysis{
             buildH();
             buildB();
             buildRule();
+            
+            //join predicate
+            if (analysis.optionMerginPointers()){
+                buildH();
+                b = fsengine.joinPred(fsvar.getV(registerC), fsvar.getH(registerD));
+                buildRule();
+            }
+            
             return true;
         }
         if (cCall == ("Ljava/util/List;".hashCode())
@@ -4001,7 +4081,7 @@ public class FSInstructionAnalysis{
         }
         
         /*
-         * For some methods wehave manual stubs
+         * For some methods we have manual stubs
          */
         
         if (manualStub(referenceClassIndex)){
@@ -4404,7 +4484,13 @@ public class FSInstructionAnalysis{
                         fsvar.getV(registerE), fsvar.getH(registerE),
                         fsengine.or(fsvar.getL(registerE), fsvar.getG(registerE)));
                 fsengine.addRule(fsengine.implies(h2, b), null);
-
+                
+                //join predicate
+                if (analysis.optionMerginPointers()){
+                    buildH();
+                    b = fsengine.joinPred(fsengine.mkBitVector(c, size), fsvar.getH(registerE));
+                    buildRule();
+                }
                 // Propagate the register values to the next pc
                 buildH();
                 buildB();
@@ -4563,27 +4649,6 @@ public class FSInstructionAnalysis{
         }
     }
     
-    private void mergePointers(int reg1, int reg2, BoolExpr joinLabel){        
-        buildH();
-        b = fsengine.smashPredP(fsvar.getV(reg1), fsvar.getV(reg2), joinLabel);
-        buildRule();
-        
-        BoolExpr h2 =
-              fsengine.and(
-                      h,
-                      fsengine.reachPredP(fsvar.getVal(), fsvar.getV(reg1), fsvar.getLf())
-                      ); 
-        b = fsengine.smashPredP(fsvar.getVal(), fsvar.getV(reg1), fsengine.or(fsvar.getLf(), joinLabel));
-        h2 =
-                fsengine.and(
-                        h,
-                        fsengine.reachPredP(fsvar.getVal(), fsvar.getV(reg2), fsvar.getLf())
-                        ); 
-          b = fsengine.smashPredP(fsvar.getVal(), fsvar.getV(reg2), fsengine.or(fsvar.getLf(), joinLabel));
-        
-        fsengine.addRule(fsengine.implies(h2,  b), null);
-    }
-    
     private void skipUnknown(final Boolean range, final String invClass, final String invMethod){
         BoolExpr joinLabel = null;
         boolean returnsRef = false;
@@ -4661,20 +4726,33 @@ public class FSInstructionAnalysis{
         }  
     }
     
+    private BoolExpr getLabelsJoin(HashSet<Integer> params, int offset, boolean range){
+        BoolExpr labels = fsengine.mkFalse();
+        for (final Integer i : params) {
+            labels = fsengine.or(labels, fsengine.getVars().getJoinVar(getRegisterNumber(range, i)));
+        }
+        if (offset == 1){
+            labels = fsengine.or(labels, fsengine.getVars().getJoinVar(getRegisterNumber(range, 1)));
+        }
+        return labels;
+    }
+    
+    private BoolExpr getHeapsJoin(HashSet<Integer> params, int offset, boolean range){
+        BoolExpr heaps = fsengine.mkTrue();
+        for (final Integer i : params) {
+            heaps = fsengine.and(heaps, fsengine.joinPred(fsengine.getVars().getV(getRegisterNumber(range, i)), fsengine.getVars().getJoinVar(getRegisterNumber(range, i))));
+        }
+        if (offset == 1){
+            heaps = fsengine.and(heaps, fsengine.joinPred(fsengine.getVars().getV(getRegisterNumber(range, 1)), fsengine.getVars().getJoinVar(getRegisterNumber(range, 1))));
+        }
+        return heaps;
+    }
+    
     /*
      * Advances pc with a top values for the return value (if exists)
      */
     private void invokeNotKnown(final Boolean range, final String invClass, final String invMethod){
-        /*if (analysis.isSink(className,methodName,invClass.hashCode(), invMethod.hashCode())){
-            if (range) {
-                addQueryRange(z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                        className, methodName, Integer.toString(codeAddress), invMethod, analysis.optionVerbose());
-            }else{
-                addQuery(z3engine.rPred(classIndex, methodIndex, codeAddress, regUpdate, regUpdateL, regUpdateB, numParLoc, numRegLoc),
-                        className, methodName, Integer.toString(codeAddress), invMethod, analysis.optionVerbose());
-            }
-        }*/
-        
+        System.err.println("Not known implementation: " + invClass + " " +  invMethod);
         BoolExpr joinLabel = null;
         boolean returnsRef = false;
         if (callReturns){
@@ -4722,17 +4800,12 @@ public class FSInstructionAnalysis{
                         );
             this.liftIfLocal(h, null);
             }
-            for (final CharSequence type : parameterTypes) {
-                if (type.toString().contains(";") || type.toString().contains("[")) {
-                    mergePointers(getRegisterNumber(range, 1), getRegisterNumber(range, i), joinLabel);
-                }
-                i = i + 1;
-            }
         }
         
         
         i = 1 + regOffset;
-        int j = 1 + regOffset;
+        
+        HashSet<Integer> params = new HashSet<Integer>();
         
         for (final CharSequence type : parameterTypes) {
             if (!analysis.optionNotFlowSens()){
@@ -4743,28 +4816,72 @@ public class FSInstructionAnalysis{
                           );
               this.liftIfLocal(h, null);
               }
-            for (final CharSequence type2 : parameterTypes) {
-                if (j <= i){
-                    j = j + 1;
-                    if (j >= parameterTypes.size()){
-                        break;
-                    }
-                    else{
-                        continue;
-                    }
-                }
-                if (
-                        (type.toString().contains(";") || type.toString().contains("["))
-                        &&
-                        (type2.toString().contains(";") || type2.toString().contains("["))
-                        ) {
-                    mergePointers(getRegisterNumber(range, i), getRegisterNumber(range, j), joinLabel);
-                }
-                j = j + 1;
+            if ((type.toString().contains(";") || type.toString().contains("["))){
+                params.add(i);
             }
             i = i + 1;
         }
-                
+        
+        BoolExpr finalLabel = fsengine.or(joinLabel, getLabelsJoin(params, regOffset, range));
+        BoolExpr joinPreds = getHeapsJoin(params, regOffset, range);
+        
+        if (regOffset == 1){
+            buildH();
+            h = fsengine.and(
+                    h,
+                    joinPreds
+                    );
+            b = fsengine.joinPred(fsvar.getV(getRegisterNumber(range, 1)), finalLabel);
+            buildRule(); 
+            
+            //new cases
+            buildH();
+            h = fsengine.and(
+                    h,
+                    joinPreds,
+                    fsengine.hPred(fsvar.getCn(),
+                            fsvar.getV(getRegisterNumber(range, 1)), fsvar.getF(),
+                            fsvar.getFpp(), fsvar.getLf(), fsvar.getBf()));
+            b = fsengine.hPred(fsvar.getCn(),
+                    fsvar.getV(getRegisterNumber(range, 1)), fsvar.getF(),
+                    fsvar.getFpp(), fsengine.or(finalLabel, fsvar.getLf()), fsvar.getBf());
+            buildRule();            
+        }
+        
+        //new casses
+        
+        buildH();
+        h = fsengine.and(h, joinPreds);
+        b = fsengine.hPred(
+                fsengine.mkBitVector("anything".hashCode(),
+                        analysis.getSize()),
+                fsengine.mkBitVector("anything".hashCode(),
+                        analysis.getSize()), fsvar.getF(), fsvar.getFpp(),
+                finalLabel, fsvar.getBf());
+        
+        for (final Integer ip: params){
+            buildH();
+            h = fsengine.and(
+                    h,
+                    joinPreds
+                    );
+            b = fsengine.joinPred(fsvar.getV(getRegisterNumber(range, ip)), finalLabel);
+            buildRule();
+            
+            //new cases
+            buildH();
+            h = fsengine.and(
+                    h,
+                    joinPreds,
+                    fsengine.hPred(fsvar.getCn(),
+                            fsvar.getV(getRegisterNumber(range, ip)), fsvar.getF(),
+                            fsvar.getFpp(), fsvar.getLf(), fsvar.getBf()));
+            b = fsengine.hPred(fsvar.getCn(),
+                    fsvar.getV(getRegisterNumber(range, ip)), fsvar.getF(),
+                    fsvar.getFpp(), fsengine.or(finalLabel, fsvar.getLf()), fsvar.getBf());
+            buildRule();
+        }
+        
        /*
         * Case 1: method does not return: no change to the labels
         */
@@ -4836,6 +4953,14 @@ public class FSInstructionAnalysis{
                         joinLabel, fsvar.getBf());
                 buildRule();         
             }
+            
+            //join predicate for the return object
+            buildH();
+            h = fsengine.and(h, 
+                    joinPreds);
+            b = fsengine.joinPred(fsvar.getV(numRegLoc), finalLabel);
+            buildRule();
+            
 
             regUpV.clear(); regUpH.clear(); regUpL.clear(); regUpG.clear();
 
@@ -5222,8 +5347,9 @@ public class FSInstructionAnalysis{
         if (callReturns && returnsRef) {
         	// place taint from a primitive arguments to the ref
         	buildH();
-        	b = fsengine.hPred(fsengine.mkBitVector("anything".hashCode(), analysis.getSize()), 
-					fsengine.mkBitVector("anything".hashCode(), analysis.getSize()),
+        	b = fsengine.hPred(fsengine.mkBitVector(referenceIntIndex,
+                    analysis.getSize()),
+            fsengine.mkBitVector(instanceNum, analysis.getSize()),
         			fsvar.getF(), fsvar.getFpp(),
         			joinLabel, fsvar.getBf());
         	buildRule();
@@ -5239,8 +5365,9 @@ public class FSInstructionAnalysis{
         						fsengine.or(fsvar.getL(getRegisterNumber(range, i)), fsvar.getG(getRegisterNumber(range, i))),
         						fsengine.taintPred(fsvar.getV(getRegisterNumber(range, i)), fsvar.getLf())
         						);
-        				b = fsengine.hPred(fsengine.mkBitVector("anything".hashCode(), analysis.getSize()), 
-        						fsengine.mkBitVector("anything".hashCode(), analysis.getSize())
+        				b = fsengine.hPred(fsengine.mkBitVector(referenceIntIndex,
+                                analysis.getSize()),
+                        fsengine.mkBitVector(instanceNum, analysis.getSize())
         						,fsvar.getF(), fsvar.getFpp(),
         						fsvar.getLf(), fsvar.getBf());
         				buildRule();

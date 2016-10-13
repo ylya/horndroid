@@ -14,20 +14,23 @@ import Dalvik.DalvikImplementation;
 import Dalvik.DalvikInstance;
 import Dalvik.GeneralClass;
 import Dalvik.Instances;
+import Dalvik.Interfaces;
 
 public class Dispatch {
     final private Instances instances;
+    final private Interfaces interfaces;
     final private Map<Integer,GeneralClass> classes;
     final private Map<Integer,HashSet<DalvikInstance>> dispatchedInstances;
     final private Map<Integer,HashSet<DalvikImplementation>> dispatchedImplementations;
     final private Map<Integer,StringPair> failedDispatch;
     
-    public Dispatch(final Instances instances, final Map<Integer,GeneralClass> classes){
+    public Dispatch(final Instances instances, final Map<Integer,GeneralClass> classes, final Interfaces interfaces){
         this.instances = instances;
         this.classes = classes;
         this.dispatchedImplementations = new ConcurrentHashMap<Integer,HashSet<DalvikImplementation>>();
         this.dispatchedInstances = new ConcurrentHashMap<Integer,HashSet<DalvikInstance>>();
         this.failedDispatch = new ConcurrentHashMap<Integer,StringPair>();
+        this.interfaces = interfaces;
     }
     
     private int makeNumber(final int c, final int m){
@@ -129,20 +132,25 @@ public class Dispatch {
         if ((className.equals("Ljava/lang/Thread;")) || (className.equals("Landroid/os/AsyncTask;"))){
             return true;
         }
+        
+        HashSet<DalvikClass> ic = interfaces.getByInterfaceType("Ljava/lang/Runnable;".hashCode());
+        if (ic != null){
+            if (ic.contains(gc))
+                    return true;
+        }
+        ic = interfaces.getByInterfaceType("Ljava/util/concurrent/Executor;".hashCode());
+        if (ic != null){
+            if (ic.contains(gc))
+                    return true;
+        }
+        ic = interfaces.getByInterfaceType("Ljava/util/concurrent/ExecutorService;".hashCode());
+        if (ic != null){
+            if (ic.contains(gc))
+                    return true;
+        }
+        
         if (gc instanceof DalvikClass){
-            final DalvikClass c = (DalvikClass) gc;
-            for (final GeneralClass interfaceName: c.getInterfaces()){
-                if (interfaceName.getType().equals("Ljava/lang/Runnable;")){
-                    return true;
-                }
-                if (interfaceName.getType().equals("Ljava/util/concurrent/Executor;")){
-                    return true;
-                }
-                if (interfaceName.getType().equals("Ljava/util/concurrent/ExecutorService;")){
-                    return true;
-                }
-                
-            }           
+            final DalvikClass c = (DalvikClass) gc;          
             final GeneralClass sc = c.getSuperClass();
             if (sc != null){
                 return isThreadAux(sc);
@@ -395,55 +403,19 @@ public class Dispatch {
             } else {
                 final HashSet<DalvikInstance> instSet = new HashSet<DalvikInstance>();
                 final HashSet<DalvikImplementation> implSet = new HashSet<DalvikImplementation>();
-                if (!(classes instanceof LazyUnion)) {
-                    for (final GeneralClass gc : classes.values()) {
-                        if ((gc instanceof DalvikClass)) {
-                            final DalvikClass dc = (DalvikClass) gc;
-                            for (final GeneralClass ic : dc.getInterfaces()) {
-                                if ((dc.getMethod(m) != null)
-                                        && (ic.getType().hashCode() == c)) {
-                                    if (instances.getByType(dc.getType().hashCode()) != null) {
-                                        instSet.addAll(instances.getByType(dc
-                                                .getType().hashCode()));
-                                    }
-                                    implSet.add(new DalvikImplementation(dc, dc
-                                            .getMethod(m)));
-                                }
+                
+                final HashSet<DalvikClass> interfaceClasses = interfaces.getByInterfaceType(c);
+                if (interfaceClasses != null) {
+                    for (final DalvikClass ic : interfaceClasses) {
+                        if ((ic.getMethod(m) != null)
+                                //&& (ic.getType().hashCode() == c)
+                                ) {
+                            if (instances.getByType(ic.getType().hashCode()) != null) {
+                                instSet.addAll(instances.getByType(ic.getType()
+                                        .hashCode()));
                             }
-                        }
-                    }
-                }
-                else{
-                    for (final GeneralClass gc : ((LazyUnion)classes).values1()) {
-                        if ((gc instanceof DalvikClass)) {
-                            final DalvikClass dc = (DalvikClass) gc;
-                            for (final GeneralClass ic : dc.getInterfaces()) {
-                                if ((dc.getMethod(m) != null)
-                                        && (ic.getType().hashCode() == c)) {
-                                    if (instances.getByType(dc.getType().hashCode()) != null) {
-                                        instSet.addAll(instances.getByType(dc
-                                                .getType().hashCode()));
-                                    }
-                                    implSet.add(new DalvikImplementation(dc, dc
-                                            .getMethod(m)));
-                                }
-                            }
-                        }
-                    }
-                    for (final GeneralClass gc : ((LazyUnion)classes).values2()) {
-                        if ((gc instanceof DalvikClass)) {
-                            final DalvikClass dc = (DalvikClass) gc;
-                            for (final GeneralClass ic : dc.getInterfaces()) {
-                                if ((dc.getMethod(m) != null)
-                                        && (ic.getType().hashCode() == c)) {
-                                    if (instances.getByType(dc.getType().hashCode()) != null) {
-                                        instSet.addAll(instances.getByType(dc
-                                                .getType().hashCode()));
-                                    }
-                                    implSet.add(new DalvikImplementation(dc, dc
-                                            .getMethod(m)));
-                                }
-                            }
+                            implSet.add(new DalvikImplementation(ic, ic
+                                    .getMethod(m)));
                         }
                     }
                 }

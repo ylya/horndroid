@@ -11,6 +11,7 @@ import Dalvik.DalvikMethod;
 import Dalvik.DalvikStaticField;
 import Dalvik.GeneralClass;
 import Dalvik.Instances;
+import Dalvik.Interfaces;
 import horndroid.options;
 
 import java.util.AbstractMap.SimpleEntry;
@@ -46,8 +47,6 @@ import util.*;
 import util.Utils.CallType;
 import z3.FSEngine;
 import z3.FSVariable;
-import z3.Z3Engine;
-import z3.Z3Variable;
 
 public class Analysis {
     final private Map<Integer,GeneralClass> apkClasses;
@@ -67,9 +66,7 @@ public class Analysis {
     final private Set<Integer> overapprox;
     final private SourcesSinks sourcesSinks;
     final private options options;
-    final private Z3Engine z3engine;
     final private FSEngine fsengine;
-    final private Z3Variable var;
     final private FSVariable fsvar;
     final private Stubs stubs;
         
@@ -89,17 +86,20 @@ public class Analysis {
     private Map<Integer, String> allocationPointMethod = new HashMap <Integer, String>();
     private Map<Integer, Integer> allocationPointPC = new HashMap <Integer, Integer>();
     
+    private Interfaces interfaces = new Interfaces();
+    
     private Integer localHeapNumberEntries;
     private Integer localHeapSize;
     private HashSet<StringPair> apkClassesMethods;
     
     private Set<Integer> methodHasSink;
     
-    public Analysis(final Z3Engine z3engine,final FSEngine fsengine, 
+    public Analysis(final FSEngine fsengine, 
             final SourcesSinks sourcesSinks, final options options, final ExecutorService instructionExecutorService,
             final Stubs stubs){
         this.apkClasses = new ConcurrentHashMap<Integer,GeneralClass>();
         this.classes = new ConcurrentHashMap<Integer,GeneralClass>();
+                
         this.apkInstances = new Instances();
         this.instances = new Instances();
         this.disabledActivities = new HashSet<Integer>();
@@ -115,9 +115,7 @@ public class Analysis {
         this.overapprox = new HashSet <Integer>();
         this.instructionExecutorService = instructionExecutorService;
         this.sourcesSinks = sourcesSinks;
-        this.z3engine = z3engine;
         this.fsengine = fsengine;
-        this.var = z3engine.getVars();
         this.fsvar = fsengine.getVars();
         this.options = options;
         
@@ -166,13 +164,6 @@ public class Analysis {
     }
     public  Set<Integer> getLauncherActivities(){
         return launcherActivities;
-    }
-
-    public Z3Engine getZ3Engine(){
-        if (options.fsanalysis){
-            throw (new RuntimeException("Requested Z3Engine during a FS analysis"));
-        }
-        return z3engine;
     }
     public boolean isDebugging(){
         return options.debug;
@@ -227,7 +218,7 @@ public class Analysis {
      */
     public void collectDataFromApk( List<? extends ClassDef> classDefs){
         DataExtraction de = new DataExtraction(apkClasses, apkInstances, arrayDataPayload, packedSwitchPayload, sparseSwitchPayload, 
-                staticConstructor, constStrings, launcherActivities, true, sourcesSinks, refSources, refSinks, methodHasSink);
+                staticConstructor, constStrings, launcherActivities, true, sourcesSinks, refSources, refSinks, methodHasSink, interfaces);
         de.collectData(classDefs);
         
     }
@@ -564,17 +555,16 @@ public class Analysis {
     
     private void addToMain(final DalvikClass dc, final int methodIndex, final int numRegCall, final int regCount){
         final int classIndex = dc.getType().hashCode();
-        if (options.fsanalysis){
-            Map<Integer, BitVecExpr> regUpV = new HashMap<>();
-            Map<Integer, BoolExpr> regUpH = new HashMap<>();
-            Map<Integer, BoolExpr> regUpL = new HashMap<>();
-            Map<Integer, BoolExpr> regUpG = new HashMap<>();
-            Map<Integer, BitVecExpr> regUpLHV = new HashMap<>();
-            Map<Integer, BoolExpr> regUpLHH = new HashMap<>();
-            Map<Integer, BoolExpr> regUpLHL = new HashMap<>();
-            Map<Integer, BoolExpr> regUpLHG = new HashMap<>();
-            Map<Integer, BoolExpr> regUpLHF = new HashMap<>();
-
+        Map<Integer, BitVecExpr> regUpV = new HashMap<>();
+        Map<Integer, BoolExpr> regUpH = new HashMap<>();
+        Map<Integer, BoolExpr> regUpL = new HashMap<>();
+        Map<Integer, BoolExpr> regUpG = new HashMap<>();
+        Map<Integer, BitVecExpr> regUpLHV = new HashMap<>();
+        Map<Integer, BoolExpr> regUpLHH = new HashMap<>();
+        Map<Integer, BoolExpr> regUpLHL = new HashMap<>();
+        Map<Integer, BoolExpr> regUpLHG = new HashMap<>();
+        Map<Integer, BoolExpr> regUpLHF = new HashMap<>();
+        if (!options.nfsanalysis){
             // Register that are not arguments are initialized with 0
             for (int i = 0; i< numRegCall - regCount; i++){
                 regUpV.put(i, fsengine.mkBitVector(0, getSize()));
@@ -586,7 +576,6 @@ public class Analysis {
                 regUpH.put(i, fsengine.mkFalse());
                 regUpL.put(i, fsengine.mkFalse());
             }
-            if (!options.nfsanalysis){
             for (int i = 0; i < this.getLocalHeapSize(); i++){
                 regUpLHV.put(i, fsengine.mkBitVector(0, this.getSize()));
                 regUpLHH.put(i, fsengine.mkFalse());
@@ -594,48 +583,46 @@ public class Analysis {
                 regUpLHG.put(i, fsengine.mkFalse());
                 regUpLHF.put(i, fsengine.mkFalse());
             }
-            }
             BoolExpr h = fsengine.rPred(Integer.toString(classIndex), Integer.toString(methodIndex), 0, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, regCount, numRegCall);
             fsengine.addRule(h, dc.toString() + methodIndex + "zz");
         }else{
-            Map<Integer, BitVecExpr> regUpdate = new HashMap<>();
-            Map<Integer, BoolExpr> regUpdateL = new HashMap<>();
-            Map<Integer, BoolExpr> regUpdateB = new HashMap<>();
             // Register that are not arguments are initialized with 0
             for (int i = 0; i< numRegCall - regCount; i++){
-                regUpdate.put(i, z3engine.mkBitVector(0, getSize()));
-                regUpdateL.put(i, z3engine.mkFalse());
-            	regUpdateB.put(i, z3engine.mkFalse());
+                regUpV.put(i, fsengine.mkBitVector(0, getSize()));
+                regUpH.put(i, fsengine.mkFalse());
+            	regUpG.put(i, fsengine.mkFalse());
             }
             for (int i = 0; i<= numRegCall + regCount; i++){
-                regUpdateL.put(i, z3engine.mkFalse());
+                regUpH.put(i, fsengine.mkFalse());
             }
 
-            BoolExpr b1 = z3engine.rPred(Integer.toString(classIndex), Integer.toString(methodIndex),
-                    0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall);
-            z3engine.addRule(b1, dc.toString() + methodIndex + "zz");
+            BoolExpr b1 = fsengine.rPred(Integer.toString(classIndex), Integer.toString(methodIndex), 0, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, regCount, numRegCall);
+            fsengine.addRule(b1, dc.toString() + methodIndex + "zz");
         }
     }
     
     private void addToMainHeap(final DalvikClass dc, final int methodIndex, final int numRegCall, final int regCount){
         this.addToMain(dc, methodIndex, numRegCall, regCount);
-        
+
         final int classIndex = dc.getType().hashCode();
-        if (options.fsanalysis){
-            BoolExpr b2 = fsengine.hPred( fsengine.mkBitVector(classIndex, options.bitvectorSize),
-                    //fsvar.getFpp(),
-                    fsengine.mkBitVector(getInstNum(0, 0, 0), options.bitvectorSize), 
-                    fsvar.getF(), fsvar.getVal(),
-                    fsengine.mkFalse(), fsengine.mkTrue());
+
+        BoolExpr b2 = fsengine
+                .hPred(fsengine.mkBitVector(classIndex, options.bitvectorSize),
+                        // fsvar.getFpp(),
+                        fsengine.mkBitVector(getInstNum(0, 0, 0),
+                                options.bitvectorSize),
+                fsvar.getF(), fsvar
+                                .getVal(), fsengine.mkFalse(), fsengine
+                                .mkTrue());
+        fsengine.addRule(b2, null);
+        
+        if (optionMerginPointers()) {
+            // join
+            b2 = fsengine.joinPred(fsengine.mkBitVector(getInstNum(0, 0, 0),
+                    options.bitvectorSize), fsengine.mkFalse());
             fsengine.addRule(b2, null);
-        }else{
-            BoolExpr b2 = z3engine.hPred( z3engine.mkBitVector(classIndex, options.bitvectorSize),
-                    //var.getFpp(),
-                    z3engine.mkBitVector(getInstNum(0, 0, 0), options.bitvectorSize), 
-                    var.getF(), var.getVal(),
-                    z3engine.mkFalse(), z3engine.mkTrue());
-            z3engine.addRule(b2, null);
         }
+        
     }
 
 
@@ -657,20 +644,20 @@ public class Analysis {
                 addToMain(dc, m.getName().hashCode(), m.getNumReg(), m.getNumArg());
             }
 
+            Map<Integer, BitVecExpr> regUpV = new HashMap<>();
+            Map<Integer, BoolExpr> regUpH = new HashMap<>();
+            Map<Integer, BoolExpr> regUpL = new HashMap<>();
+            Map<Integer, BoolExpr> regUpG = new HashMap<>();
+            Map<Integer, BitVecExpr> regUpLHV = new HashMap<>();
+            Map<Integer, BoolExpr> regUpLHH = new HashMap<>();
+            Map<Integer, BoolExpr> regUpLHL = new HashMap<>();
+            Map<Integer, BoolExpr> regUpLHG = new HashMap<>();
+            Map<Integer, BoolExpr> regUpLHF = new HashMap<>();
+            
             if (isEntryPoint){
                 final int numRegCall = m.getNumReg();
                 final int regCount = m.getNumArg();
-                if(options.fsanalysis){
-                    Map<Integer, BitVecExpr> regUpV = new HashMap<>();
-                    Map<Integer, BoolExpr> regUpH = new HashMap<>();
-                    Map<Integer, BoolExpr> regUpL = new HashMap<>();
-                    Map<Integer, BoolExpr> regUpG = new HashMap<>();
-                    Map<Integer, BitVecExpr> regUpLHV = new HashMap<>();
-                    Map<Integer, BoolExpr> regUpLHH = new HashMap<>();
-                    Map<Integer, BoolExpr> regUpLHL = new HashMap<>();
-                    Map<Integer, BoolExpr> regUpLHG = new HashMap<>();
-                    Map<Integer, BoolExpr> regUpLHF = new HashMap<>();
-
+                if(!options.nfsanalysis){
                     // Register that are not arguments are initialized with 0
                     for (int i = 0; i< numRegCall - regCount; i++){
                         regUpV.put(i, fsengine.mkBitVector(0, getSize()));
@@ -682,15 +669,12 @@ public class Analysis {
                     	regUpL.put(i, fsengine.mkFalse());
                         regUpH.put(i, fsengine.mkFalse());
                     }
-                    
-                    if (!options.nfsanalysis){
                     for (int i = 0; i < this.getLocalHeapSize(); i++){
                         regUpLHV.put(i, fsengine.mkBitVector(0, this.getSize()));
                         regUpLHH.put(i, fsengine.mkFalse());
                         regUpLHL.put(i, fsengine.mkFalse());
                         regUpLHG.put(i, fsengine.mkFalse());
                         regUpLHF.put(i, fsengine.mkFalse());
-                    }
                     }
                     BoolExpr b1 = fsengine.iPred(fsengine.mkBitVector(dc.getType().hashCode(), options.bitvectorSize),
                             fsvar.getVfp(),
@@ -700,29 +684,24 @@ public class Analysis {
                 
                     fsengine.addRule(fsengine.implies(b1, b2), null);
                 }else{
-                    Map<Integer, BitVecExpr> regUpdate = new HashMap<>();
-                    Map<Integer, BoolExpr> regUpdateL = new HashMap<>();
-                    Map<Integer, BoolExpr> regUpdateB = new HashMap<>();
                     // Register that are not arguments are initialized with 0
                     for (int i = 0; i< numRegCall - regCount; i++){
-                        regUpdate.put(i, z3engine.mkBitVector(0, getSize()));
-                        regUpdateL.put(i, z3engine.mkFalse());
-                    	regUpdateB.put(i, z3engine.mkFalse());
+                        regUpV.put(i, fsengine.mkBitVector(0, getSize()));
+                        regUpH.put(i, fsengine.mkFalse());
+                    	regUpG.put(i, fsengine.mkFalse());
                     }
                     for (int i = 0; i<= numRegCall + regCount; i++){
-                        regUpdateL.put(i, z3engine.mkFalse());
+                        regUpH.put(i, fsengine.mkFalse());
                     }
 
-                    BoolExpr b1 = z3engine.iPred(var.getCn(),
-                            z3engine.mkBitVector(dc.getType().hashCode(), options.bitvectorSize),
-                            var.getVal(), var.getLf(), var.getBf());
+                    BoolExpr b1 = fsengine.iPred(fsengine.mkBitVector(dc.getType().hashCode(), options.bitvectorSize),
+                            fsvar.getVfp(),
+                            fsvar.getVal(), fsvar.getLf(), fsvar.getBf());
 
-                    BoolExpr b2 = z3engine.rPred(Integer.toString(dc.getType().hashCode()),
-                            Integer.toString(m.getName().hashCode()),
-                            0, regUpdate, regUpdateL, regUpdateB, regCount, numRegCall);
+                    BoolExpr b2 = fsengine.rPred(Integer.toString(dc.getType().hashCode()), Integer.toString(m.getName().hashCode()), 0, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, regCount, numRegCall);
 
-                    BoolExpr b1tob2 = z3engine.implies(b1, b2);
-                    z3engine.addRule(b1tob2, null);
+                    BoolExpr b1tob2 = fsengine.implies(b1, b2);
+                    fsengine.addRule(b1tob2, null);
                 }
             }
 
@@ -736,13 +715,8 @@ public class Analysis {
 
             int codeAddress = 0;
             for (final Instruction instruction: m.getInstructions()){
-                if (options.fsanalysis){
-                    FSInstructionAnalysis ia = new FSInstructionAnalysis(this, instruction, dc, m, codeAddress);
-                    ia.CreateHornClauses(options, apkClassesMethods);
-                }else{
-                    InstructionAnalysis ia = new InstructionAnalysis(this, instruction, dc, m, codeAddress);
-                    ia.CreateHornClauses(options, apkClassesMethods);                    
-                }
+                FSInstructionAnalysis ia = new FSInstructionAnalysis(this, instruction, dc, m, codeAddress);
+                ia.CreateHornClauses(options, apkClassesMethods);
                 codeAddress += instruction.getCodeUnits();
             }
         }
@@ -868,24 +842,20 @@ public class Analysis {
     }
     
     private void addStaticFieldsValues(){
-        for (GeneralClass c: classes.values()){
-            if (!(c instanceof DalvikClass)) continue;
-            for (DalvikField f: ((DalvikClass) c).getFields()){
-                if (f instanceof DalvikStaticField){
-                    final EncodedValue initialValue = ((DalvikStaticField) f).getDefaultValue();
-                    if (options.fsanalysis){
-                        BoolExpr rule = fsengine.sPred( fsengine.mkInt(Utils.Dec(c.getType().hashCode())),
-                                fsengine.mkInt(Utils.Dec(f.getName().hashCode())),
-                                FormatEncodedValue.toBitVec(fsengine, initialValue, options.bitvectorSize),
-                                fsengine.mkFalse(), fsvar.getBf());
-                        fsengine.addRule(rule, null);
-                    }else{
-                        BoolExpr rule = z3engine.sPred( z3engine.mkInt(Utils.Dec(c.getType().hashCode())),
-                                z3engine.mkInt(Utils.Dec(f.getName().hashCode())),
-                                FormatEncodedValue.toBitVec(z3engine, initialValue, options.bitvectorSize),
-                                z3engine.mkFalse(), var.getBf());
-                        z3engine.addRule(rule, null);
-                    }
+        for (GeneralClass c : classes.values()) {
+            if (!(c instanceof DalvikClass))
+                continue;
+            for (DalvikField f : ((DalvikClass) c).getFields()) {
+                if (f instanceof DalvikStaticField) {
+                    final EncodedValue initialValue = ((DalvikStaticField) f)
+                            .getDefaultValue();
+                    BoolExpr rule = fsengine.sPred(fsengine.mkInt(Utils.Dec(c
+                            .getType().hashCode())), fsengine.mkInt(Utils.Dec(f
+                            .getName().hashCode())), FormatEncodedValue
+                            .toBitVec(fsengine, initialValue,
+                                    options.bitvectorSize), fsengine.mkFalse(),
+                            fsvar.getBf());
+                    fsengine.addRule(rule, null);
                 }
             }
         }
@@ -919,7 +889,7 @@ public class Analysis {
     }
     
     public Dispatch makeDispatch(){
-        return new Dispatch(instances, classes);
+        return new Dispatch(instances, classes, interfaces);
     }
     
     private void fetchNewInstance(final int cp, final String className, final int c, final int m, final int pc){
@@ -942,7 +912,7 @@ public class Analysis {
                     final DalvikClass dcNew = new DalvikClass(dc.getType());
                     dcNew.putFields(dc.getFields());
                     dcNew.putSuperClass(dc.getSuperClass());
-                    dcNew.putInterfaces(dc.getInterfaces());
+                    //dcNew.putInterfaces(dc.getInterfaces());
                     for (final DalvikClass child: dc.getChildClasses()){
                         dcNew.putChildClass(child);
                     }
@@ -978,7 +948,7 @@ public class Analysis {
                 for (final DalvikClass child: c.getChildClasses()){
                     dcNew.putChildClass(child);
                 }
-                dcNew.putInterfaces(c.getInterfaces());
+                //dcNew.putInterfaces(c.getInterfaces());
                 final Set<DalvikMethod> methods = Collections.newSetFromMap(new ConcurrentHashMap<DalvikMethod, Boolean>());;
                 for (final DalvikMethod dm: c.getMethods()){
                     methods.add(dm);
@@ -999,7 +969,7 @@ public class Analysis {
         Set<CMPair> processCM  = new HashSet<CMPair>();
         
         LazyUnion lazyUnion = new LazyUnion(apkClasses, stubs.getClasses());
-        Dispatch lazyDispatch = new Dispatch(instances, lazyUnion);
+        Dispatch lazyDispatch = new Dispatch(instances, lazyUnion, interfaces);
         
         // We initialize the pool
         for (final GeneralClass c: classes.values()){
@@ -1224,18 +1194,19 @@ public class Analysis {
         for (final GeneralClass c: classes.values()){
             if ((c instanceof DalvikClass)){
                 final DalvikClass dc = (DalvikClass) c;
-
                 final boolean isDisabledActivity = testDisabledActivity(dc);
                 final boolean isLauncherActivity = testLauncherActivity(dc);
                 final boolean isApplication = testApplication(dc);
                 final boolean isOverapprox = testOverapprox(dc);
                 boolean isCallbackImplementation = false;
-                for (final GeneralClass interfaceC: dc.getInterfaces()){
-                    if (callbackImplementations.contains(interfaceC.getType().hashCode())){
-                        isCallbackImplementation = true;
+                final HashSet<Integer> ic = interfaces.getByClassType(dc.getType().hashCode());
+                if (ic != null){
+                    for (final Integer interfaceC: ic){
+                        if (callbackImplementations.contains(interfaceC)){
+                            isCallbackImplementation = true;
+                        }
                     }
                 }
-
                 final boolean isci = isCallbackImplementation;
                 processClass(dc, isDisabledActivity, isci, isLauncherActivity, isApplication, isOverapprox);
             }
@@ -1328,9 +1299,8 @@ public class Analysis {
         System.out.println("Number of sources: " + refSources.size());
         System.out.println("Number of sinks: " + refSinks.size());
     }
-
     public boolean isFlowSens() {
-        return options.fsanalysis;
+        return !options.nfsanalysis;
     }
     public int getDebugNumber() {
         return options.debugInt;

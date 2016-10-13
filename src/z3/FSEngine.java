@@ -1,6 +1,7 @@
 package z3;
 
 import com.microsoft.z3.*;
+import com.microsoft.z3.Statistics.Entry;
 
 import analysis.Analysis;
 import debugging.Debug;
@@ -34,7 +35,8 @@ public class FSEngine extends Z3Clauses{
             //mQueriesDebug = new ArrayList<>();
 
             Global.setParameter("fixedpoint.engine", "pdr");
-            // Global.setParameter("fixedpoint.unbound_compressor", "false");
+            Global.setParameter("fixedpoint.print_answer", "true");
+            
             Global.setParameter("pp.bv-literals", "false");
 
             HashMap<String, String> cfg = new HashMap<String, String>();
@@ -115,21 +117,13 @@ public class FSEngine extends Z3Clauses{
             
             
             if (options.pointersMerge){
-                this.declareRel(func.getReachP());
-                this.declareRel(func.getSmashP());
-                //symm
-                hh2 = smashPredP(var.getVal(), var.getVfp(), var.getLf());
-                bb2 = smashPredP(var.getVfp(), var.getVal(), var.getLf());
-                hh2_bb2 = mContext.mkImplies(hh2, bb2);
-                this.addRule(hh2_bb2, null);
-                // step
-                hh4 = mContext.mkAnd(
-                        reachPredP(var.getVal(), var.getVfp(), var.getLf()),
-                        reachPredP(var.getVfp(), var.getFpp(), var.getLfp())
-                        );
-                bb4 = reachPredP(var.getVal(), var.getFpp(), mContext.mkOr(var.getLf(), var.getLfp()));
-                hh4_bb4 = mContext.mkImplies(hh4, bb4);
-                this.addRule(hh4_bb4, null);
+                this.declareRel(func.getJoin());
+                /*BoolExpr hi = hPred(var.getCn(),
+                        var.getVfp(),
+                        var.getVal(), var.getFpp(), var.getLf(), var.getBf());
+                BoolExpr bi = joinPred(var.getVfp(), var.getLf());
+                BoolExpr hibi = mContext.mkImplies(hi, bi);
+                this.addRule(hibi, null);*/
             }
             
         } catch (Z3Exception e) {
@@ -184,6 +178,9 @@ public class FSEngine extends Z3Clauses{
     }
 
     public void addQuery(Z3Query query) {
+        if (options.maxQueries!=0 && mQueries.size() >= options.maxQueries){
+            return;
+        }
         boolean sameAsCurrentQuery = QUERY_IS_COMPACT && (mCurrentQuery != null)
                 && mCurrentQuery.getClassName().equals(query.getClassName())
                 && mCurrentQuery.getMethodName().equals(query.getMethodName())
@@ -214,7 +211,6 @@ public class FSEngine extends Z3Clauses{
         }
         int timeout = options.timeout;
 
-        // ExecutorService executor = Executors.newFixedThreadPool(threshold);
         ExecutorService executor = Executors.newSingleThreadExecutor();
         
        
@@ -250,29 +246,43 @@ public class FSEngine extends Z3Clauses{
                         mContext.mkSymbol("bound_relation") };
                 temp.setPredicateRepresentation(func, symbols);
             }
-
-         
             
-            Future<String> future = null;
+            /*Future<String> future = null;
             future = executor.submit(new Callable<String>() {
 
-                public String call() throws Exception {
+                public String call() {
                     Status result = temp.query(q.getQuery());
                     if(!q.debugging){
                         System.out.println(result);
-                    }
-                    
-                    return result.toString();
+                    }*/
+                       //if (result.equals("SATISFIABLE"))
+                       //System.out.println(result.toString());
+                       //Statistics st = temp.getStatistics();
+                       //System.out.println(temp.getAnswer());
+                       // Expr res = temp.getAnswer();
+                       //res.
+                       Status result = temp.query(q.getQuery());
+                       System.out.println(result);
+                       
+                       String res_string = result.toString();
+                       	if (options.tillFirstLeak && res_string.equals("SATISFIABLE")){
+                       		break;
+                       	}
+                       
+                       }
+        
+            /*       return result.toString();
                 }
-            });
+            });*/
             
             /*
              * Apparently the Z3 wrapper is not handling the memory correctly, need to GC manually. See:
              * http://stackoverflow.com/questions/24188626/performance-issues-about-z3-for-java#comment37349014_24190067
              */
-            //if (counter % 50 == 0){
+            if (counter % 50 == 0){
                 System.gc();
-            //}
+            }
+            /*
             if ((counter >= currentPrint + (mQueriesLength/10)) && (mQueriesLength > 50)){
                 currentPrint = counter;
                 percentage+= 10;
@@ -344,7 +354,8 @@ public class FSEngine extends Z3Clauses{
         debug.printToLatex();
 
 
-        executor.shutdownNow();
+        executor.shutdownNow();*/
+       
     }
 
 
@@ -837,17 +848,9 @@ public class FSEngine extends Z3Clauses{
             throw new RuntimeException("Z3Engine Failed: reachPred");
         }
     }
-    public BoolExpr reachPredP(BitVecExpr value, BitVecExpr value2, BoolExpr value3) {
+    public BoolExpr joinPred(BitVecExpr value, BoolExpr value2) {
         try {
-            return (BoolExpr) func.getReachP().apply(value, value2, value3);
-        } catch (Z3Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Z3Engine Failed: reachPredP");
-        }
-    }
-    public BoolExpr smashPredP(BitVecExpr value, BitVecExpr value2, BoolExpr value3) {
-        try {
-            return (BoolExpr) func.getSmashP().apply(value, value2, value3);
+            return (BoolExpr) func.getJoin().apply(value, value2);
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Z3Engine Failed: reachPredP");
