@@ -20,11 +20,10 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import analysis.Analysis;
-import z3.Z3Engine;
 
 public class SourceSinkParser {
 	
-	public static void parseSourceSink(File sourceSinkFile, final Set<SourceSinkMethod> sourcesSinks) throws IOException{
+	public static void parseSourceSink(File sourceSinkFile, final SourcesSinks sourcesSinks) throws IOException{
 		try (BufferedReader br = new BufferedReader(new FileReader(sourceSinkFile))) {
 		    String line;
 		    String[] parts = null, parts2 = null;
@@ -38,13 +37,13 @@ public class SourceSinkParser {
 		    	methodName = parts2[1].split(" ")[1];
 		    	
 		    	if (parts[1].charAt(0) == 'O')
-		    		sourcesSinks.add(new SourceSinkMethod(methodName.substring(0, methodName.indexOf('(')), className.replaceAll("\\.", "/"), true));
+		    		sourcesSinks.put(className.replaceAll("\\.", "/"),methodName.substring(0, methodName.indexOf('(')), true);
 		    	else
-		    		sourcesSinks.add(new SourceSinkMethod(methodName.substring(0, methodName.indexOf('(')), className.replaceAll("\\.", "/"), false));
+		    		sourcesSinks.put(className.replaceAll("\\.", "/"),methodName.substring(0, methodName.indexOf('(')), false);
 		    }
 		}
 	}
-	public static void parseEntryPoint(final Z3Engine z3engine) throws IOException{
+	public static void parseEntryPoint(final Analysis analysis) throws IOException{
 		try (BufferedReader br = new BufferedReader(new FileReader(new File("EntryPoints.txt")))) {
 		    String line;
 		    while ((line = br.readLine()) != null) {
@@ -52,7 +51,7 @@ public class SourceSinkParser {
 		    	String[] parts = line.split(Pattern.quote(" "));
 		    	int c = parts[0].hashCode();
 		    	int m = parts[1].hashCode();
-                z3engine.putEntryPoint(c, m);
+                analysis.putEntryPoint(c, m);
 		    }
 		}
 	}
@@ -67,9 +66,8 @@ public class SourceSinkParser {
 		 System.out.println("Running apktool to obtain manifest xml and layout files");
 	     Runtime runtime = Runtime.getRuntime();
 		 Process proc = runtime.exec(new String[]{"/bin/sh", "-c", "java -jar " + apktoolFolder + "apktool.jar d " + apkFileName + " -s -f -o " + outputDirectory + "/apktool"});
-//        Process proc = runtime.exec("java -jar C:\\Users\\rtongchenchitt\\Desktop\\hiwi\\horndroid-new-copy\\lib\\apktool.jar d " + apkFileName + " -s -f -o " + outputDirectory + File.separator + "apktool");
 
-        BufferedReader stdInput = new BufferedReader(new
+		 BufferedReader stdInput = new BufferedReader(new
 	     InputStreamReader(proc.getInputStream()));
 
 	     BufferedReader stdError = new BufferedReader(new 

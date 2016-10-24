@@ -4,3 +4,12 @@
 /.idea
 .DS_Store
 *.class
+*.pdf
+*.log
+*~
+*.tex
+/test/
+/smali/
+*.aux
+/writeup/whoami.txt
+dependency-reduced-pom.xml
