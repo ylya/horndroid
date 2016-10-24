@@ -1204,32 +1204,21 @@ public class FSInstructionAnalysis{
         case APUT_SHORT:
         {
             if (analysis.optionMerginPointers()){
-                buildH();
-                
-                regUpH.put(((TwoRegisterInstruction)instruction).getRegisterB(),
-                        fsengine.or(
-                                fsvar.getH(((TwoRegisterInstruction)instruction).getRegisterB()),
-                                fsvar.getH(((OneRegisterInstruction)instruction).getRegisterA())
-                                )
-                        );
-                
-                buildB();
-                buildRule();
-
-                regUpH.clear();
-                //if (instruction.getOpcode().name().equals("APUT_OBJECT")){
                     buildH();
                     h = fsengine.and(
                             h,
-                            fsengine.hPred(fsvar.getCn(), fsvar.getV(registerA()), fsvar.getF(), fsvar.getVal(), fsvar.getLf(), fsvar.getBf())
+                            fsengine.joinPred(fsvar.getV(registerA()), fsvar.getLf())
                             );
                     b = fsengine.joinPred(fsvar.getV(registerB()), 
-                            fsvar.getLf()
+                            fsengine.or(fsvar.getLf(), fsvar.getH(registerB()), fsvar.getH(registerA()))
                             );
                     buildRule();
-                //}
+                    b = fsengine.joinPred(fsvar.getV(registerB()), 
+                            fsengine.or(fsvar.getH(registerB()), fsvar.getH(registerA()))
+                            );
+                    buildRule();
             }
-            else{
+            {
                 buildH();
                 /*
                 regUpH.put(((TwoRegisterInstruction)instruction).getRegisterB(),
@@ -1346,34 +1335,21 @@ public class FSInstructionAnalysis{
         case IPUT_SHORT:
         {
             if (analysis.optionMerginPointers()){
-              //object on the global heap: propagate R
-                h = fsengine.and(
-                        fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
-                        fsvar.getG(((TwoRegisterInstruction)instruction).getRegisterB()));
-                
-                regUpH.put(((TwoRegisterInstruction)instruction).getRegisterB(),
-                        fsengine.or(
-                                fsvar.getH(registerB()),
-                                fsvar.getH(registerA())
-                                )
-                        );
-                buildB();
-                buildRule();
-               
-                regUpH.clear();
-                //if (instruction.getOpcode().name().equals("IPUT_OBJECT")){
                     buildH();
                     h = fsengine.and(
                             h,
-                            fsengine.hPred(fsvar.getCn(), fsvar.getV(registerA()), fsvar.getF(), fsvar.getVal(), fsvar.getLf(), fsvar.getBf())
+                            fsengine.joinPred(fsvar.getV(registerA()), fsvar.getLf())
                             );
                     b = fsengine.joinPred(fsvar.getV(registerB()), 
-                            fsvar.getLf()
+                            fsengine.or(fsvar.getLf(), fsvar.getH(registerB()), fsvar.getH(registerA()))
                             );
                     buildRule();
-                //}
+                    b = fsengine.joinPred(fsvar.getV(registerB()), 
+                            fsengine.or(fsvar.getH(registerB()), fsvar.getH(registerA()))
+                            );
+                    buildRule();
             }
-            else{
+            {
               //object on the global heap: propagate R
                 h = fsengine.and(
                         fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc),
@@ -3829,6 +3805,13 @@ public class FSInstructionAnalysis{
             fsengine.mkBitVector(32, size), fsengine.mkBitVector(32, size),
             fsengine.mkFalse(), fsengine.mkFalse());
             buildRule();
+            
+            if (analysis.optionMerginPointers()){
+                buildH();
+                b = fsengine.joinPred(fsengine.mkBitVector(instanceNum, size), fsengine.mkFalse());
+                buildRule();
+            }
+            
             return true;
         }
         
@@ -3887,7 +3870,7 @@ public class FSInstructionAnalysis{
             //join predicate
             if (analysis.optionMerginPointers()){
                 buildH();
-                b = fsengine.joinPred(fsvar.getV(registerC), fsvar.getH(registerE));
+                b = fsengine.joinPred(fsvar.getV(registerC), fsengine.or(fsvar.getH(registerE), fsvar.getH(registerC)));
                 buildRule();
             }
             return true;
@@ -3950,7 +3933,7 @@ public class FSInstructionAnalysis{
             //join predicate
             if (analysis.optionMerginPointers()){
                 buildH();
-                b = fsengine.joinPred(fsvar.getV(registerC), fsvar.getH(registerD));
+                b = fsengine.joinPred(fsvar.getV(registerC), fsengine.or(fsvar.getH(registerD), fsvar.getH(registerC)));
                 buildRule();
             }
             
@@ -4014,7 +3997,7 @@ public class FSInstructionAnalysis{
             //join predicate
             if (analysis.optionMerginPointers()){
                 buildH();
-                b = fsengine.joinPred(fsvar.getV(registerC), fsvar.getH(registerD));
+                b = fsengine.joinPred(fsvar.getV(registerC), fsengine.or(fsvar.getH(registerD), fsvar.getH(registerC)));
                 buildRule();
             }
             
@@ -4212,6 +4195,12 @@ public class FSInstructionAnalysis{
                             regUpLHL, regUpLHG, regUpLHF, dmc.getNumArg(),
                             dmc.getNumReg());
                     fsengine.addRule(b, null);
+                }
+                
+                if (analysis.optionMerginPointers()){
+                    buildH();
+                    b = fsengine.joinPred(fsengine.mkBitVector(instanceNum, size), fsengine.mkFalse());
+                    buildRule();
                 }
 
                 return true;
@@ -4842,22 +4831,20 @@ public class FSInstructionAnalysis{
                     fsengine.hPred(fsvar.getCn(),
                             fsvar.getV(getRegisterNumber(range, 1)), fsvar.getF(),
                             fsvar.getFpp(), fsvar.getLf(), fsvar.getBf()));
-            b = fsengine.hPred(fsvar.getCn(),
-                    fsvar.getV(getRegisterNumber(range, 1)), fsvar.getF(),
-                    fsvar.getFpp(), fsengine.or(finalLabel, fsvar.getLf()), fsvar.getBf());
+            b = fsengine.joinPred(
+                    fsvar.getFpp(), fsengine.or(finalLabel, fsvar.getLf()));
             buildRule();            
         }
         
-        //new casses
+        //new cases
         
+        //"anything" case
         buildH();
         h = fsengine.and(h, joinPreds);
-        b = fsengine.hPred(
-                fsengine.mkBitVector("anything".hashCode(),
-                        analysis.getSize()),
-                fsengine.mkBitVector("anything".hashCode(),
-                        analysis.getSize()), fsvar.getF(), fsvar.getFpp(),
-                finalLabel, fsvar.getBf());
+        b = fsengine.joinPred(
+                fsvar.getFpp(),
+                finalLabel);
+        buildRule();
         
         for (final Integer ip: params){
             buildH();
@@ -4876,9 +4863,8 @@ public class FSInstructionAnalysis{
                     fsengine.hPred(fsvar.getCn(),
                             fsvar.getV(getRegisterNumber(range, ip)), fsvar.getF(),
                             fsvar.getFpp(), fsvar.getLf(), fsvar.getBf()));
-            b = fsengine.hPred(fsvar.getCn(),
-                    fsvar.getV(getRegisterNumber(range, ip)), fsvar.getF(),
-                    fsvar.getFpp(), fsengine.or(finalLabel, fsvar.getLf()), fsvar.getBf());
+            b = fsengine.joinPred(
+                    fsvar.getFpp(), fsengine.or(finalLabel, fsvar.getLf()));
             buildRule();
         }
         

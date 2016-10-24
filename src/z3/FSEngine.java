@@ -202,8 +202,123 @@ public class FSEngine extends Z3Clauses{
     public void addQueryDebug(Z3Query query) {
         mQueries.add(query);
     }
+    
+    
+	public void executeAllQueries(Analysis analysis) {
 
-    public void executeAllQueries(Analysis analysis) {    
+		// ensure that the cached query is added
+		if (mCurrentQuery != null) {
+			mQueries.add(mCurrentQuery);
+		}
+
+		System.out.println("Number of queries: " + Integer.toString(mQueries.size()));
+
+		// Used for debugging
+		final Debug debug = new Debug(analysis);
+		// Counter of the number of queries
+		int counter = 0;
+		int currentPrint = 0;
+		int percentage = 0;
+
+		int mQueriesLength = mQueries.size();
+
+		for (int i = 0; i < mQueries.size(); i++) {
+
+			final Z3Query q = mQueries.get(i);
+
+			if (!q.debugging) {
+				System.out.println((i + 1) + ": ");
+				if (q.isVerbose())
+					System.out.println(q.getDescription());
+			}
+
+			final Fixedpoint temp = mContext.mkFixedpoint();
+			for (BoolExpr rule : mRules) {
+				temp.addRule(rule, null);
+			}
+			for (FuncDecl func : mFuncs) {
+				temp.registerRelation(func);
+				Symbol[] symbols = new Symbol[] { mContext.mkSymbol("interval_relation"),
+						mContext.mkSymbol("bound_relation") };
+				temp.setPredicateRepresentation(func, symbols);
+			}
+			// Statistics st = temp.getStatistics();
+			// System.out.println(temp.getAnswer());
+			// Expr res = temp.getAnswer();
+
+			Status result = temp.query(q.getQuery());
+			if (!q.debugging) {
+				System.out.println(result);
+			}
+			String res_string = result.toString();
+			boolean isSAT = res_string.equals("SATISFIABLE");
+			if (!q.debugging && options.tillFirstLeak && isSAT) {
+				break;
+			}
+
+			/*
+			 * Apparently the Z3 wrapper is not handling the memory correctly,
+			 * need to GC manually. See:
+			 * http://stackoverflow.com/questions/24188626/performance-issues-
+			 * about-z3-for-java#comment37349014_24190067
+			 */
+			if (counter % 50 == 0) {
+				System.gc();
+			}
+			if ((counter >= currentPrint + (mQueriesLength / 10)) && (mQueriesLength > 50)) {
+				currentPrint = counter;
+				percentage += 10;
+				System.out.println(percentage + "% of queries handled");
+			}
+
+			counter++;
+
+			if (q.debugging && q.isReg) {
+				final MethodeInfo minfo = debug.get(q.getClassName(), q.getMethodName());
+				boolean res = isSAT;
+				switch (q.queryType) {
+				case HIGH:
+					minfo.regInfo[q.regNum].highPut(Integer.parseInt(q.getPc()), res);
+					break;
+				case LOCAL:
+					minfo.regInfo[q.regNum].localPut(Integer.parseInt(q.getPc()), res);
+					break;
+				case GLOBAL:
+					minfo.regInfo[q.regNum].globalPut(Integer.parseInt(q.getPc()), res);
+					break;
+				default:
+					throw new RuntimeException(
+							"In flow sensitivy mode received a standard query: " + q.queryType.toString());
+				}
+			}
+			if (q.debugging && q.isLocalHeap) {
+				final MethodeInfo minfo = debug.get(q.getClassName(), q.getMethodName());
+				boolean res = isSAT;
+				// LHKey lhkey = new LHKey(q.instanceNum,q.field);
+				final LHInfo lhinf = minfo.getLHInfo(q.instanceNum, q.field);
+				final RegInfo regInf = lhinf.getRegInfo();
+				Integer k = Integer.parseInt(q.getPc());
+				switch (q.queryType) {
+				case HIGH:
+					regInf.highPut(k, res);
+					break;
+				case LOCAL:
+					regInf.localPut(k, res);
+					break;
+				case GLOBAL:
+					regInf.globalPut(k, res);
+					break;
+				default:
+					throw new RuntimeException(
+							"In flow sensitive mode received a standard query: " + q.queryType.toString());
+				}
+			}
+		}
+
+		debug.printToLatex();
+	}
+
+    /*public void executeAllQueries(Analysis analysis) {    
         
         // ensure that the cached query is added
         if (mCurrentQuery != null){
@@ -247,14 +362,14 @@ public class FSEngine extends Z3Clauses{
                 temp.setPredicateRepresentation(func, symbols);
             }
             
-            /*Future<String> future = null;
+            Future<String> future = null;
             future = executor.submit(new Callable<String>() {
 
                 public String call() {
                     Status result = temp.query(q.getQuery());
                     if(!q.debugging){
                         System.out.println(result);
-                    }*/
+                    }
                        //if (result.equals("SATISFIABLE"))
                        //System.out.println(result.toString());
                        //Statistics st = temp.getStatistics();
@@ -271,18 +386,18 @@ public class FSEngine extends Z3Clauses{
                        
                        }
         
-            /*       return result.toString();
+                   return result.toString();
                 }
-            });*/
+            });
             
-            /*
+            
              * Apparently the Z3 wrapper is not handling the memory correctly, need to GC manually. See:
              * http://stackoverflow.com/questions/24188626/performance-issues-about-z3-for-java#comment37349014_24190067
-             */
+             
             if (counter % 50 == 0){
                 System.gc();
             }
-            /*
+            
             if ((counter >= currentPrint + (mQueriesLength/10)) && (mQueriesLength > 50)){
                 currentPrint = counter;
                 percentage+= 10;
@@ -306,7 +421,7 @@ public class FSEngine extends Z3Clauses{
                         minfo.regInfo[q.regNum].globalPut(Integer.parseInt(q.getPc()),res);
                         break;
                     default:
-                        throw new RuntimeException("In flow sensitiv mode received a standard query: " + q.queryType.toString());
+                        throw new RuntimeException("In flow sensitivy mode received a standard query: " + q.queryType.toString());
                     }
                 }
                 if (q.debugging && q.isLocalHeap){
@@ -354,10 +469,10 @@ public class FSEngine extends Z3Clauses{
         debug.printToLatex();
 
 
-        executor.shutdownNow();*/
+        executor.shutdownNow();
        
     }
-
+*/
 
 
     private FuncDecl rPredDef(String c, String m, int pc, int size) {
