@@ -15,8 +15,7 @@ import java.io.File;
 import java.util.List;
 
 public class Main {
-    public static final String COMMAND_EXPECTED = "java -jar HornDroid.jar [options] %Z3Home%/bin %apktool%/ <apk-file> " +
-            "| <apk-folder> \n finds leaks in the app";
+    public static final String COMMAND_EXPECTED = "java -jar fshorndroid.jar [options] '/' '%apktool%/' '<apk-file>'";
     public static final String APKTOOL_JAR = "apktool.jar";
     private static final org.apache.commons.cli.Options options;
     private static final Logger LOGGER = LogManager.getLogger(Main.class);
@@ -30,6 +29,11 @@ public class Main {
         options.addOption("q", false, "precise query results");
         options.addOption("w", false, "sensitive array indexes");
         options.addOption("n", true, "bitvector size (default 64)");
+        options.addOption("i", false, "flow insensitive heap");
+        options.addOption("r", true, "number of queries");
+        options.addOption("d", true, "print debugging information (argument: integer 1 - taint information, 2 - localheap, or 3 - global heap");
+        options.addOption("l", false, "stop after the first leak is found");
+        options.addOption("s", false, "sensitive heap only for the objects created in the method that contains a call to a sink.");
     }
 
     public static void main(String[] args) throws ReportWritingException {
@@ -161,6 +165,11 @@ public class Main {
         System.out.println("-q precise query results");
         System.out.println("-w sensitive array indexes");
         System.out.println("-n bitvector size (default 64)");
+        System.out.println("-i flow insensitive heap");
+        System.out.println("-r number of queries");
+        System.out.println("-d print debugging information (argument: integer 1 - taint information, 2 - localheap, or 3 - global heap");
+        System.out.println("-l stop after the first leak is found");
+        System.out.println("-s sensitive heap only for the objects created in the method that contains a call to a sink.");
     }
 
     private static void printReportToFile(Report report) throws ReportWritingException {
