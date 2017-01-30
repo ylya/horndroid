@@ -64,7 +64,7 @@ public class Main {
     }
 
     private static void parseCommandLine(String[] args) {
-        LOGGER.info("Starting Horndroid...");
+        LOGGER.info("Starting fsHornDroid...");
         CommandLineParser parser = new DefaultParser();
         CommandLine commandLine;
         try {
