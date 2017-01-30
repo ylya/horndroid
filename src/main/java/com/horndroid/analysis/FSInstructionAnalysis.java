@@ -5,6 +5,7 @@ import com.horndroid.Dalvik.DalvikClass;
 import com.horndroid.Dalvik.DalvikImplementation;
 import com.horndroid.Dalvik.DalvikInstance;
 import com.horndroid.Dalvik.DalvikMethod;
+import com.horndroid.Main;
 import com.horndroid.debugging.QUERY_TYPE;
 import com.horndroid.Options;
 
@@ -18,6 +19,8 @@ import java.util.Set;
 import com.microsoft.z3.BitVecExpr;
 import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Expr;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jf.dexlib2.iface.instruction.FiveRegisterInstruction;
 import org.jf.dexlib2.iface.instruction.Instruction;
 import org.jf.dexlib2.iface.instruction.OffsetInstruction;
@@ -76,7 +79,7 @@ public class FSInstructionAnalysis{
     private FSVariable fsvar;
 
     private int referenceClassIndex;
-
+    private static final Logger LOGGER = LogManager.getLogger(FSInstructionAnalysis.class);
     private BoolExpr h;
     private BoolExpr b;
 
@@ -4741,7 +4744,7 @@ public class FSInstructionAnalysis{
      * Advances pc with a top values for the return value (if exists)
      */
     private void invokeNotKnown(final Boolean range, final String invClass, final String invMethod){
-        System.err.println("Not known implementation: " + invClass + " " +  invMethod);
+        LOGGER.error("Not known implementation: " + invClass + " " +  invMethod);
         BoolExpr joinLabel = null;
         boolean returnsRef = false;
         if (callReturns){
@@ -4776,7 +4779,7 @@ public class FSInstructionAnalysis{
         int regOffset = numRegInInstr - parameterTypes.size();
 
         if (!((regOffset == 0) || (regOffset == 1))){
-            System.err.println("Wrong offset for the parameters in the unknown method call!");
+            LOGGER.error("Wrong offset for the parameters in the unknown method call!");
         }
 
         int i = 1 + regOffset;
@@ -4963,8 +4966,7 @@ public class FSInstructionAnalysis{
                             dmc.getNumReg());
                     buildRule();
                 } else {
-                    System.err
-                            .println("Static constructor implementation not found for the class: "
+                  LOGGER.error("Static constructor implementation not found for the class: "
                                     + referenceStringClass);
                 }
             }
@@ -4975,7 +4977,7 @@ public class FSInstructionAnalysis{
      * Advances pc with a top values for the return value (if exists)
      */
     private void invokeNotKnownNew(final Boolean range, final String invClass, final String invMethod){
-        System.err.println("Not known implementation: " + invClass + " " +  invMethod);
+        LOGGER.error("Not known implementation: " + invClass + " " +  invMethod);
         // we add queries when calling manualStub(...)
         /*if (analysis.isSink(className,methodName,invClass.hashCode(), invMethod.hashCode())){
             if (range) {
@@ -5040,7 +5042,7 @@ public class FSInstructionAnalysis{
         int regOffset = numRegInInstr - parameterTypes.size();
 
         if (!((regOffset == 0) || (regOffset == 1))){
-            System.err.println("Wrong offset for the parameters in the unknown method call!");
+            LOGGER.error("Wrong offset for the parameters in the unknown method call!");
         }
 
         if (regOffset == 1){

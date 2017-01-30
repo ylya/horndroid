@@ -1,5 +1,6 @@
 package com.horndroid;
 
+import com.horndroid.analysis.Stubs;
 import com.horndroid.exceptions.ReportWritingException;
 import com.horndroid.executors.HorndroidExecutor;
 import com.horndroid.model.Report;
@@ -38,6 +39,8 @@ public class Main {
 
     public static void main(String[] args) throws ReportWritingException {
         parseCommandLine(args);
+        configuration();
+
         HorndroidExecutor horndroidExecutor;
         if (apkToolPathCorrect()) {
             horndroidExecutor = new HorndroidExecutor(hornDroidOptions, APK_TOOL_DIR_PATH, INPUT_APK_PATH);
@@ -49,6 +52,28 @@ public class Main {
         display(reports);
 
 
+    }
+
+    private static void configuration() {
+        if (!hornDroidOptions.nfsanalysis){
+            LOGGER.info("Flow Sensitive Analysis on "+ hornDroidOptions.bitvectorSize + " bitvectors size");
+        }else{
+            LOGGER.info("Standard Analysis on "+ hornDroidOptions.bitvectorSize + " bitvectors size");
+        }
+
+        Stubs stubs = new Stubs(hornDroidOptions);
+        if (hornDroidOptions.stubs) {
+            long startTimeA = System.nanoTime();
+            LOGGER.info("Loading Standard Java and Android libraries ...");
+            stubs.process();
+            long endTimeA = System.nanoTime();
+            LOGGER.info("done in "
+                    + Long.toString((endTimeA - startTimeA) / 1000000)
+                    + " milliseconds");
+        }
+        else{
+            System.out.println("Not Loading stubs!");
+        }
     }
 
     private static void display(List<Report> reports) throws ReportWritingException {
