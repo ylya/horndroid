@@ -29,6 +29,7 @@ public class Main {
         options = new org.apache.commons.cli.Options();
         options.addOption("q", false, "precise query results");
         options.addOption("w", false, "sensitive array indexes");
+        options.addOption("t", false, "load stubs");
         options.addOption("n", true, "bitvector size (default 64)");
         options.addOption("i", false, "flow insensitive heap");
         options.addOption("r", true, "number of queries");

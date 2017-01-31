@@ -1,6 +1,6 @@
 /bin/
 /target/
-/horndroid.iml
+/*.iml
 /.idea
 .DS_Store
 *.class
