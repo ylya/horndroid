@@ -105,6 +105,9 @@ public class Main {
 
         APK_TOOL_DIR_PATH = otherArgs[1];
         INPUT_APK_PATH = otherArgs[2];
+        if(otherArgs.length==3){
+            OUTPUT_FILE_PATH = otherArgs[3];
+        }
 
         initializeOutputFile(otherArgs);
     }
@@ -200,7 +203,7 @@ public class Main {
 
     private static void printReportToFile(Report report) throws ReportWritingException {
         ReportPrinter printer = ReportWriterFactory.getReportToJsonPrinter();
-        printer.writeReportToFile(report, OUTPUT_FILE_PATH + "_" + report.getTag());
+        printer.writeReportToFile(report, OUTPUT_FILE_PATH + "/" + report.getTag()+".json");
     }
 
     private static void printReportToConsole(Report report) throws ReportWritingException {
