@@ -5,10 +5,6 @@ import com.horndroid.debugging.QUERY_TYPE;
 import com.microsoft.z3.BoolExpr;
 
 
-
-/**
- * Created by rtongchenchitt on 10/19/2015.
- */
 public class Z3Query {
 
     private BoolExpr query;

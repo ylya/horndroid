@@ -1,8 +1,5 @@
 package com.horndroid.printers;
 
-/**
- * @author Sharmeen
- */
 public final class ReportWriterFactory {
 
     public static ReportPrinter getDefaultReportPrinter() {

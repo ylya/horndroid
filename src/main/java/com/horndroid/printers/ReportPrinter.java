@@ -10,8 +10,6 @@ import java.io.IOException;
 /**
  * This report writer interface can be used to generate JSON/XML/Custom files
  * with report content
- *
- * @author Sharmeen
  */
 public abstract class ReportPrinter {
 

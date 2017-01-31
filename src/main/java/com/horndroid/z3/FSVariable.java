@@ -2,10 +2,6 @@ package com.horndroid.z3;
 
 import com.microsoft.z3.*;
 
-
-/**
- * Created by rtongchenchitt on 10/15/2015.
- */
 public class FSVariable {
 
     private final int GUARD = 100;

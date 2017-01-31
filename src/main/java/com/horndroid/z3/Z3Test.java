@@ -6,9 +6,6 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.HashMap;
 
-/**
- * Created by rtongchenchitt on 10/16/2015.
- */
 public class Z3Test {
 
     private static final Logger LOGGER = LogManager.getLogger(Z3Test.class);

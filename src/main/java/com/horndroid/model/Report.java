@@ -6,7 +6,6 @@ import java.util.List;
 /**
  * Represents a report with the analysis details
  *
- * @author Sharmeen
  */
 public class Report {
 

@@ -3,7 +3,6 @@ package com.horndroid.model;
 /**
  * Represents one entry in a report
  *
- * @author Sharmeen
  */
 public class ReportEntry {
 

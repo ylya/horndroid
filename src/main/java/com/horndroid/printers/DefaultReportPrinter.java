@@ -5,9 +5,7 @@ import com.horndroid.model.ReportEntry;
 
 import java.util.List;
 
-/**
- * @author Sharmeen
- */
+
 public final class DefaultReportPrinter extends ReportPrinter {
 
 

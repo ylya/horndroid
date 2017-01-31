@@ -31,7 +31,6 @@ import static com.horndroid.constants.TimeConstants.TIME_DISPLAY_MILLISECONDS_CO
 /**
  * Executes the horndroid tool
  *
- * @author Sharmeen
  */
 public class HorndroidExecutor {
 

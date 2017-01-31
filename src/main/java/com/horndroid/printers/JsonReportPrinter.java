@@ -6,9 +6,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.horndroid.exceptions.ReportWritingException;
 import com.horndroid.model.Report;
 
-/**
- * @author Sharmeen
- */
 class JsonReportPrinter extends ReportPrinter {
 
 
