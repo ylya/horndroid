@@ -35,7 +35,8 @@ public class Main {
         options.addOption("r", true, "number of queries");
         options.addOption("d", true, "print debugging information (argument: integer 1 - taint information, 2 - localheap, or 3 - global heap");
         options.addOption("l", false, "stop after the first leak is found");
-        options.addOption("s", false, "sensitive heap only for the objects created in the method that contains a call to a sink.");
+        options.addOption("s", false, "sensitive heap only for the objects created in the method that contains a call to a sink");
+        options.addOption("g", false, "skip unknown methods");
     }
 
     public static void main(String[] args) throws ReportWritingException {
@@ -105,7 +106,7 @@ public class Main {
 
         APK_TOOL_DIR_PATH = otherArgs[1];
         INPUT_APK_PATH = otherArgs[2];
-        if(otherArgs.length==3){
+        if(otherArgs.length==4){
             OUTPUT_FILE_PATH = otherArgs[3];
         }
 
