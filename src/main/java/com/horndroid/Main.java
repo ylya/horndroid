@@ -62,8 +62,7 @@ public class Main {
         }else{
             LOGGER.info("Standard Analysis on "+ hornDroidOptions.bitvectorSize + " bitvectors size");
         }
-
-        Stubs stubs = new Stubs(hornDroidOptions);
+        /*Stubs stubs = new Stubs(hornDroidOptions);
         if (hornDroidOptions.stubs) {
             long startTimeA = System.nanoTime();
             LOGGER.info("Loading Standard Java and Android libraries ...");
@@ -75,7 +74,7 @@ public class Main {
         }
         else{
             System.out.println("Not Loading stubs!");
-        }
+        }*/
     }
 
     private static void display(List<Report> reports) throws ReportWritingException {

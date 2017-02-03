@@ -256,10 +256,16 @@ public class FSEngine extends Z3Clauses {
             }
             Status result = temp.query(q.getQuery());
 
-            reportEntry.setResult(result.toString());
+            String res_string = result.toString();
+
+            if (res_string.equals("SATISFIABLE"))
+                reportEntry.setResult("POTENTIAL LEAK");
+            if (res_string.equals("UNSATISFIABLE"))
+                reportEntry.setResult("NO LEAK");
+            if  (!(res_string.equals("SATISFIABLE")) && !res_string.equals("UNSATISFIABLE"))
+                reportEntry.setResult("UNKNOWN");
 
             report.addReportEntry(reportEntry);
-            String res_string = result.toString();
             boolean isSAT = res_string.equals("SATISFIABLE");
             if (!q.debugging && options.tillFirstLeak && isSAT) {
                 break;

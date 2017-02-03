@@ -3158,7 +3158,7 @@ public class FSInstructionAnalysis{
                     fsengine.eq(fsvar.getH(reg), fsengine.mkTrue())
                     //,fsengine.or(fsengine.eq(fsvar.getG(reg), fsengine.mkFalse()), fsengine.eq(fsvar.getL(reg), fsengine.mkFalse()))
             );
-            String d = "Test if register " + Integer.toString(reg) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+            String d = "Test if register " + Integer.toString(reg) +  " leaks at line " + pc + " in method " +  methodName + " of the class " + className + " to the sink " + sinkName;
             fsengine.addQuery(new Z3Query(q, d, verboseOption, className, methodName, pc, sinkName));
         }
         if (analysis.optionMerginPointers()){
@@ -3168,7 +3168,7 @@ public class FSInstructionAnalysis{
                         fsengine.joinPred(fsvar.getV(reg), fsengine.mkTrue()),
                         fsengine.or(fsengine.eq(fsvar.getG(reg), fsengine.mkTrue()), fsengine.eq(fsvar.getL(reg), fsengine.mkTrue()))
                 );
-                String d = "[JOIN] Test if register " + Integer.toString(reg) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                String d = "[JOIN] Test if register " + Integer.toString(reg) +  " leaks at line " + pc + " in method " +  methodName + " of the class " + className + " to the sink " + sinkName;
                 fsengine.addQuery(new Z3Query(q, d, verboseOption, className, methodName, pc, sinkName));
             }
         }
@@ -3179,7 +3179,7 @@ public class FSInstructionAnalysis{
                         fsengine.taintPred(fsvar.getV(reg), fsengine.mkTrue()),
                         fsengine.or(fsengine.eq(fsvar.getG(reg), fsengine.mkTrue()), fsengine.eq(fsvar.getL(reg), fsengine.mkTrue()))
                 );
-                String d = "[REF] Test if register " + Integer.toString(reg) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                String d = "[REF] Test if register " + Integer.toString(reg) +  " leaks at line " + pc + " in method " +  methodName + " of the class " + className + " to the sink " + sinkName;
                 fsengine.addQuery(new Z3Query(q, d, verboseOption, className, methodName, pc, sinkName));
             }
         }
@@ -3196,7 +3196,7 @@ public class FSInstructionAnalysis{
                         fsengine.eq(fsvar.getH(instruction.getRegisterG()), fsengine.mkTrue())
                         //,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterG()), fsengine.mkFalse()), fsengine.eq(fsvar.getL(instruction.getRegisterG()), fsengine.mkFalse()))
                 );
-                String d5 = "Test if register " + Integer.toString(instruction.getRegisterG()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                String d5 = "Test if register " + Integer.toString(instruction.getRegisterG()) +  " leaks at line " + pc + " in method " +  methodName + " of the class " + className + " to the sink " + sinkName;
                 fsengine.addQuery(new Z3Query(q5, d5, verboseResults, className, methodName, pc, sinkName));
                 if (analysis.optionMerginPointers()){
                     q5 = fsengine.and(
@@ -3204,7 +3204,7 @@ public class FSInstructionAnalysis{
                             fsengine.joinPred(fsvar.getV(instruction.getRegisterG()), fsengine.mkTrue())
                             ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterG()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterG()), fsengine.mkTrue()))
                     );
-                    d5 = "[JOIN] Test if register " + Integer.toString(instruction.getRegisterG()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                    d5 = "[JOIN] Test if register " + Integer.toString(instruction.getRegisterG()) +  " leaks at line " + pc + " in method " +  methodName + " of the class " + className + " to the sink " + sinkName;
                     fsengine.addQuery(new Z3Query(q5, d5, verboseResults, className, methodName, pc, sinkName));
                 }
                 else{
@@ -3213,7 +3213,7 @@ public class FSInstructionAnalysis{
                             fsengine.taintPred(fsvar.getV(instruction.getRegisterG()), fsengine.mkTrue())
                             ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterG()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterG()), fsengine.mkTrue()))
                     );
-                    d5 = "[REF] Test if register " + Integer.toString(instruction.getRegisterG()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                    d5 = "[REF] Test if register " + Integer.toString(instruction.getRegisterG()) +  " leaks at line " + pc + " in method " +  methodName + " of the class " + className + " to the sink " + sinkName;
                     fsengine.addQuery(new Z3Query(q5, d5, verboseResults, className, methodName, pc, sinkName));
                 }
 
@@ -3223,7 +3223,7 @@ public class FSInstructionAnalysis{
                         fsengine.eq(fsvar.getH(instruction.getRegisterF()), fsengine.mkTrue())
                         //,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterF()), fsengine.mkFalse()), fsengine.eq(fsvar.getL(instruction.getRegisterF()), fsengine.mkFalse()))
                 );
-                String d4 = "Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                String d4 = "Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks at line " + pc + " in method " +  methodName + " of the class " + className + " to the sink " + sinkName;
                 fsengine.addQuery(new Z3Query(q4, d4, verboseResults, className, methodName, pc, sinkName));
                 if (analysis.optionMerginPointers()){
                     q4 = fsengine.and(
@@ -3231,7 +3231,7 @@ public class FSInstructionAnalysis{
                             fsengine.joinPred(fsvar.getV(instruction.getRegisterF()), fsengine.mkTrue())
                             ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterF()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterF()), fsengine.mkTrue()))
                     );
-                    d4 = "[JOIN] Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                    d4 = "[JOIN] Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks at line " + pc + " in method " +  methodName + " of the class " + className + " to the sink " + sinkName;
                     fsengine.addQuery(new Z3Query(q4, d4, verboseResults, className, methodName, pc, sinkName));
                 }
                 else{
@@ -3240,7 +3240,7 @@ public class FSInstructionAnalysis{
                             fsengine.taintPred(fsvar.getV(instruction.getRegisterF()), fsengine.mkTrue())
                             ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterF()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterF()), fsengine.mkTrue()))
                     );
-                    d4 = "[REF] Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                    d4 = "[REF] Test if register " + Integer.toString(instruction.getRegisterF()) +  " leaks at line " + pc + " in method " +  methodName + " of the class " + className + " to the sink " + sinkName;
                     fsengine.addQuery(new Z3Query(q4, d4, verboseResults, className, methodName, pc, sinkName));
                 }
 
@@ -3250,7 +3250,7 @@ public class FSInstructionAnalysis{
                         fsengine.eq(fsvar.getH(instruction.getRegisterE()), fsengine.mkTrue())
                         //,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterE()), fsengine.mkFalse()), fsengine.eq(fsvar.getL(instruction.getRegisterE()), fsengine.mkFalse()))
                 );
-                String d3 = "Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                String d3 = "Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks at line " + pc + " in method " +  methodName + " of the class " + className + " to the sink " + sinkName;
                 fsengine.addQuery(new Z3Query(q3, d3, verboseResults, className, methodName, pc, sinkName));
                 if (analysis.optionMerginPointers()){
                     q3 = fsengine.and(
@@ -3258,7 +3258,7 @@ public class FSInstructionAnalysis{
                             fsengine.joinPred(fsvar.getV(instruction.getRegisterE()), fsengine.mkTrue())
                             ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterE()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterE()), fsengine.mkTrue()))
                     );
-                    d3 = "[JOIN] Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                    d3 = "[JOIN] Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks at line " + pc + " in method " +  methodName + " of the class " + className + " to the sink " + sinkName;
                     fsengine.addQuery(new Z3Query(q3, d3, verboseResults, className, methodName, pc, sinkName));
                 }
                 else{
@@ -3267,7 +3267,7 @@ public class FSInstructionAnalysis{
                             fsengine.taintPred(fsvar.getV(instruction.getRegisterE()), fsengine.mkTrue())
                             ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterE()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterE()), fsengine.mkTrue()))
                     );
-                    d3 = "[REF] Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                    d3 = "[REF] Test if register " + Integer.toString(instruction.getRegisterE()) +  " leaks at line " + pc + " in method " +  methodName + " of the class " + className + " to the sink " + sinkName;
                     fsengine.addQuery(new Z3Query(q3, d3, verboseResults, className, methodName, pc, sinkName));
                 }
 
@@ -3277,7 +3277,7 @@ public class FSInstructionAnalysis{
                         fsengine.eq(fsvar.getH(instruction.getRegisterD()), fsengine.mkTrue())
                         //,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterD()), fsengine.mkFalse()), fsengine.eq(fsvar.getL(instruction.getRegisterD()), fsengine.mkFalse()))
                 );
-                String d2 = "Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                String d2 = "Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks at line " + pc + " in method " +  methodName + " of the class " + className + " to the sink " + sinkName;
                 fsengine.addQuery(new Z3Query(q2, d2, verboseResults, className, methodName, pc, sinkName));
                 if (analysis.optionMerginPointers()){
                     q2 = fsengine.and(
@@ -3285,7 +3285,7 @@ public class FSInstructionAnalysis{
                             fsengine.joinPred(fsvar.getV(instruction.getRegisterD()), fsengine.mkTrue())
                             ,fsengine.eq(fsengine.or(fsvar.getG(instruction.getRegisterD()), fsvar.getL(instruction.getRegisterD())), fsengine.mkTrue())
                     );
-                    d2 = "[JOIN] Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                    d2 = "[JOIN] Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks at line " + pc + " in method " +  methodName + " of the class " + className + " to the sink " + sinkName;
                     fsengine.addQuery(new Z3Query(q2, d2, verboseResults, className, methodName, pc, sinkName));
                 }
                 else{
@@ -3294,7 +3294,7 @@ public class FSInstructionAnalysis{
                             fsengine.taintPred(fsvar.getV(instruction.getRegisterD()), fsengine.mkTrue())
                             ,fsengine.eq(fsengine.or(fsvar.getG(instruction.getRegisterD()), fsvar.getL(instruction.getRegisterD())), fsengine.mkTrue())
                     );
-                    d2 = "[REF] Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                    d2 = "[REF] Test if register " + Integer.toString(instruction.getRegisterD()) +  " leaks at line " + pc + " in method " +  methodName + " of the class " + className + " to the sink " + sinkName;
                     fsengine.addQuery(new Z3Query(q2, d2, verboseResults, className, methodName, pc, sinkName));
                 }
 
@@ -3304,7 +3304,7 @@ public class FSInstructionAnalysis{
                         fsengine.eq(fsvar.getH(instruction.getRegisterC()), fsengine.mkTrue())
                         //,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterC()), fsengine.mkFalse()), fsengine.eq(fsvar.getL(instruction.getRegisterC()), fsengine.mkFalse()))
                 );
-                String d1 = "Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                String d1 = "Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks at line " + pc + " in method " +  methodName + " of the class " + className + " to the sink " + sinkName;
                 fsengine.addQuery(new Z3Query(q1, d1, verboseResults, className, methodName, pc, sinkName));
                 if (analysis.optionMerginPointers()){
                     q1 = fsengine.and(
@@ -3312,7 +3312,7 @@ public class FSInstructionAnalysis{
                             fsengine.joinPred(fsvar.getV(instruction.getRegisterC()), fsengine.mkTrue())
                             ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterC()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterC()), fsengine.mkTrue()))
                     );
-                    d1 = "[JOIN] Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                    d1 = "[JOIN] Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks at line " + pc + " in method " +  methodName + " of the class " + className + " to the sink " + sinkName;
                     fsengine.addQuery(new Z3Query(q1, d1, verboseResults, className, methodName, pc, sinkName));
                 }
                 else{
@@ -3321,7 +3321,7 @@ public class FSInstructionAnalysis{
                             fsengine.taintPred(fsvar.getV(instruction.getRegisterC()), fsengine.mkTrue())
                             ,fsengine.or(fsengine.eq(fsvar.getG(instruction.getRegisterC()), fsengine.mkTrue()), fsengine.eq(fsvar.getL(instruction.getRegisterC()), fsengine.mkTrue()))
                     );
-                    d1 = "[REF] Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks @line " + pc + " in method " +  methodName + " of the class " + className + " ---> sink " + sinkName;
+                    d1 = "[REF] Test if register " + Integer.toString(instruction.getRegisterC()) +  " leaks at line " + pc + " in method " +  methodName + " of the class " + className + " to the sink " + sinkName;
                     fsengine.addQuery(new Z3Query(q1, d1, verboseResults, className, methodName, pc, sinkName));
                 }
         }
