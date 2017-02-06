@@ -311,7 +311,7 @@ public class DataExtraction {
                     break;
                 case SPARSE_SWITCH:
                     payloadOpcode = Opcode.SPARSE_SWITCH_PAYLOAD;
-                    final int baseSCodeAddress = methodDef.getSparseSwitchBaseAddress(codeAddress);
+                    final int baseSCodeAddress = methodDef.getSparseSwitchBaseAddress(payloadAddress);
                     SparseSwitchPayload ssInst = (SparseSwitchPayload) methodDef.findSwitchPayload(codeAddress + ((Instruction31t)instruction).getCodeOffset(),
                             payloadOpcode);
                     final Map<Integer, Integer> sTargets  = Collections.synchronizedMap(new HashMap <Integer, Integer>());
