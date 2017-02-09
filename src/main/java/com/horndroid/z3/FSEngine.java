@@ -302,7 +302,7 @@ public class FSEngine extends Z3Clauses {
                         break;
                     default:
                         throw new RuntimeException(
-                                "In flow sensitivy mode received a standard query: " + q.queryType.toString());
+                                "In flow sensitive mode received a standard query: " + q.queryType.toString());
                 }
             }
             if (q.debugging && q.isLocalHeap) {
