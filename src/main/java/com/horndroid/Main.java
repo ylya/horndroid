@@ -40,6 +40,7 @@ public class Main {
         options.addOption("f", true, "filter classes starting from the init activity with a specified width (argument : integer, starting from 1" +
                 "number of classes that should be included together with the init class to the analysis" +
                 ")");
+        options.addOption("u", false, "class filtering should be done sound, e.g., if a skipped method body contains a call to a sink it becomes a sink");
     }
 
     public static void main(String[] args) throws ReportWritingException {
@@ -176,6 +177,9 @@ public class Main {
                     break;
                 case 'f':
                     hornDroidOptions.filterClasses= Integer.parseInt(commandLine.getOptionValue("f"));
+                    break;
+                case 'u':
+                    hornDroidOptions.filterClassesSound = true;
             }
 
         }

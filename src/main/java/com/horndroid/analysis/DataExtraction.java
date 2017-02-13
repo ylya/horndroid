@@ -52,6 +52,7 @@ public class DataExtraction {
     private Map<Integer,GeneralClass> classes;
     private final Set<Integer> allowed;
     private int filterClasses;
+    private boolean filterSound;
     final private Instances instances;
     final private Set<ArrayData> arrayDataPayload;
     final private Set<PackedSwitch> packedSwitchPayload;
@@ -77,7 +78,7 @@ public class DataExtraction {
              final SourcesSinks sourcesSinks,
              final Set<CMPair> refSources, final Set<CMPair> refSinks,
              final Set<Integer> methodHasSink,
-             final Interfaces interfaces, final Set<Integer> allowed, final int filterClasses){
+             final Interfaces interfaces, final Set<Integer> allowed, final int filterClasses, final boolean filterSound){
         this.classes = classes;
         this.instances = instances;
         this.arrayDataPayload = arrayDataPayload;
@@ -97,10 +98,27 @@ public class DataExtraction {
 
         this.allowed = allowed;
         this.filterClasses = filterClasses;
+        this.filterSound = filterSound;
     }
     public void putMethodHasSink(int cmHash){
         if (this.methodHasSink != null){
             this.methodHasSink.add(cmHash);
+        }
+    }
+
+    private void addSinksFromFilteredClasses(Map<Integer, GeneralClass> modifiedClasses){
+        for (final GeneralClass c: classes.values()){
+            if (!modifiedClasses.containsKey(c.getType().hashCode())){
+               if (c instanceof DalvikClass){
+                   DalvikClass dc = (DalvikClass) c;
+                   for (DalvikMethod dm: dc.getMethods()){
+                       final CMPair cmp = new CMPair(dc.getType().hashCode(),dm.getName().hashCode());
+                       if (methodHasSink.contains(cmp.hashCode())){
+                           refSinks.add(cmp);
+                       }
+                   }
+               }
+            }
         }
     }
     
@@ -126,6 +144,9 @@ public class DataExtraction {
         if (filterClasses > 0){
             final Map<Integer, GeneralClass> modifiedClasses = new ConcurrentHashMap<Integer, GeneralClass>();
             modifyClassStructure(modifiedClasses);
+            if (filterSound){
+                addSinksFromFilteredClasses(modifiedClasses);
+            }
             classes.clear();
             classes.putAll(modifiedClasses);
         }

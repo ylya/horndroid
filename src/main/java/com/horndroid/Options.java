@@ -19,4 +19,5 @@ public class Options {
     public boolean pointersMerge = false;
     public boolean nopUnknown = false;
     public int filterClasses = 0;
+    public boolean filterClassesSound = false;
 }

@@ -223,7 +223,7 @@ public class Analysis {
         allowed.addAll(launcherActivities); // adding launcher activities to the allowed
         DataExtraction de = new DataExtraction(apkClasses, apkInstances, arrayDataPayload, packedSwitchPayload, sparseSwitchPayload,
                 staticConstructor, constStrings, launcherActivities, true, sourcesSinks, refSources, refSinks, methodHasSink, interfaces,
-                allowed, optionFilterClasses());
+                allowed, optionFilterClasses(), options.filterClassesSound);
         de.collectData(classDefs);
 
     }
