@@ -165,6 +165,8 @@ public class Analysis {
         return options.arrays;
     }
 
+    public int optionFilterClasses() {return options.filterClasses;}
+
     public boolean optionOldUnknown() {
         return options.oldUnknown;
     }
@@ -216,9 +218,12 @@ public class Analysis {
      * Populate apkClasses and apkInstances with the classes and instances from the analysed apk
      * Also gather additional information: payloads data, switches information, static constructor and strings
      */
-    public void collectDataFromApk(List<? extends ClassDef> classDefs) {
+    public void collectDataFromApk(List<? extends ClassDef> classDefs,
+                                   final Set<Integer> allowed) {
+        allowed.addAll(launcherActivities); // adding launcher activities to the allowed
         DataExtraction de = new DataExtraction(apkClasses, apkInstances, arrayDataPayload, packedSwitchPayload, sparseSwitchPayload,
-                staticConstructor, constStrings, launcherActivities, true, sourcesSinks, refSources, refSinks, methodHasSink, interfaces);
+                staticConstructor, constStrings, launcherActivities, true, sourcesSinks, refSources, refSinks, methodHasSink, interfaces,
+                allowed, optionFilterClasses());
         de.collectData(classDefs);
 
     }
@@ -728,12 +733,12 @@ public class Analysis {
         }
     }
 
-    private String makeName(final GeneralClass c) {
+    /*private String makeName(final GeneralClass c) {
         final String formatClassName = c.getType().replaceAll("\\.", "/").substring(1, c.getType().replaceAll("\\.", "/").length() - 1);
         final String[] parts = formatClassName.split("/");
         final String classN = parts[parts.length - 1];
         return classN;
-    }
+    }*/
 
     /*
      * Return true if c'.getType().hashCode() is in overapprox where c' is either c or a super class of c
@@ -776,7 +781,7 @@ public class Analysis {
      * Return true if makeName(c').hashCode() is in set where c' is either c or a super class of c
      */
     private boolean superIsInSet(Set<Integer> set, GeneralClass c) {
-        if (set.contains(makeName(c).hashCode())) {
+        if (set.contains(Utils.makeName(c).hashCode())) {
             return true;
         } else {
             if (c instanceof DalvikClass) {
@@ -803,7 +808,7 @@ public class Analysis {
             if (c instanceof DalvikClass) {
                 final DalvikClass dc = (DalvikClass) c;
                 for (final DalvikClass childClass : dc.getChildClasses()) {
-                    if (launcherActivities.contains(makeName(childClass).hashCode())) {
+                    if (launcherActivities.contains(Utils.makeName(childClass).hashCode())) {
                         return true;
                     }
                 }
@@ -813,7 +818,7 @@ public class Analysis {
     }
 
     private boolean testDisabledActivity(final GeneralClass c) {
-        return disabledActivities.contains(makeName(c).hashCode());
+        return disabledActivities.contains(Utils.makeName(c).hashCode());
     }
 
     /*
@@ -831,7 +836,7 @@ public class Analysis {
             if (c instanceof DalvikClass) {
                 final DalvikClass dc = (DalvikClass) c;
                 for (final DalvikClass childClass : dc.getChildClasses()) {
-                    if (applications.contains(makeName(childClass).hashCode())) {
+                    if (applications.contains(Utils.makeName(childClass).hashCode())) {
                         return true;
                     }
                 }
@@ -1182,7 +1187,6 @@ public class Analysis {
 
         printSourceSink();
 
-        LOGGER.info("Ready to start generating Horn Clauses:");
         LOGGER.info("Number of classes : " + classes.size());
         LOGGER.info("Number of methods: " + processCM.size());
         LOGGER.info("Number of instructions: " + instructionNumber);

@@ -16,7 +16,7 @@ import java.io.File;
 import java.util.List;
 
 public class Main {
-    public static final String COMMAND_EXPECTED = "java -jar fshorndroid.jar [options] '/' '%apktool%/' '<apk-file>'";
+    public static final String COMMAND_EXPECTED = "java -jar fshorndroid-version.jar [options] '/' '%apktool%/' '<apk-file>'";
     public static final String APKTOOL_JAR = "apktool.jar";
     private static final org.apache.commons.cli.Options options;
     private static final Logger LOGGER = LogManager.getLogger(Main.class);
@@ -37,6 +37,9 @@ public class Main {
         options.addOption("l", false, "stop after the first leak is found");
         options.addOption("s", false, "sensitive heap only for the objects created in the method that contains a call to a sink");
         options.addOption("g", false, "skip unknown methods");
+        options.addOption("f", true, "filter classes starting from the init activity with a specified width (argument : integer, starting from 1" +
+                "number of classes that should be included together with the init class to the analysis" +
+                ")");
     }
 
     public static void main(String[] args) throws ReportWritingException {
@@ -171,6 +174,8 @@ public class Main {
                 case 'g':
                     hornDroidOptions.nopUnknown = true;
                     break;
+                case 'f':
+                    hornDroidOptions.filterClasses= Integer.parseInt(commandLine.getOptionValue("f"));
             }
 
         }

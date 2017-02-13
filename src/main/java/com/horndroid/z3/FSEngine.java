@@ -266,6 +266,10 @@ public class FSEngine extends Z3Clauses {
                 reportEntry.setResult("UNKNOWN");
 
             report.addReportEntry(reportEntry);
+
+            LOGGER.info(reportEntry.getDescription()+":"+reportEntry.getResult());
+
+
             boolean isSAT = res_string.equals("SATISFIABLE");
             if (!q.debugging && options.tillFirstLeak && isSAT) {
                 break;

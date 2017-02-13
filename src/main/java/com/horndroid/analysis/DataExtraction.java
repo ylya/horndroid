@@ -1,13 +1,7 @@
 package com.horndroid.analysis;
 
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.horndroid.Dalvik.*;
@@ -18,6 +12,8 @@ import com.horndroid.strings.ConstString;
 import com.horndroid.util.CMPair;
 import com.horndroid.util.SourcesSinks;
 import com.horndroid.util.Utils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jf.baksmali.Adaptors.ClassDefinition;
 import org.jf.baksmali.Adaptors.MethodDefinition;
 import org.jf.baksmali.Adaptors.MethodDefinition.InvalidSwitchPayload;
@@ -50,10 +46,12 @@ import org.jf.util.ExceptionWithContext;
 
 import com.google.common.collect.ImmutableList;
 
-
-
 public class DataExtraction {
-    final private Map<Integer,GeneralClass> classes;
+    private static final Logger LOGGER = LogManager.getLogger(DataExtraction.class);
+
+    private Map<Integer,GeneralClass> classes;
+    private final Set<Integer> allowed;
+    private int filterClasses;
     final private Instances instances;
     final private Set<ArrayData> arrayDataPayload;
     final private Set<PackedSwitch> packedSwitchPayload;
@@ -79,7 +77,7 @@ public class DataExtraction {
              final SourcesSinks sourcesSinks,
              final Set<CMPair> refSources, final Set<CMPair> refSinks,
              final Set<Integer> methodHasSink,
-             final Interfaces interfaces){
+             final Interfaces interfaces, final Set<Integer> allowed, final int filterClasses){
         this.classes = classes;
         this.instances = instances;
         this.arrayDataPayload = arrayDataPayload;
@@ -96,6 +94,9 @@ public class DataExtraction {
         this.methodHasSink = methodHasSink;
         
         this.interfaces = interfaces;
+
+        this.allowed = allowed;
+        this.filterClasses = filterClasses;
     }
     public void putMethodHasSink(int cmHash){
         if (this.methodHasSink != null){
@@ -120,6 +121,71 @@ public class DataExtraction {
                     }
                 }
                 instances.changeType(cd);
+            }
+        }
+        if (filterClasses > 0){
+            final Map<Integer, GeneralClass> modifiedClasses = new ConcurrentHashMap<Integer, GeneralClass>();
+            modifyClassStructure(modifiedClasses);
+            classes.clear();
+            classes.putAll(modifiedClasses);
+        }
+    }
+
+    private void addChildrenToModification(final Map<Integer, GeneralClass> modifiedClasses,
+                                           final DalvikClass dc){
+        for (GeneralClass gc: dc.getChildClasses()){
+            if (gc instanceof DalvikClass){
+                DalvikClass dch = (DalvikClass) gc;
+                modifiedClasses.put(dch.getType().hashCode(), dch);
+                addChildrenToModification(modifiedClasses, dch);
+            }
+            else{
+                modifiedClasses.put(gc.getType().hashCode(), gc);
+            }
+        }
+    }
+
+    private void addParentsToModification(final Map<Integer, GeneralClass> modifiedClasses,
+                                          final DalvikClass dc){
+        modifiedClasses.put(dc.getSuperClass().getType().hashCode(), dc);
+        if (dc.getSuperClass() instanceof DalvikClass){
+            addParentsToModification(modifiedClasses, (DalvikClass) dc.getSuperClass());
+        }
+    }
+
+    private static String makeNameIgnoreDollar(final GeneralClass c) {
+        final String formatClassName = c.getType().replaceAll("\\.", "/").substring(1, c.getType().replaceAll("\\.", "/").length() - 1);
+        final String[] parts = formatClassName.split("/");
+        final String classN = parts[parts.length - 1];
+        final String[] parts$ = classN.split("\\$");
+        final String classN$ = parts$[0];
+        return classN$;
+    }
+
+    private void modifyClassStructure(final Map<Integer, GeneralClass> modifiedClasses){
+        LOGGER.debug("Analysed classes:");
+        for (final GeneralClass c: classes.values()){
+            if (c instanceof DalvikClass){
+                DalvikClass dc= (DalvikClass) c;
+                if (allowed.contains(makeNameIgnoreDollar(dc).hashCode())){
+                    LOGGER.debug(dc.getType());
+                    modifiedClasses.put(dc.getType().hashCode(), dc);
+                    addParentsToModification(modifiedClasses, dc);
+                    addChildrenToModification(modifiedClasses, dc);
+                }
+                else{
+                    if (filterClasses > 1){
+                        LOGGER.debug(dc.getType());
+                        modifiedClasses.put(dc.getType().hashCode(), dc);
+                        addParentsToModification(modifiedClasses, dc);
+                        addChildrenToModification(modifiedClasses, dc);
+                        filterClasses--;
+                    }
+                }
+            }
+            else{
+                modifiedClasses.put(c.getType().hashCode(), c);
+                LOGGER.debug(c.getType());
             }
         }
     }

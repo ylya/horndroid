@@ -2,6 +2,7 @@
 package com.horndroid.util;
 
 
+import com.horndroid.Dalvik.GeneralClass;
 import org.jf.dexlib2.iface.reference.FieldReference;
 import org.jf.dexlib2.iface.reference.MethodReference;
 import org.jf.dexlib2.iface.reference.Reference;
@@ -104,5 +105,11 @@ public class Utils {
         }
         return null;
     }
-    
+
+    public static String makeName(final GeneralClass c) {
+        final String formatClassName = c.getType().replaceAll("\\.", "/").substring(1, c.getType().replaceAll("\\.", "/").length() - 1);
+        final String[] parts = formatClassName.split("/");
+        final String classN = parts[parts.length - 1];
+        return classN;
+    }
 }

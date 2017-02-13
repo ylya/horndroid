@@ -18,4 +18,5 @@ public class Options {
     public boolean nfsanalysis = false;
     public boolean pointersMerge = false;
     public boolean nopUnknown = false;
+    public int filterClasses = 0;
 }

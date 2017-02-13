@@ -133,12 +133,13 @@ public class HorndroidExecutor {
         return report;
     }
 
-    private void generateHornClauses(Analysis analysis, List<? extends ClassDef> classDefs) {
+    private void generateHornClauses(Analysis analysis, List<? extends ClassDef> classDefs,
+                                     final Set<Integer> allowed) {
         long startTime;
         long endTime;
         LOGGER.debug("Collecting data for Horn Clause generation...");
         startTime = System.nanoTime();
-        analysis.collectDataFromApk(classDefs);
+        analysis.collectDataFromApk(classDefs, allowed);
         endTime = System.nanoTime();
         LOGGER.debug("done in " + Long.toString((endTime - startTime) / MILLISECONDS_IN_SECOND_CONSTANT) +
                 TIME_DISPLAY_MILLISECONDS_CONSTANT);
@@ -233,7 +234,13 @@ public class HorndroidExecutor {
         }
     }
 
-    private List<Report> processFiles(SourcesSinks sourcesSinks, LinkedHashSet<File> filesToProcess) {
+    private Set<Integer> getAllowedClasses(){
+
+        return new HashSet<Integer>();
+    }
+
+    private List<Report> processFiles(SourcesSinks sourcesSinks, LinkedHashSet<File> filesToProcess,
+                                      final Set<Integer> allowed) {
         Stubs stubs = new Stubs(hornDroidOptions);
         List<Report> reports = new ArrayList<>();
         for (final File file : filesToProcess) {
@@ -252,7 +259,7 @@ public class HorndroidExecutor {
             parseEntryPoints(inputApkFileName,analysis);
             parseCallBacksAndDisabledActivities(file, inputApkFileName, analysis);
             List<? extends ClassDef> classDefs = sortClasses(dexFile);
-            generateHornClauses(analysis, classDefs);
+            generateHornClauses(analysis, classDefs, allowed);
             awaitThreadTermination(instructionExecutorService);
             Report report = executeQueries(fsengine, analysis,file.getName());
             reports.add(report);
@@ -269,7 +276,8 @@ public class HorndroidExecutor {
     public List<Report> execute() {
         final SourcesSinks sourcesSinks = getSourcesAndSinks();
         LinkedHashSet<File> filesToProcess = getFilesToProcess();
-        return processFiles(sourcesSinks, filesToProcess);
+        final Set<Integer> allowed = getAllowedClasses();
+        return processFiles(sourcesSinks, filesToProcess, allowed);
     }
 }
 

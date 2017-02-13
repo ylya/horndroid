@@ -53,7 +53,7 @@ public class Stubs {
         this.staticConstructor = Collections.synchronizedSet(new HashSet<Integer>());
         this.interfaces = new Interfaces();
     }
-    public void process(){
+    public void process(final Set<Integer> allowed, int filterClasses){
         long startTime, endTime;
 
         File andFile = new File("classes.dex");
@@ -89,7 +89,8 @@ public class Stubs {
         System.out.println("data extracting...");
         startTime = System.nanoTime();
         DataExtraction de = new DataExtraction(classes, instances, arrayDataPayload, packedSwitchPayload, sparseSwitchPayload, staticConstructor, constStrings, new HashSet<Integer>(),
-                false, null, null, null, null, interfaces);
+                false, null, null, null, null, interfaces,
+                allowed, filterClasses);
         de.collectData(classDefs);
         endTime = System.nanoTime();
         System.out.println("done in " + Long.toString((endTime - startTime) / 1000000) + " milliseconds");
