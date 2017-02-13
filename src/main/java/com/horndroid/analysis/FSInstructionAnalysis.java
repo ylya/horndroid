@@ -485,26 +485,30 @@ public class FSInstructionAnalysis{
                         //h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
                         int staticConstNum = "<clinit>()V".hashCode();
                         DalvikMethod dmc = analysis.getExactMethod(referenceIntIndex, staticConstNum);
-
-                        for (int i = 0; i < dmc.getNumArg() + dmc.getNumReg() + 1; i++){
-                            regUpV.put(i, fsengine.mkBitVector(0, size));
-                            regUpLHH.put(i, fsengine.mkFalse());
-                            regUpL.put(i, fsengine.mkFalse());
-                            regUpG.put(i, fsengine.mkFalse());
-                        }
-
-                        if (!analysis.optionNotFlowSens()){
-                            for (int i = 0; i < analysis.getLocalHeapSize(); i++){
-                                regUpLHV.put(i, fsengine.mkBitVector(0, size));
+                        if (dmc != null) {
+                            for (int i = 0; i < dmc.getNumArg() + dmc.getNumReg() + 1; i++) {
+                                regUpV.put(i, fsengine.mkBitVector(0, size));
                                 regUpLHH.put(i, fsengine.mkFalse());
-                                regUpLHL.put(i, fsengine.mkFalse());
-                                regUpLHG.put(i, fsengine.mkFalse());
-                                regUpLHF.put(i, fsengine.mkFalse());
+                                regUpL.put(i, fsengine.mkFalse());
+                                regUpG.put(i, fsengine.mkFalse());
                             }
+
+                            if (!analysis.optionNotFlowSens()) {
+                                for (int i = 0; i < analysis.getLocalHeapSize(); i++) {
+                                    regUpLHV.put(i, fsengine.mkBitVector(0, size));
+                                    regUpLHH.put(i, fsengine.mkFalse());
+                                    regUpLHL.put(i, fsengine.mkFalse());
+                                    regUpLHG.put(i, fsengine.mkFalse());
+                                    regUpLHF.put(i, fsengine.mkFalse());
+                                }
+                            }
+                            b = fsengine.rPred(Integer.toString(referenceIntIndex), Integer.toString(staticConstNum), 0, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF,
+                                    dmc.getNumArg(), dmc.getNumReg());
+                            fsengine.addRule(b, null);
                         }
-                        b = fsengine.rPred(Integer.toString(referenceIntIndex), Integer.toString(staticConstNum), 0, regUpV, regUpH, regUpL, regUpG,regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF,
-                                dmc.getNumArg(), dmc.getNumReg());
-                        fsengine.addRule(b, null);
+                        else{
+                            LOGGER.error("Cannot find the definition of the static constructor method:" + referenceStringClass);
+                        }
                     }
 
 
@@ -595,25 +599,29 @@ public class FSInstructionAnalysis{
                         //h = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);
                         int staticConstNum = "<clinit>()V".hashCode();
                         DalvikMethod dmc = analysis.getExactMethod(referenceIntIndex, staticConstNum);
+                        if (dmc != null) {
+                            for (int i = 0; i < dmc.getNumArg() + dmc.getNumReg() + 1; i++) {
+                                regUpV.put(i, fsengine.mkBitVector(0, size));
+                                regUpLHH.put(i, fsengine.mkFalse());
+                                regUpL.put(i, fsengine.mkFalse());
+                                regUpG.put(i, fsengine.mkFalse());
+                            }
 
-                        for (int i = 0; i < dmc.getNumArg() + dmc.getNumReg() + 1; i++){
-                            regUpV.put(i, fsengine.mkBitVector(0, size));
-                            regUpLHH.put(i, fsengine.mkFalse());
-                            regUpL.put(i, fsengine.mkFalse());
-                            regUpG.put(i, fsengine.mkFalse());
+                            for (int i = 0; i < analysis.getLocalHeapSize(); i++) {
+                                regUpLHV.put(i, fsengine.mkBitVector(0, size));
+                                regUpLHH.put(i, fsengine.mkFalse());
+                                regUpLHL.put(i, fsengine.mkFalse());
+                                regUpLHG.put(i, fsengine.mkFalse());
+                                regUpLHF.put(i, fsengine.mkFalse());
+                            }
+
+                            b = fsengine.rPred(Integer.toString(referenceIntIndex), Integer.toString(staticConstNum), 0, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF,
+                                    dmc.getNumArg(), dmc.getNumReg());
+                            fsengine.addRule(b, null);
                         }
-
-                        for (int i = 0; i < analysis.getLocalHeapSize(); i++){
-                            regUpLHV.put(i, fsengine.mkBitVector(0, size));
-                            regUpLHH.put(i, fsengine.mkFalse());
-                            regUpLHL.put(i, fsengine.mkFalse());
-                            regUpLHG.put(i, fsengine.mkFalse());
-                            regUpLHF.put(i, fsengine.mkFalse());
+                        else{
+                            LOGGER.error("Cannot find the definition of the static constructor method:" + referenceStringClass);
                         }
-
-                        b = fsengine.rPred(Integer.toString(referenceIntIndex), Integer.toString(staticConstNum), 0, regUpV, regUpH, regUpL, regUpG,regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF,
-                                dmc.getNumArg(), dmc.getNumReg());
-                        fsengine.addRule(b, null);
                     }
                 }
 
@@ -4176,28 +4184,32 @@ public class FSInstructionAnalysis{
                     int staticConstNum = "<clinit>()V".hashCode();
                     DalvikMethod dmc = analysis.getExactMethod(
                             referenceIntIndex, staticConstNum);
+                    if (dmc != null) {
+                        for (int i = 0; i < dmc.getNumArg() + dmc.getNumReg() + 1; i++) {
+                            regUpV.put(i, fsengine.mkBitVector(0, size));
+                            regUpLHH.put(i, fsengine.mkFalse());
+                            regUpL.put(i, fsengine.mkFalse());
+                            regUpG.put(i, fsengine.mkFalse());
+                        }
 
-                    for (int i = 0; i < dmc.getNumArg() + dmc.getNumReg() + 1; i++) {
-                        regUpV.put(i, fsengine.mkBitVector(0, size));
-                        regUpLHH.put(i, fsengine.mkFalse());
-                        regUpL.put(i, fsengine.mkFalse());
-                        regUpG.put(i, fsengine.mkFalse());
+                        for (int i = 0; i < analysis.getLocalHeapSize(); i++) {
+                            regUpLHV.put(i, fsengine.mkBitVector(0, size));
+                            regUpLHH.put(i, fsengine.mkFalse());
+                            regUpLHL.put(i, fsengine.mkFalse());
+                            regUpLHG.put(i, fsengine.mkFalse());
+                            regUpLHF.put(i, fsengine.mkFalse());
+                        }
+
+                        b = fsengine.rPred(Integer.toString(referenceIntIndex),
+                                Integer.toString(staticConstNum), 0, regUpV,
+                                regUpH, regUpL, regUpG, regUpLHV, regUpLHH,
+                                regUpLHL, regUpLHG, regUpLHF, dmc.getNumArg(),
+                                dmc.getNumReg());
+                        fsengine.addRule(b, null);
                     }
-
-                    for (int i = 0; i < analysis.getLocalHeapSize(); i++) {
-                        regUpLHV.put(i, fsengine.mkBitVector(0, size));
-                        regUpLHH.put(i, fsengine.mkFalse());
-                        regUpLHL.put(i, fsengine.mkFalse());
-                        regUpLHG.put(i, fsengine.mkFalse());
-                        regUpLHF.put(i, fsengine.mkFalse());
+                    else{
+                        LOGGER.error("Cannot find the definition of the static constructor method:" + referenceStringClass);
                     }
-
-                    b = fsengine.rPred(Integer.toString(referenceIntIndex),
-                            Integer.toString(staticConstNum), 0, regUpV,
-                            regUpH, regUpL, regUpG, regUpLHV, regUpLHH,
-                            regUpLHL, regUpLHG, regUpLHF, dmc.getNumArg(),
-                            dmc.getNumReg());
-                    fsengine.addRule(b, null);
                 }
 
                 if (analysis.optionMerginPointers()){
@@ -5368,25 +5380,29 @@ public class FSInstructionAnalysis{
             if (analysis.hasStaticConstructor(referenceIntIndex)){
                 int staticConstNum = "<clinit>()V".hashCode();
                 DalvikMethod dmc = analysis.getExactMethod(referenceIntIndex, staticConstNum);
+                if (dmc != null) {
+                    for (int j = 0; j < dmc.getNumArg() + dmc.getNumReg() + 1; j++) {
+                        regUpV.put(j, fsengine.mkBitVector(0, analysis.getSize()));
+                        regUpLHH.put(j, fsengine.mkFalse());
+                        regUpL.put(j, fsengine.mkFalse());
+                        regUpG.put(j, fsengine.mkFalse());
+                    }
 
-                for (int j = 0; j < dmc.getNumArg() + dmc.getNumReg() + 1; j++){
-                    regUpV.put(j, fsengine.mkBitVector(0, analysis.getSize()));
-                    regUpLHH.put(j, fsengine.mkFalse());
-                    regUpL.put(j, fsengine.mkFalse());
-                    regUpG.put(j, fsengine.mkFalse());
+                    for (int j = 0; j < analysis.getLocalHeapSize(); j++) {
+                        regUpLHV.put(j, fsengine.mkBitVector(0, analysis.getSize()));
+                        regUpLHH.put(j, fsengine.mkFalse());
+                        regUpLHL.put(j, fsengine.mkFalse());
+                        regUpLHG.put(j, fsengine.mkFalse());
+                        regUpLHF.put(j, fsengine.mkFalse());
+                    }
+
+                    b = fsengine.rPred(Integer.toString(referenceIntIndex), Integer.toString(staticConstNum), 0, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF,
+                            dmc.getNumArg(), dmc.getNumReg());
+                    fsengine.addRule(b, null);
                 }
-
-                for (int j = 0; j < analysis.getLocalHeapSize(); j++){
-                    regUpLHV.put(j, fsengine.mkBitVector(0, analysis.getSize()));
-                    regUpLHH.put(j, fsengine.mkFalse());
-                    regUpLHL.put(j, fsengine.mkFalse());
-                    regUpLHG.put(j, fsengine.mkFalse());
-                    regUpLHF.put(j, fsengine.mkFalse());
+                else{
+                    LOGGER.error("Cannot find the definition of the static constructor method:" + referenceStringClass);
                 }
-
-                b = fsengine.rPred(Integer.toString(referenceIntIndex), Integer.toString(staticConstNum), 0, regUpV, regUpH, regUpL, regUpG,regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF,
-                        dmc.getNumArg(), dmc.getNumReg());
-                fsengine.addRule(b, null);
             }
         }
     }
