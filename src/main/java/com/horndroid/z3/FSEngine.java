@@ -29,6 +29,8 @@ public class FSEngine extends Z3Clauses {
     private Options options;
     private Integer localHeapSize;
 
+    private Map<Integer, Expr[]> rPredExpr; // helps generating rPred when there are no changes to the values
+
     private Map<Integer, Integer> allocationPointOffset;
 
     private Map<Integer, Integer> allocationPointSize;
@@ -165,6 +167,8 @@ public class FSEngine extends Z3Clauses {
         func.setCFilter(this.cFilterDef());
         this.declareRel(func.getCFilter());
         //func.setLiftLH((this.liftLHDef()));
+
+        this.rPredExpr = new HashMap<>();
     }
     public void initializeNFS() {
         if (this.initialized){
@@ -392,6 +396,77 @@ public class FSEngine extends Z3Clauses {
         }
     }
 
+    private Expr[] getExpressions(final Map<Integer, BitVecExpr> rUp,
+                                  final Map<Integer, BoolExpr> rUpHigh, final Map<Integer, BoolExpr> rUpLocal,
+                                  final Map<Integer, BoolExpr> rUpGlobal, final Map<Integer, BitVecExpr> lHValues,
+                                  final Map<Integer, BoolExpr> lHHigh, final Map<Integer, BoolExpr> lHLocal,
+                                  final Map<Integer, BoolExpr> lHGlobal, final Map<Integer, BoolExpr> lHFilter,
+                                  final int numArg,
+                                  final int numReg){
+        int size = numArg + numReg + 1;
+        boolean noChanges = false;
+        if (rUp.isEmpty() && rUpHigh.isEmpty() && rUpLocal.isEmpty() &&
+        rUpGlobal.isEmpty() && lHValues.isEmpty() &&
+        lHHigh.isEmpty() && lHLocal.isEmpty() &&
+        lHGlobal.isEmpty() && lHFilter.isEmpty()){
+            if (!rPredExpr.isEmpty()){
+                Expr[] expr = rPredExpr.get(size);
+                if (expr != null){
+                    return expr;
+                }
+            }
+            noChanges = true;
+        }
+        Expr[] e = new Expr[4 * size + 5 * this.localHeapSize];
+        for (int i = 0, j = size, k = 2 * size, l = 3 * size; i < size; i++, j++, k++, l++) {
+            e[i] = rUp.get(i);
+            if (e[i] == null) {
+                e[i] = var.getV(i);
+            }
+            e[j] = rUpHigh.get(i);
+            if (e[j] == null) {
+                e[j] = var.getH(i);
+            }
+            e[k] = rUpLocal.get(i);
+            if (e[k] == null) {
+                e[k] = var.getL(i);
+            }
+            e[l] = rUpGlobal.get(i);
+            if (e[l] == null) {
+                e[l] = var.getG(i);
+            }
+        }
+        ;
+        for (int loop = 0,  i = 4 * size, j = 4 * size + this.localHeapSize, k = 4 * size
+                + 2 * this.localHeapSize, l = 4 * size + 3 * this.localHeapSize, n = 4 * size
+                     + 4 * this.localHeapSize; loop < this.localHeapSize; loop++, i++, j++, k++, l++, n++) {
+            e[i] = lHValues.get(loop);
+            if (e[i] == null) {
+                e[i] = var.getLHV(loop);
+            }
+            e[j] = lHHigh.get(loop);
+            if (e[j] == null) {
+                e[j] = var.getLHH(loop);
+            }
+            e[k] = lHLocal.get(loop);
+            if (e[k] == null) {
+                e[k] = var.getLHL(loop);
+            }
+            e[l] = lHGlobal.get(loop);
+            if (e[l] == null) {
+                e[l] = var.getLHG(loop);
+            }
+            e[n] = lHFilter.get(loop);
+            if (e[n] == null) {
+                e[n] = var.getLHF(loop);
+            }
+        }
+        if (noChanges){
+            rPredExpr.put(size, e);
+        }
+        return e;
+    }
+
     public BoolExpr rPred(final String c, final String m, final int pc, final Map<Integer, BitVecExpr> rUp,
                           final Map<Integer, BoolExpr> rUpHigh, final Map<Integer, BoolExpr> rUpLocal,
                           final Map<Integer, BoolExpr> rUpGlobal, final Map<Integer, BitVecExpr> lHValues,
@@ -402,7 +477,7 @@ public class FSEngine extends Z3Clauses {
             int size = numArg + numReg + 1; // include return register
             FuncDecl r = this.rPredDef(c, m, pc, size);
 
-            Expr[] e = new Expr[4 * size + 5 * this.localHeapSize];
+            /*Expr[] e = new Expr[4 * size + 5 * this.localHeapSize];
             for (int i = 0, j = size, k = 2 * size, l = 3 * size; i < size; i++, j++, k++, l++) {
                 e[i] = rUp.get(i);
                 if (e[i] == null) {
@@ -445,7 +520,14 @@ public class FSEngine extends Z3Clauses {
                 if (e[n] == null) {
                     e[n] = var.getLHF(loop);
                 }
-            }
+            }*/
+
+            Expr[] e = getExpressions(rUp,
+                    rUpHigh, rUpLocal,
+                    rUpGlobal, lHValues,
+                    lHHigh, lHLocal,
+                    lHGlobal, lHFilter, numArg,
+                    numReg);
             ;
             BoolExpr rez = (BoolExpr) r.apply(e);
 

@@ -5035,8 +5035,8 @@ public class FSInstructionAnalysis{
         regUpLHV.clear(); regUpLHH.clear(); regUpLHL.clear(); regUpLHG.clear(); regUpLHF.clear();
 
         // If one of the arguments is a local pointer then we lift all the local heap
-        buildH();
-        h = fsengine.and(h,argumentsLocal);
+        final BoolExpr clearHead = fsengine.rPred(classIndex, methodIndex, codeAddress, regUpV, regUpH, regUpL, regUpG, regUpLHV, regUpLHH, regUpLHL, regUpLHG, regUpLHF, numParLoc, numRegLoc);;
+        h = fsengine.and(clearHead,argumentsLocal);
         for (int allocationPoint : analysis.getAllocationPoints()){
             this.liftObject(h, allocationPoint);
         }
@@ -5059,9 +5059,8 @@ public class FSInstructionAnalysis{
 
         if (regOffset == 1){
             // place taint from a primitive arguments to the ref
-            buildH();
             h = fsengine.and(
-                    h,
+                    clearHead,
                     fsengine.or(fsvar.getL(getRegisterNumber(range, 1)), fsvar.getG(getRegisterNumber(range, 1)))
             );
             b = fsengine.hPred(fsvar.getCn(),
@@ -5070,9 +5069,8 @@ public class FSInstructionAnalysis{
                     joinLabel, fsvar.getBf());
             buildRule();
 
-            buildH();
             h = fsengine.and(
-                    h,
+                    clearHead,
                     fsengine.or(fsvar.getL(getRegisterNumber(range, 1)), fsvar.getG(getRegisterNumber(range, 1))),
                     fsengine.taintPred(fsvar.getV(getRegisterNumber(range, 1)), fsvar.getLf())
             );
@@ -5082,9 +5080,8 @@ public class FSInstructionAnalysis{
                     fsvar.getLf(), fsvar.getBf());
             buildRule();
 
-            buildH();
             h = fsengine.and(
-                    h,
+                    clearHead,
                     fsengine.or(fsvar.getL(getRegisterNumber(range, 1)), fsvar.getG(getRegisterNumber(range, 1))),
                     fsengine.taintPred(fsvar.getV(getRegisterNumber(range, 1)), fsvar.getLf())
             );
@@ -5095,9 +5092,8 @@ public class FSInstructionAnalysis{
             buildRule();
 
             //reach case
-            buildH();
             h = fsengine.and(
-                    h,
+                    clearHead,
                     fsengine.or(fsvar.getL(getRegisterNumber(range, 1)), fsvar.getG(getRegisterNumber(range, 1))),
                     fsengine.taintPred(fsvar.getV(getRegisterNumber(range, 1)), fsvar.getLf()),
                     fsengine.reachPred(fsvar.getV(getRegisterNumber(range, 1)), fsvar.getVfp())
@@ -5116,9 +5112,8 @@ public class FSInstructionAnalysis{
                 if (type.toString().contains(";") || type.toString().contains("[")) {
 
                     // place taint from a primitive arguments to the ref
-                    buildH();
                     h = fsengine.and(
-                            h,
+                            clearHead,
                             fsengine.or(fsvar.getL(getRegisterNumber(range, i)), fsvar.getG(getRegisterNumber(range, i)))
                     );
                     b = fsengine.hPred(fsvar.getCn(),
@@ -5127,9 +5122,8 @@ public class FSInstructionAnalysis{
                             joinLabel, fsvar.getBf());
                     buildRule();
 
-                    buildH();
                     h = fsengine.and(
-                            h,
+                            clearHead,
                             fsengine.or(fsvar.getL(getRegisterNumber(range, i)), fsvar.getG(getRegisterNumber(range, i))),
                             fsengine.taintPred(fsvar.getV(getRegisterNumber(range, i)), fsvar.getLf())
                     );
@@ -5139,9 +5133,8 @@ public class FSInstructionAnalysis{
                             fsvar.getLf(), fsvar.getBf());
                     buildRule();
 
-                    buildH();
                     h = fsengine.and(
-                            h,
+                            clearHead,
                             fsengine.or(fsvar.getL(getRegisterNumber(range, i)), fsvar.getG(getRegisterNumber(range, i))),
                             fsengine.taintPred(fsvar.getV(getRegisterNumber(range, i)), fsvar.getLf())
                     );
@@ -5152,9 +5145,8 @@ public class FSInstructionAnalysis{
                     buildRule();
 
                     //reach case
-                    buildH();
                     h = fsengine.and(
-                            h,
+                            clearHead,
                             fsengine.or(fsvar.getL(getRegisterNumber(range, i)), fsvar.getG(getRegisterNumber(range, i))),
                             fsengine.taintPred(fsvar.getV(getRegisterNumber(range, i)), fsvar.getLf()),
                             fsengine.reachPred(fsvar.getV(getRegisterNumber(range, i)), fsvar.getVfp())
@@ -5177,8 +5169,7 @@ public class FSInstructionAnalysis{
         	/*
         	 *  If one of the arguments is a local pointer then we lift
         	 */
-            buildH();
-            h = fsengine.and(h,argumentsLocal);
+            h = fsengine.and(clearHead,argumentsLocal);
             //lift the registers to global heap pointers
             for (int j = 0; j <= numRegLoc  ; j++){
                 regUpG.put(j,fsengine.or(fsvar.getG(j),fsvar.getL(j)));
@@ -5203,7 +5194,7 @@ public class FSInstructionAnalysis{
         	/*
         	 *  If no argument is a local pointer (no need to check that this is the case, since if it is not then this rule is subsumed by the one above)
         	 */
-            buildH();
+            h = clearHead;
             buildB();
             buildRule();
         }
@@ -5222,8 +5213,7 @@ public class FSInstructionAnalysis{
         	/*
         	 *  If one of the arguments is a local pointer then we lift
         	 */
-            buildH();
-            h = fsengine.and(h,argumentsLocal);
+            h = fsengine.and(clearHead,argumentsLocal);
             //lift the registers to global heap pointers
             for (int j = 0; j <= numRegLoc  ; j++){
                 regUpG.put(j,fsengine.or(fsvar.getG(j),fsvar.getL(j)));
@@ -5255,8 +5245,7 @@ public class FSInstructionAnalysis{
         	/*
         	 *  If no argument is a local pointer (no need to check that this is the case, since if it is not then this rule is subsumed by the one above)
         	 */
-            buildH();
-
+            h = clearHead;
             // We set the returned value
             regUpV.put(numRegLoc, fsvar.getF());
             regUpH.put(numRegLoc, joinLabel);
@@ -5277,9 +5266,8 @@ public class FSInstructionAnalysis{
         				/*
         				 *  If one of the arguments is a local pointer then we lift
         				 */
-                        buildH();
                         h = fsengine.and(
-                                h,
+                                clearHead,
                                 argumentsLocal,
                                 fsengine.or(fsvar.getL(getRegisterNumber(range, i)), fsvar.getG(getRegisterNumber(range, i))),
                                 fsengine.taintPred(fsvar.getV(getRegisterNumber(range, i)), fsvar.getLf())
@@ -5316,9 +5304,8 @@ public class FSInstructionAnalysis{
         				/*
         				 *  If no argument is a local pointer (no need to check that this is the case, since if it is not then this rule is subsumed by the one above)
         				 */
-                        buildH();
                         h = fsengine.and(
-                                h,
+                                clearHead,
                                 fsengine.or(fsvar.getL(getRegisterNumber(range, i)), fsvar.getG(getRegisterNumber(range, i))),
                                 fsengine.taintPred(fsvar.getV(getRegisterNumber(range, i)), fsvar.getLf())
                         );
@@ -5346,7 +5333,7 @@ public class FSInstructionAnalysis{
 
         if (callReturns && returnsRef) {
             // place taint from a primitive arguments to the ref
-            buildH();
+            h = clearHead;
             b = fsengine.hPred(fsengine.mkBitVector(referenceIntIndex,
                     analysis.getSize()),
                     fsengine.mkBitVector(instanceNum, analysis.getSize()),
@@ -5359,9 +5346,8 @@ public class FSInstructionAnalysis{
                 for (final CharSequence type : parameterTypes) {
                     if (type.toString().contains(";") || type.toString().contains("[")) {
 
-                        buildH();
                         h = fsengine.and(
-                                h,
+                                clearHead,
                                 fsengine.or(fsvar.getL(getRegisterNumber(range, i)), fsvar.getG(getRegisterNumber(range, i))),
                                 fsengine.taintPred(fsvar.getV(getRegisterNumber(range, i)), fsvar.getLf())
                         );

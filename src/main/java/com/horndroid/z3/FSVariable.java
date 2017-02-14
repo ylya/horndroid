@@ -2,8 +2,13 @@ package com.horndroid.z3;
 
 import com.microsoft.z3.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class FSVariable {
 
+    final private Map<Integer, BitVecExpr> bitVecBound;
+    final private Map<Integer, BoolExpr> boolBound;
     private final int GUARD = 100;
     public final int MAX_REGISTER = 68;
     public int MAX_LOCALHEAP = 0;
@@ -22,6 +27,9 @@ public class FSVariable {
 
     public FSVariable(Context ctx, int bvSize) throws Z3Exception {
         this.ctx = ctx;
+
+        this.bitVecBound = new HashMap<>();
+        this.boolBound = new HashMap<>();
 
         this.bool = ctx.mkBoolSort();
         this.bv64 = ctx.mkBitVecSort(bvSize);
@@ -156,7 +164,16 @@ public class FSVariable {
     public BitVecExpr getV(int i) {
         try {
             // if (i < 0) return ctx.mkBV(-1*i, bv64);
-            return (BitVecExpr) ctx.mkBound(GUARD + 4 * i + 0, bv64);
+            if (bitVecBound.size() != 0){
+                final BitVecExpr expr = bitVecBound.get(GUARD + 4 * i + 0);
+                if (expr != null){
+                    return expr;
+                }
+            }
+            final BitVecExpr expr = (BitVecExpr) ctx.mkBound(GUARD + 4 * i + 0, bv64);
+            bitVecBound.put(GUARD + 4 * i + 0, expr);
+            return expr;
+
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("getV");
@@ -174,7 +191,15 @@ public class FSVariable {
 
     public BoolExpr getH(int i) {
         try {
-            return (BoolExpr) ctx.mkBound(GUARD + 4 * i + 1, bool);
+            if (boolBound.size() != 0){
+                final BoolExpr expr = boolBound.get(GUARD + 4 * i + 1);
+                if (expr != null){
+                    return expr;
+                }
+            }
+            final BoolExpr expr = (BoolExpr) ctx.mkBound(GUARD + 4 * i + 1, bool);
+            boolBound.put(GUARD + 4 * i + 1, expr);
+            return expr;
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("getH");
@@ -192,7 +217,15 @@ public class FSVariable {
 
     public BoolExpr getL(int i) {
         try {
-            return (BoolExpr) ctx.mkBound(GUARD + 4 * i + 2, bool);
+            if (boolBound.size() != 0){
+                final BoolExpr expr = boolBound.get(GUARD + 4 * i + 2);
+                if (expr != null){
+                    return expr;
+                }
+            }
+            final BoolExpr expr = (BoolExpr) ctx.mkBound(GUARD + 4 * i + 2, bool);
+            boolBound.put(GUARD + 4 * i + 2, expr);
+            return expr;
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("getL");
@@ -210,7 +243,15 @@ public class FSVariable {
 
     public BoolExpr getG(int i) {
         try {
-            return (BoolExpr) ctx.mkBound(GUARD + 4 * i + 3, bool);
+            if (boolBound.size() != 0){
+                final BoolExpr expr = boolBound.get(GUARD + 4 * i + 3);
+                if (expr != null){
+                    return expr;
+                }
+            }
+            final BoolExpr expr = (BoolExpr) ctx.mkBound(GUARD + 4 * i + 3, bool);
+            boolBound.put(GUARD + 4 * i + 3, expr);
+            return expr;
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("getG");
@@ -230,7 +271,15 @@ public class FSVariable {
     public BitVecExpr getLHV(int i) {
         try {
             // if (i < 0) return ctx.mkBV(-1*i, bv64);
-            return (BitVecExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * i + 0, bv64);
+            if (bitVecBound.size() != 0){
+                final BitVecExpr expr = bitVecBound.get(GUARD + 4 * MAX_REGISTER + 5 * i + 0);
+                if (expr != null){
+                    return expr;
+                }
+            }
+            final BitVecExpr expr = (BitVecExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * i + 0, bv64);
+            bitVecBound.put(GUARD + 4 * MAX_REGISTER + 5 * i + 0, expr);
+            return expr;
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("getLHV");
@@ -248,8 +297,16 @@ public class FSVariable {
 
     public BoolExpr getLHH(int i) {
         try {
-            return (BoolExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * i + 1, bool);
-        } catch (Z3Exception e) {
+            if (boolBound.size() != 0){
+                final BoolExpr expr = boolBound.get(GUARD + 4 * MAX_REGISTER + 5 * i + 1);
+                if (expr != null){
+                    return expr;
+                }
+            }
+            final BoolExpr expr = (BoolExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * i + 1, bool);
+            boolBound.put(GUARD + 4 * MAX_REGISTER + 5 * i + 1, expr);
+            return expr;
+           } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("getLHH");
         }
@@ -266,7 +323,15 @@ public class FSVariable {
 
     public BoolExpr getLHL(int i) {
         try {
-            return (BoolExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * i + 2, bool);
+            if (boolBound.size() != 0){
+                final BoolExpr expr = boolBound.get(GUARD + 4 * MAX_REGISTER + 5 * i + 2);
+                if (expr != null){
+                    return expr;
+                }
+            }
+            final BoolExpr expr = (BoolExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * i + 2, bool);
+            boolBound.put(GUARD + 4 * MAX_REGISTER + 5 * i + 2, expr);
+            return expr;
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("getLHL");
@@ -284,7 +349,15 @@ public class FSVariable {
 
     public BoolExpr getLHG(int i) {
         try {
-            return (BoolExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * i + 3, bool);
+            if (boolBound.size() != 0){
+                final BoolExpr expr = boolBound.get(GUARD + 4 * MAX_REGISTER + 5 * i + 3);
+                if (expr != null){
+                    return expr;
+                }
+            }
+            final BoolExpr expr = (BoolExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * i + 3, bool);
+            boolBound.put(GUARD + 4 * MAX_REGISTER + 5 * i + 3, expr);
+            return expr;
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("getLHG");
@@ -302,7 +375,15 @@ public class FSVariable {
 
     public BoolExpr getLHF(int i) {
         try {
-            return (BoolExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * i + 4, bool);
+            if (boolBound.size() != 0){
+                final BoolExpr expr = boolBound.get(GUARD + 4 * MAX_REGISTER + 5 * i + 4);
+                if (expr != null){
+                    return expr;
+                }
+            }
+            final BoolExpr expr = (BoolExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * i + 4, bool);
+            boolBound.put(GUARD + 4 * MAX_REGISTER + 5 * i + 4, expr);
+            return expr;
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("getLHF");
@@ -322,7 +403,16 @@ public class FSVariable {
     public BitVecExpr getLHCV(int i) {
         try {
             // if (i < 0) return ctx.mkBV(-1*i, bv64);
-            return (BitVecExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP + 5 * i + 0, bv64);
+
+            if (bitVecBound.size() != 0){
+                final BitVecExpr expr = bitVecBound.get(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP + 5 * i + 0);
+                if (expr != null){
+                    return expr;
+                }
+            }
+            final BitVecExpr expr = (BitVecExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP + 5 * i + 0, bv64);
+            bitVecBound.put(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP + 5 * i + 0, expr);
+            return expr;
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("getLHCV");
@@ -340,7 +430,15 @@ public class FSVariable {
 
     public BoolExpr getLHCH(int i) {
         try {
-            return (BoolExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP + 5 * i + 1, bool);
+            if (boolBound.size() != 0){
+                final BoolExpr expr = boolBound.get(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP + 5 * i + 1);
+                if (expr != null){
+                    return expr;
+                }
+            }
+            final BoolExpr expr = (BoolExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP + 5 * i + 1, bool);
+            boolBound.put(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP + 5 * i + 1, expr);
+            return expr;
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("getLHCH");
@@ -358,7 +456,15 @@ public class FSVariable {
 
     public BoolExpr getLHCL(int i) {
         try {
-            return (BoolExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP + 5 * i + 2, bool);
+            if (boolBound.size() != 0){
+                final BoolExpr expr = boolBound.get(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP + 5 * i + 2);
+                if (expr != null){
+                    return expr;
+                }
+            }
+            final BoolExpr expr = (BoolExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP + 5 * i + 2, bool);
+            boolBound.put(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP + 5 * i + 2, expr);
+            return expr;
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("getLHCL");
@@ -376,7 +482,15 @@ public class FSVariable {
 
     public BoolExpr getLHCG(int i) {
         try {
-            return (BoolExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP + 5 * i + 3, bool);
+            if (boolBound.size() != 0){
+                final BoolExpr expr = boolBound.get(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP + 5 * i + 3);
+                if (expr != null){
+                    return expr;
+                }
+            }
+            final BoolExpr expr = (BoolExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP + 5 * i + 3, bool);
+            boolBound.put(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP + 5 * i + 3, expr);
+            return expr;
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("getLHCG");
@@ -397,7 +511,15 @@ public class FSVariable {
      */
     public BoolExpr getLHCF(int i) {
         try {
-            return (BoolExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP +  5 * i + 4, bool);
+            if (boolBound.size() != 0){
+                final BoolExpr expr = boolBound.get(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP + 5 * i + 4);
+                if (expr != null){
+                    return expr;
+                }
+            }
+            final BoolExpr expr = (BoolExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP + 5 * i + 4, bool);
+            boolBound.put(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP + 5 * i + 4, expr);
+            return expr;
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("getLHCF");
@@ -415,7 +537,15 @@ public class FSVariable {
 
     public BoolExpr getJoinVar(int i) {
         try {
-            return (BoolExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP +  5 * i + 5, bool);
+            if (boolBound.size() != 0){
+                final BoolExpr expr = boolBound.get(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP + 5 * i + 5);
+                if (expr != null){
+                    return expr;
+                }
+            }
+            final BoolExpr expr = (BoolExpr) ctx.mkBound(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP + 5 * i + 5, bool);
+            boolBound.put(GUARD + 4 * MAX_REGISTER + 5 * MAX_LOCALHEAP + 5 * i + 5, expr);
+            return expr;
         } catch (Z3Exception e) {
             e.printStackTrace();
             throw new RuntimeException("getJoinVar");

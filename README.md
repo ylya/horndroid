@@ -20,7 +20,11 @@ http://ibotpeaches.github.io/Apktool/
 
 Note: included by default in src/main/resources
 
-## Run
+# Build fsHD
+
+` mvn clean package `
+
+## Run fsHD
 
 ` java -jar fshorndroid-version.jar [options] '/' '%apktool%/' '<apk-file>' `
 options:
@@ -49,7 +53,7 @@ You can specify a path to an *.apk file or a folder (all apps in sub-folders wil
 Example execution:
 `java -jar fshorndroid-0.0.1.jar / ./ %home%/apksToTest`
 
-For all *.apk files in the folder HornDroid will report:
+For all *.apk files in the folder HornDroid will report (in logs/app.log):
 - Horn clauses generation time;
 - Analysis time;
-- Taint tracking result: SAT if register leaks the sensitive data or UNSAT if it does not. In addition it specifies the register number, the exact place where leakage happens and the sink.
+- Taint tracking result: POSSIBLE LEAK if register might leak the sensitive data or NO LEAK if it does not. In addition it specifies the register number, the exact place where leakage happens and the sink.
