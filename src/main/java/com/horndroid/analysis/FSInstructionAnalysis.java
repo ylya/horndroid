@@ -4756,7 +4756,7 @@ public class FSInstructionAnalysis{
      * Advances pc with a top values for the return value (if exists)
      */
     private void invokeNotKnown(final Boolean range, final String invClass, final String invMethod){
-        LOGGER.error("Not known implementation: " + invClass + " " +  invMethod);
+        //LOGGER.error("Not known implementation: " + invClass + " " +  invMethod);
         BoolExpr joinLabel = null;
         boolean returnsRef = false;
         if (callReturns){
@@ -4989,7 +4989,7 @@ public class FSInstructionAnalysis{
      * Advances pc with a top values for the return value (if exists)
      */
     private void invokeNotKnownNew(final Boolean range, final String invClass, final String invMethod){
-        LOGGER.error("Not known implementation: " + invClass + " " +  invMethod);
+        //LOGGER.error("Not known implementation: " + invClass + " " +  invMethod);
         // we add queries when calling manualStub(...)
         /*if (analysis.isSink(className,methodName,invClass.hashCode(), invMethod.hashCode())){
             if (range) {

@@ -179,6 +179,7 @@ public class FSEngine extends Z3Clauses {
         this.allocationPointSize = new HashMap<Integer,Integer>();
         this.var.initialize(0);
         this.initialized = true;
+        this.rPredExpr = new HashMap<>();
     }
     public Boolean isInitialized() {
         return initialized;
