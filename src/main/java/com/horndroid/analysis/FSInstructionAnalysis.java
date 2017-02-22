@@ -196,7 +196,7 @@ public class FSInstructionAnalysis{
                 BoolExpr h1 = fsengine.and(fsvar.getH(i),h);
                 BoolExpr h2 = fsengine.and(fsvar.getL(i),h);
                 BoolExpr h3 = fsengine.and(fsvar.getG(i),h);
-                Z3Query q1 = new Z3Query(h,i,QUERY_TYPE.HIGH,className,methodName,Integer.toString(codeAddress));
+                Z3Query q1 = new Z3Query(h1,i,QUERY_TYPE.HIGH,className,methodName,Integer.toString(codeAddress));
                 Z3Query q2 = new Z3Query(h2,i,QUERY_TYPE.LOCAL,className,methodName,Integer.toString(codeAddress));
                 Z3Query q3 = new Z3Query(h3,i,QUERY_TYPE.GLOBAL,className,methodName,Integer.toString(codeAddress));
                 fsengine.addQueryDebug(q1);
