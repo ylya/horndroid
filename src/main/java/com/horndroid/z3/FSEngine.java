@@ -45,7 +45,11 @@ public class FSEngine extends Z3Clauses {
             Global.setParameter("fixedpoint.engine", "pdr");
             Global.setParameter("fixedpoint.print_answer", "true");
 
+            //Global.setParameter("pdr.flexible_trace", "true");
             Global.setParameter("pp.bv-literals", "false");
+            //Global.setParameter("fixedpoint.generate_proof_trace", "true");
+            Global.setParameter("pp.pretty_proof", "true");
+            Global.setParameter("opt.print_model", "true");
 
             HashMap<String, String> cfg = new HashMap<String, String>();
             mContext = new Context(cfg); // Context ctx = mContext;
@@ -262,6 +266,9 @@ public class FSEngine extends Z3Clauses {
             Status result = temp.query(q.getQuery());
 
             String res_string = result.toString();
+
+            if (res_string.equals("SATISFIABLE"))
+                System.out.println(temp.getAnswer());
 
             if (res_string.equals("SATISFIABLE"))
                 reportEntry.setResult("POTENTIAL LEAK");
