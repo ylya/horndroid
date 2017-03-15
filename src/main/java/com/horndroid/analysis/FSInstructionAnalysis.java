@@ -440,7 +440,22 @@ public class FSInstructionAnalysis{
 
             case NEW_INSTANCE:
                 //special treatment for the "global by default objects"
-                if (globalByDefault(dispatch, referenceIntIndex) || ((!analysis.checkMethodHasSink(makeCMHash(c,m))) && analysis.optionFlowSensIfSink()) || analysis.optionNotFlowSens()){
+                int lhoffset = 0;
+                int lhsize = 0;
+                boolean  instanceInFilteredClass = false;
+                try {
+                    lhoffset = fsengine.getOffset(instanceNum);
+                    lhsize = fsengine.getSize(instanceNum);
+
+                }
+                catch (NullPointerException e){
+                    instanceInFilteredClass = true;
+                }
+
+                if (globalByDefault(dispatch, referenceIntIndex)
+                        || ((!analysis.checkMethodHasSink(makeCMHash(c,m))) && analysis.optionFlowSensIfSink())
+                        || analysis.optionNotFlowSens()
+                        || instanceInFilteredClass){
                     instanceNum = analysis.getInstNum(ci, mi, codeAddress);
 
                     if (analysis.optionMerginPointers()){
@@ -534,8 +549,7 @@ public class FSInstructionAnalysis{
                     regUpG.put(((OneRegisterInstruction)instruction).getRegisterA(), fsengine.mkFalse());
 
                     //Initialize the object on the local heap
-                    int lhoffset = fsengine.getOffset(instanceNum);
-                    int lhsize = fsengine.getSize(instanceNum);
+
                     for (int i = lhoffset; i < lhoffset + lhsize + 1; i++){
                         regUpLHV.put(i, fsengine.mkBitVector(0, size));
                         regUpLHH.put(i, fsengine.mkFalse());

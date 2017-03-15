@@ -246,6 +246,8 @@ public class FSEngine extends Z3Clauses {
         int currentPrint = 0;
         int percentage = 0;
 
+        LOGGER.info("Number of the generated queries: "+ mQueries.size());
+
         for (Z3Query mQuery : mQueries) {
             final ReportEntry reportEntry = new ReportEntry();
             final Z3Query q = mQuery;
@@ -267,8 +269,8 @@ public class FSEngine extends Z3Clauses {
 
             String res_string = result.toString();
 
-            if (res_string.equals("SATISFIABLE"))
-                System.out.println(temp.getAnswer());
+            //if (res_string.equals("SATISFIABLE"))
+            //    System.out.println(temp.getAnswer());
 
             if (res_string.equals("SATISFIABLE"))
                 reportEntry.setResult("POTENTIAL LEAK");
@@ -279,7 +281,7 @@ public class FSEngine extends Z3Clauses {
 
             report.addReportEntry(reportEntry);
 
-            LOGGER.info(reportEntry.getDescription()+":"+reportEntry.getResult());
+            LOGGER.info(Integer.toString(counter + 1) + " " + reportEntry.getDescription()+":"+reportEntry.getResult());
 
 
             boolean isSAT = res_string.equals("SATISFIABLE");
@@ -295,8 +297,8 @@ public class FSEngine extends Z3Clauses {
             if (counter % 50 == 0) {
                 System.gc();
             }
-            if ((counter >= currentPrint + (mQueries.size()/ 10)) && (mQueries.size() > 50)) {
-                currentPrint = counter;
+            if ((counter + 1 >= currentPrint + (mQueries.size()/ 10)) && (mQueries.size() > 50)) {
+                currentPrint = counter + 1;
                 percentage += 10;
                 LOGGER.info(percentage + "% of queries handled");
             }

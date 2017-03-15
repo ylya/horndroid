@@ -225,7 +225,6 @@ public class Analysis {
                 staticConstructor, constStrings, launcherActivities, true, sourcesSinks, refSources, refSinks, methodHasSink, interfaces,
                 allowed, optionFilterClasses(), options.filterClassesSound);
         de.collectData(classDefs);
-
     }
 
     /*
@@ -452,7 +451,14 @@ public class Analysis {
                 continue;
             }
 
+            // if instance is a result of an unknown method invocation - skip, cannot be local anyway
+
+            if (!i.isNewInstance()){
+                continue;
+            }
+
             final int instanceNum = i.hashCode();
+
             final String referenceString = i.getType().getType();
             final Map<Integer, Boolean> fieldsMap = getClassFields(referenceString, instanceNum);
             TreeSet<Integer> fields = null;
@@ -914,7 +920,7 @@ public class Analysis {
                     if (gcNew instanceof DalvikClass) {
                         ((DalvikClass) gcNew).putFields(dc.getFields());
                     }
-                    final DalvikInstance di = new DalvikInstance(c, m, pc, gcNew, true);
+                    final DalvikInstance di = new DalvikInstance(c, m, pc, gcNew, true, true);
                     instances.add(di);
                 } else {
                     final DalvikClass dcNew = new DalvikClass(dc.getType());
@@ -925,7 +931,7 @@ public class Analysis {
                         dcNew.putChildClass(child);
                     }
                     classes.put(dcNew.getType().hashCode(), dcNew);
-                    final DalvikInstance di = new DalvikInstance(c, m, pc, dcNew, true);
+                    final DalvikInstance di = new DalvikInstance(c, m, pc, dcNew, true, true);
                     instances.add(di);
                 }
             }
@@ -1245,7 +1251,7 @@ public class Analysis {
                             && (testLauncherActivity(dc)
                             || testApplication(dc)
                             || testOverapprox(dc))) {
-                        instances.add(new DalvikInstance(0, 0, 0, dc, true));
+                        instances.add(new DalvikInstance(0, 0, 0, dc, true, false)); // entrypoint instances are always global, hence isNewIntsance is set to false
                         break;
                     }
                 }

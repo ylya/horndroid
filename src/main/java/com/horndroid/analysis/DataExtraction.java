@@ -434,11 +434,11 @@ public class DataExtraction {
                 break;
             }
             if (opcode.name.equals((String)"new-instance"))
-                instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass(referenceString), true));
+                instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass(referenceString), true, true));
             break;
         case Format22c:
             if (opcode.name.equals((String) "new-array"))
-                instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass(referenceString), false));
+                instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass(referenceString), false, true));
             break;
         case Format35c:
             
@@ -458,7 +458,7 @@ public class DataExtraction {
             }
             
             if (opcode.name.equals((String) "filled-new-array")){
-                instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass(referenceString), false));
+                instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass(referenceString), false, true));
                 break;
             }
 
@@ -468,7 +468,7 @@ public class DataExtraction {
                 FiveRegisterInstruction instruction1 = (FiveRegisterInstruction)instruction;
                 for (final ConstString constString: constStrings){
                     if ((constString.getC() == c) && (constString.getM() == m) && (constString.getPC() < codeAddress) && (constString.getV() == instruction1.getRegisterC())){
-                        instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass(constString.getDalvikName()), true));
+                        instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass(constString.getDalvikName()), true, true));
                         break;
                     }
                 }
@@ -508,27 +508,27 @@ public class DataExtraction {
             
             if ((referenceClassIndex == "Landroid/content/Intent;".hashCode())
                     && (referenceIntIndex == "<init>(Landroid/content/Context;Ljava/lang/Class;)V".hashCode())){
-                instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass("Landroid/content/Intent;"), true));
+                instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass("Landroid/content/Intent;"), true, true));
             }
 
             if ((referenceClassIndex == "Landroid/content/Intent;".hashCode())
                     && (referenceIntIndex == "<init>(Ljava/lang/String;)V".hashCode())){
-                instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass("Landroid/content/Intent;"), true));
+                instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass("Landroid/content/Intent;"), true, true));
             }
 
 
             if ((referenceClassIndex == "Landroid/content/Intent;".hashCode())
                     && (referenceIntIndex == "<init>()V".hashCode())){
-                instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass("Landroid/content/Intent;"), true));
+                instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass("Landroid/content/Intent;"), true, true));
             }
             try{
                 if (returnType.length() > 0){
                     if (returnType.contains("[")){
-                        instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass(returnType), false));
+                        instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass(returnType), false, false));
                         break;
                     }
                     if (returnType.charAt(returnType.length() - 1) == ';'){
-                        instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass(returnType), true));
+                        instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass(returnType), true, false));
                         break;
                     }
                 }
@@ -555,31 +555,31 @@ public class DataExtraction {
             }
             
             if (opcode.name.equals((String) "filled-new-array/range")){
-                instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass(referenceString), false));
+                instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass(referenceString), false, true));
                 break;
             }
 
             if ((referenceClassIndex == "Landroid/content/Intent;".hashCode())
                     && (referenceIntIndex == "<init>(Landroid/content/Context;Ljava/lang/Class;)V".hashCode())){
-                instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass("Landroid/content/Intent;"), true));
+                instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass("Landroid/content/Intent;"), true, true));
             }
 
             if ((referenceClassIndex == "Landroid/content/Intent;".hashCode())
                     && (referenceIntIndex == "<init>(Ljava/lang/String;)V".hashCode())){
-                instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass("Landroid/content/Intent;"), true));
+                instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass("Landroid/content/Intent;"), true, true));
             }
 
             if ((referenceClassIndex == "Landroid/content/Intent;".hashCode())
                     && (referenceIntIndex == "<init>()V".hashCode())){
-                instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass("Landroid/content/Intent;"), true));
+                instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass("Landroid/content/Intent;"), true, true));
             }
 
             if (returnType.charAt(returnType.length() - 1) == ';'){
-                instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass(returnType), true));
+                instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass(returnType), true, false));
                 break;
             }
             if (returnType.contains("["))
-                instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass(returnType), false));
+                instances.add(new DalvikInstance(c, m, codeAddress, new GeneralClass(returnType), false, false));
             break;
         default:
             break;
