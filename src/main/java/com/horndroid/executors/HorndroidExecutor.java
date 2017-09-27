@@ -111,7 +111,7 @@ public class HorndroidExecutor {
     private SourcesSinks getSourcesAndSinks() {
 
         final SourcesSinks sourcesSinks = new SourcesSinks();
-        File sourceSinkFile = new File("bin/SourcesAndSinksDroidSafe.txt");
+        File sourceSinkFile = new File("bin/SourcesAndSinks.txt");
         long startTime = System.nanoTime();
         LOGGER.debug("Parsing sources and sinks...");
         try {

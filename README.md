@@ -14,6 +14,8 @@ Note: These are included by default currently
 ### Other OS
 Copy relevant library file from %Z3Home% to src/main/resources
 
+Note: DYLD_LIBRARY_PATH (MAC OS) or LD_LIBRARY_PATH (Linux, FreeBSD) should include build target directory.
+
 ## Dependency Resolution:  apktool
 Build apktool.jar to %apktool%:
 http://ibotpeaches.github.io/Apktool/
@@ -46,7 +48,7 @@ options:
 -s flow sensitive heap only for the objects created in the method that contains a call to a sink.
 
 #### Note: files Callbacks.txt, EntryPoints.txt and SourcesAndSinks.txt 
-(SourcesAndSinksDroidSafe.txt) should be in src/main/resources
+(SourcesAndSinksDroidSafe.txt) should be in src/main/resources/bin
 
 You can specify a path to an *.apk file or a folder (all apps in sub-folders will be also analysed).
 
