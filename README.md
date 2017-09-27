@@ -14,7 +14,7 @@ Note: These are included by default currently
 ### Other OS
 Copy relevant library file from %Z3Home% to src/main/resources
 
-Note: DYLD_LIBRARY_PATH (MAC OS) or LD_LIBRARY_PATH (Linux, FreeBSD) should include build target directory.
+Note: DYLD_LIBRARY_PATH (MAC OS) or LD_LIBRARY_PATH (Linux, FreeBSD) should include build target directory (see %Z3Home%../examples/java/README).
 
 ## Dependency Resolution:  apktool
 Build apktool.jar to %apktool%:
