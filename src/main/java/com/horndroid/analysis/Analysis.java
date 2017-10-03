@@ -1154,7 +1154,7 @@ public class Analysis {
         int instructionNumberAPK = 0;
         int classNumberAPK = 0;
         for (GeneralClass c : apkClasses.values()) {
-            if (!(c.getType().startsWith("Landroid/support/v4/") || c.getType().startsWith("Landroid/support/v7/"))) {
+            if (!(c.getType().startsWith("Landroid/support"))) {
                 classes.put(c.getType().hashCode(), c);
                 classNumberAPK++;
                 if (c instanceof DalvikClass) {
