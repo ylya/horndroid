@@ -65,11 +65,11 @@ For all *.apk files in the folder HornDroid will report (in logs/app.log):
 *Sound Flow-Sensitive Heap Abstraction for the Static Analysis of Android Applications*
 Stefano Calzavara, Ilya Grishchenko, Adrien Koutsos, and Matteo Maffei
 _In Proceedings of 30th Computer Security Foundations Symposium (IEEE CSF 2017)._
-[PDF](https://secpriv.tuwien.ac.at/fileadmin/t/secpriv/Papers/csf2017.pdf)
-[Technical Report](https://secpriv.tuwien.ac.at/fileadmin/t/secpriv/Papers/csf2017-tr.pdf)
+[PDF](https://secpriv.wien/downloads/horndroid/csf2017.pdf)
+[Technical Report](https://secpriv.wien/downloads/horndroid/csf2017-tr.pdf)
 
 *HornDroid: Practical and Sound Security Static Analysis of Android Applications by SMT Solving*
 Stefano Calzavara, Ilya Grishchenko, and Matteo Maffei
 _In Proceedings of 1st IEEE European Symposium on Security and Privacy (IEEE EuroS&P 2016)._
-[PDF](https://secpriv.tuwien.ac.at/fileadmin/t/secpriv/Papers/eurosp16.pdf)
-[Technical Report](https://secpriv.tuwien.ac.at/fileadmin/t/secpriv/Papers/eurosp16-tr.pdf)
+[PDF](https://secpriv.wien/downloads/horndroid/eurosp16.pdf)
+[Technical Report](https://secpriv.wien/downloads/horndroid/eurosp16-tr.pdf)
